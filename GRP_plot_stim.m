@@ -61,10 +61,10 @@ lfp_ch_ix = find(strcmp(DataStr(1).data.TFbl.label,'LFP'));
 
 % find frequency indices
 for i = 1:2
-    [~,theta_freq_ix(i)] = min(abs(frqs-theta_lim(i)));
-    [~,beta_freq_ix(i)] = min(abs(frqs-beta_lim(i)));
+    [~,th_ix(i)] = min(abs(frqs-theta_lim(i)));
+    [~,b_ix(i)] = min(abs(frqs-beta_lim(i)));
     for s = 1:length(SBJs)
-        [~,betapk_freq_ix(s,i)] = min(abs(frqs-betapk_lim(s,i)));
+        [~,bpk_ix(s,i)] = min(abs(frqs-betapk_lim(s,i)));
     end
 end
 
@@ -87,14 +87,14 @@ for s=1:length(SBJs)
     % avg across trials using baseline corrected .TFbl, not raw .TF
     pwr_mean = squeeze(mean(DataStr(s).data.TFbl.powspctrm,1));
     
-    theta_ofc(s,:)  = squeeze(mean(pwr_mean(ofc_ch_ix,theta_freq_ix(1):theta_freq_ix(2),:),2));
-    beta_ofc(s,:)   = squeeze(mean(pwr_mean(ofc_ch_ix,beta_freq_ix(1):beta_freq_ix(2),:),2));
-    betapk_ofc(s,:) = squeeze(mean(pwr_mean(ofc_ch_ix,betapk_freq_ix(s,1):betapk_freq_ix(s,2),:),2));
+    theta_ofc(s,:)  = squeeze(mean(pwr_mean(ofc_ch_ix,th_ix(1):th_ix(2),:),2));
+    beta_ofc(s,:)   = squeeze(mean(pwr_mean(ofc_ch_ix,b_ix(1):b_ix(2),:),2));
+    betapk_ofc(s,:) = squeeze(mean(pwr_mean(ofc_ch_ix,bpk_ix(s,1):bpk_ix(s,2),:),2));
     pwr_ofc(s,:,:)  = squeeze(pwr_mean(ofc_ch_ix,:,:)); % [sbj, freq, time]
     
-    theta_lfp(s,:)  = squeeze(mean(pwr_mean(lfp_ch_ix,theta_freq_ix(1):theta_freq_ix(2),:),2));
-    beta_lfp(s,:)   = squeeze(mean(pwr_mean(lfp_ch_ix,beta_freq_ix(1):beta_freq_ix(2),:),2));
-    betapk_lfp(s,:) = squeeze(mean(pwr_mean(lfp_ch_ix,betapk_freq_ix(s,1):betapk_freq_ix(s,2),:),2));
+    theta_lfp(s,:)  = squeeze(mean(pwr_mean(lfp_ch_ix,th_ix(1):th_ix(2),:),2));
+    beta_lfp(s,:)   = squeeze(mean(pwr_mean(lfp_ch_ix,b_ix(1):b_ix(2),:),2));
+    betapk_lfp(s,:) = squeeze(mean(pwr_mean(lfp_ch_ix,bpk_ix(s,1):bpk_ix(s,2),:),2));
     pwr_lfp(s,:,:) = squeeze(pwr_mean(lfp_ch_ix,:,:)); % [sbj, freq, time]
 end
 
@@ -213,17 +213,17 @@ for s=1:length(SBJs)
     sbj_pwr = DataStr(s).data.TFbl.powspctrm;
     sbj_tfr(s,:,:,:) = squeeze(nanmean(sbj_pwr,1));
     psd = squeeze(nanmean(sbj_tfr(s,:,:,:),4));
-    frqs_beta = frqs(beta_freq_ix(1):beta_freq_ix(2));
-    [~,max_ix] = max(psd(:,beta_freq_ix(1):beta_freq_ix(2)),[],2);
-    [~,maxd_ix] = max(diff(psd(:,beta_freq_ix(1):beta_freq_ix(2))),[],2);
+    frqs_beta = frqs(b_ix(1):b_ix(2));
+    [~,max_ix] = max(psd(:,b_ix(1):b_ix(2)),[],2);
+    [~,maxd_ix] = max(diff(psd(:,b_ix(1):b_ix(2))),[],2);
     
     sbj_beta_max(s,:) = frqs_beta(max_ix);
     sbj_betad_max(s,:) = frqs_beta(maxd_ix);
     
     % Average within frequency band
-    sbj_theta  = squeeze(mean(sbj_pwr(:,:,theta_freq_ix(1):theta_freq_ix(2),:),3));
-    sbj_beta   = squeeze(mean(sbj_pwr(:,:,beta_freq_ix(1):beta_freq_ix(2),:),3));
-    sbj_betapk = squeeze(mean(sbj_pwr(:,:,betapk_freq_ix(s,1):betapk_freq_ix(s,2),:),3));
+    sbj_theta  = squeeze(mean(sbj_pwr(:,:,th_ix(1):th_ix(2),:),3));
+    sbj_beta   = squeeze(mean(sbj_pwr(:,:,b_ix(1):b_ix(2),:),3));
+    sbj_betapk = squeeze(mean(sbj_pwr(:,:,bpk_ix(s,1):bpk_ix(s,2),:),3));
     
     sbj_theta_sem(s,:,:)  = squeeze(std(sbj_theta,[],1))./sqrt(size(sbj_theta,1));
     sbj_beta_sem(s,:,:)   = squeeze(std(sbj_beta,[],1))./sqrt(size(sbj_beta,1));
@@ -297,8 +297,8 @@ end
 s = find(strcmp(SBJs,'PFC01'));
 % Get PFC01 single-trial theta/beta
 sbj_pwr = DataStr(s).data.TFbl.powspctrm;
-sbj_theta  = squeeze(mean(sbj_pwr(:,:,theta_freq_ix(1):theta_freq_ix(2),:),3));
-sbj_beta   = squeeze(mean(sbj_pwr(:,:,beta_freq_ix(1):beta_freq_ix(2),:),3));
+sbj_theta  = squeeze(mean(sbj_pwr(:,:,th_ix(1):th_ix(2),:),3));
+sbj_beta   = squeeze(mean(sbj_pwr(:,:,b_ix(1):b_ix(2),:),3));
 
 figure('Name',['PFC01 single-trial stacks']);
 for ch_ix = 1:length(ch_lab)
