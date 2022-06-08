@@ -19,7 +19,7 @@ end
 
 % Plotting parameters
 sem_alpha  = 0.5;
-plot_time_lim = [-0.5 2];
+plot_time_lim = [-2 2];
 stim_time_lim = [0 2];
 plot_freq_lim = [2 30];
 
@@ -49,10 +49,13 @@ SyncDetails = numbers;
 DataStr=struct;
 for s=1:size(FileDetails,1)-1
     
-    load(strcat(DataStorage2,'/',FileDetails{s,1},'Stimulus_Locked.mat'));
+    load(strcat(DataStorage,'/',FileDetails{s,1},'Decision_Locked.mat'));%also a SBJDecision_Locked_Zscore.mat
     DataStr(s).data=AllData;
 end
 
+%% ========================================================================
+%                           GROUP-LEVEL
+%  ========================================================================
 %% Extract group-level power in PFC and subcortical from all SBJ
 frqs = DataStr(1).data.TFbl.freq;   % 2:80 Hz
 tmes = DataStr(1).data.TFbl.time;   % -3:3 s
@@ -202,6 +205,9 @@ colorbar;
 title(['Group averaged (n=' num2str(length(SBJs)) ') LFP TFR']);
 set(gca,'FontSize',16);
 
+%% ========================================================================
+%                           SBJ-LEVEL
+%  ========================================================================
 %% Extract SBJ-level power in PFC and LFP
 % Compute SEM across trials
 sbj_tfr         = nan(length(SBJs),length(ch_lab),length(frqs),length(tmes));

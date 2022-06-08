@@ -3,7 +3,7 @@ addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
-SBJ_pfc_rois  = {'FPC', 'OFC', 'OFC', 'FPC'};
+sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 % bg_roi   = {'FPC', 'OFC', 'OFC', 'FPC'};
 sbj_colors = distinguishable_colors(length(SBJs));
 
@@ -118,7 +118,7 @@ for s = 1:length(SBJs)
     trl_n = size(th_mn,1);
     trl_n_A = [trl_n_A; [1:trl_n]'];
     sbj_n_A = [sbj_n_A; num2str(ones(trl_n,1).*s)];
-    if strcmp(SBJ_pfc_rois{s},'OFC'); roi_ix = 1; else; roi_ix = 2; end
+    if strcmp(sbj_pfc_roi{s},'OFC'); roi_ix = 1; else; roi_ix = 2; end
     pfc_roi = [pfc_roi; num2str(ones(trl_n,1).*roi_ix)];
     
     bpk_A   = [bpk_A; bpk_mn];
