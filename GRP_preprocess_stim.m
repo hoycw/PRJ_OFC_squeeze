@@ -10,6 +10,14 @@ ft_defaults
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 
+evnt_lab = 'stim';      % event to time-lock segmented data {'stim' | 'dec'}
+trl_lim = [-3 6];       % cut trial data (in sec) relative to event
+new_srate = 1000;
+trl_lim_samp = trl_lim.*new_srate;
+n_choice_trl = 75;
+
+outlier_std_thresh = 3;
+
 %% Load parameters %%
 % Columns in SqueezeSubjectSyncSummary.xlsx:
 %   Patient, Block1 Neural Data, Block1 Behavioral Data, Blck1 Sync1, Blck1
@@ -27,298 +35,215 @@ SyncDetails = numbers;
 
 %% Process data
 for s=1:3
-    clearvars -except s SBJs sbj_pfc_roi Flnum SyncDetails FileDetails
-    close all;
+%     clearvars -except s SBJs sbj_pfc_roi evnt_lab trl_lim new_srate trl_lim_samp n_choice_trl Flnum SyncDetails FileDetails
+%     close all;
     
-    % Loading neural data
-    fname=fullfile(cd,'DataFiles',FileDetails{s,2});    % Block1 Neural Data
-    load(fname);
-    
-    % Synchronise data- CWH: resample to 1 kHz
-    % Set the resample rate of PCS data to be the same as the sampling rate in the Matlab /
-    % Biopacs
-    srate = SyncDetails(s,7);%422;  % Sample Rate
-    new_srate = 1000;
-    n_samp = size(signal,2);
-    srorig = srate;
-    len_s  = n_samp./srorig;
-    dt = 1./srate;
-    orig_time_ax=[0:dt:len_s]; orig_time_ax(end)=[];
-    dtrs1=[];
-    for ch_ix = 1:2
-        dtrs1(ch_ix,:)=resample(signal(ch_ix,:),orig_time_ax,new_srate);
-    end
-    
-    %% Plot PSDs of the data
-    [pxx1,f] = pwelch(dtrs1(1,:),mFs,0,[1:100],mFs);
-    [pxx2,f] = pwelch(dtrs1(2,:),mFs,0,[1:100],mFs);
-    figure; loglog(f,pxx1); hold on; loglog(f,pxx2); box off
-    legend('Signal 1- LFP','Signal 2 - PFC'); legend boxoff
-    
-    %% Find and clean up the PCS data
-%     figure; plot(dtrs1(1,:));
-    % PCSstr=input('Input timing of the final pulse   ');
-      
-    PCSstr = SyncDetails(s,1);  % Blck1 Sync 1
-    
-    dtrst1=dtrs1(:,PCSstr:end);
-    
-    % Matlab timer baseline time is at the beginning of the first synchronisation acquisition
-    
-    fname=fullfile(cd,'DataFiles',FileDetails{s,3});    % Block1 Behavioral Data
-    load(fname);
-
-    mlbltm1=syncR1.strtm;
-    % Find and sync the Biopacs / Matlab data.
-    figure; plot(syncR1.data(:,3));
-    % Biopstr=input('Input timing of the final pulse');
-    Biopstr1=SyncDetails(s,2);  % Blck1 Sync 2
-    
-    trls1=result.data;
-    
-    %% Create Fieldtrip structure
-    data=struct;
-    % data.fsample=mFs;
-    data.label{1,1}='LFP';
-    data.label{2,1}='OFC';
-    
-    ad1=Biopstr1./500;
-    % Have checked the timings of this and it works now.
-    PCSst1=mlbltm1+ad1;
-    
-    % Find where a button was pressed %
-    trialtype=[];
-    for trl_ix = 1:75 % !!! why only to 75? there are 85 trials in trls1
-        if ~isempty(trls1(trl_ix).key)
-        trialtype(trl_ix)=trls1(trl_ix).key==37 | trls1(trl_ix).key==39;
+    for b_ix = 1:2
+        % Set SBJ-specific filenames and sync details
+        if b_ix==1
+            nrl_fname = fullfile(cd,'DataFiles',FileDetails{s,2});    % Block1 Neural Data
+            bhv_fname = fullfile(cd,'DataFiles',FileDetails{s,3});    % Block1 Behavioral Data
+            PCS_start    = SyncDetails(s,1);  % Blck1 Sync 1
+            biopac_start = SyncDetails(s,2);  % Blck1 Sync 2
+        elseif b_ix==2
+            nrl_fname = fullfile(cd,'DataFiles',FileDetails{s,6});    % Block2 Neural Data
+            bhv_fname = fullfile(cd,'DataFiles',FileDetails{s,7}); % Block2? behavioral data
+            PCS_start    = SyncDetails(s,5);    % Blck2? Sync 1
+            biopac_start = SyncDetails(s,6);  % Blck2? Sync 2
+        else
+            error('only 2 blocks!');
         end
-    end
-    whrtrl=find(trialtype==1);
-    
-    for trl_ix=whrtrl
-        effort(trl_ix,1)=trls1(trl_ix).effortIx;
-        stake(trl_ix,1)=trls1(trl_ix).stakeIx;
-        trialstr(trl_ix,1)=trls1(trl_ix).startStim-PCSst1;  %1.5 seconds until motor mapping revealed.
         
-%         if trls1(trl_ix).Yestrial ==1
-%             choicestr(trl_ix,1)=trls1(trl_ix).YesChoice-PCSst1;
-%         else
-%             choicestr(trl_ix,1)=trls1(trl_ix).NoChoice-PCSst1;
-%         end
-%         
-        decision(trl_ix,1)=trls1(trl_ix).Yestrial;
+        % Loading neural data
+        load(nrl_fname);
         
-        st=round(trialstr(trl_ix)*1000)-3000; % grab start plus 3 seconds before
-        ed=st+6000;                         % to end plus 6 seconds after
-        data.trial{trl_ix}=dtrst1(:,st:ed);
-        
-%         st=round(choicestr(trl_ix)*1000)-3000;
-%         ed=st+6000;
-%         data.trial{trl_ix}=dtrst1(:,st:ed);
-        
-        data.trial{trl_ix}=dtrst1(:,st:ed);
-        % Remember this is dependent on sample rate and should be in seconds.
-        data.time{trl_ix}=([st:ed]-st-3000)./1000;
-        data.sampleinfo(trl_ix,:)=[st ed];
-        %     data.trialinfo(trl_ix,1)=trls1(trl_ix).effortIx;
-        %     data.trialinfo(trl_ix,2)=trls1(trl_ix).stakeIx;
-        
-        
-    end
-    
-    %% Load Block 2 data
-    clear syncR1 syncR2 result signal
-    close all
-    
-    fname=fullfile(cd,'DataFiles',FileDetails{s,6}); % Block2 Neural Data
-    load(fname);
-       
-    % Synchronise data
-    % Set the resample rate of PCS data to be the same as the sampling rate in the Matlab /
-    % Biopacs
-    n_samp = size(signal,2);
-    srorig = srate;
-    len_s  = n_samp./srorig;
-    dt = 1./srate;
-    orig_time_ax=[0:dt:len_s]; orig_time_ax(end)=[];
-    dtrs2=[];
-    for ch_ix = 1:2
-        dtrs2(ch_ix,:)=resample(signal(ch_ix,:),orig_time_ax,new_srate);
-    end
-    
-    % Plot PSDs of the data
-    [pxx1,f] = pwelch(dtrs2(1,:),mFs,0,[1:100],mFs);
-    [pxx2,f] = pwelch(dtrs2(2,:),mFs,0,[1:100],mFs);
-    figure; loglog(f,pxx1); hold on; loglog(f,pxx2); box off
-    legend('Signal 1- LFP','Signal 2 - PFC'); legend boxoff
-    
-    % Find and clean up the PCS data
-%     figure; plot(dtrs2(1,:));
-    % PCSstr=input('Input timing of the final pulse   ');
-    % Note that for this subject - using the first pulse as the end is missing. (Ignore the first
-    % deflection which is 300ms before the first pulse, this seems to be a
-    % turing on artefact and is not visible in the EMG pulse')
-    
-    PCSstr=SyncDetails(s,5);    % Blck2? Sync 1
-    
-    dtrst2=dtrs2(:,PCSstr:end);
-    
-    % Matlab timer baseline time is at the beginning of the first synchronisation acquisition
-    
-    fname=fullfile(cd,'DataFiles',FileDetails{s,7}); % Block2? behavioral data
-    load(fname);
-    
-    mlbltm2=syncR1.strtm;
-    % Find and sync the Biopacs / Matlab data.
-    figure; plot(syncR1.data(:,3));
-    % Biopstr=input('Input timing of the final pulse');
-    % Here using the first pulse but be careful to ignore the ECG artefact %
-    
-    Biopstr2=SyncDetails(s,6);  % Blck2? Sync 2
-    
-    trls2=result.data;
-    
-    % Create Fieldtrip structure
-    data2=struct;
-    % data.fsample=mFs;
-    data2.label{1,1}='LFP';
-    data2.label{2,1}='OFC';
-    
-    % Need to use the sampling rate here of the Biopacs
-    ad2=Biopstr2./500;
-    PCSst2=mlbltm2+ad2;
-    
-    % Find the trials where a key was pressed.
-    trialtype=[];
-    for trl_ix=1:75
-        if ~isempty(trls2(trl_ix).key)
-        trialtype(trl_ix)=trls2(trl_ix).key==37 | trls2(trl_ix).key==39;
+        % Synchronise data- CWH: resample to 1 kHz
+        % Set the resample rate of PCS data to be the same as the sampling rate in the Matlab /
+        % Biopacs
+        srate = SyncDetails(s,7);%422;  % Sample Rate
+        n_samp = size(signal,2);
+        srorig = srate;
+        len_s  = n_samp./srorig;
+        dt = 1./srate;
+        orig_time_ax = [0:dt:len_s]; orig_time_ax(end)=[];
+        nrl_resamp = [];
+        for ch_ix = 1:2
+            nrl_resamp(ch_ix,:) = resample(signal(ch_ix,:),orig_time_ax,new_srate);
         end
+        
+        %% Plot PSDs of the data
+        [pxx1,f] = pwelch(nrl_resamp(1,:),new_srate,0,[1:100],new_srate);
+        [pxx2,f] = pwelch(nrl_resamp(2,:),new_srate,0,[1:100],new_srate);
+        figure; loglog(f,pxx1); hold on; loglog(f,pxx2); box off
+        xticks([1 4 8 12 20 30:10:100]);
+        legend('Signal 1- LFP','Signal 2 - PFC'); legend boxoff
+        title([SBJs{s} ' block ' num2str(b_ix) ' PSDs']);
+        
+        %% Find and clean up the PCS data
+        %     figure; plot(dtrs1(1,:));
+        % PCSstr=input('Input timing of the final pulse   ');
+        nrl_trim = nrl_resamp(:,PCS_start:end);
+        
+        
+        load(bhv_fname);
+        
+        % Matlab timer baseline time is at the beginning of the first synchronisation acquisition
+        matlab_bsln_time = syncR1.strtm;
+        % Find and sync the Biopacs / Matlab data.
+        figure; plot(syncR1.data(:,3)); title([SBJs{s} ' block ' num2str(b_ix) ' Biopac data']);
+        % Biopstr=input('Input timing of the final pulse');
+        
+        bhv = result.data;
+        
+        %% Create Fieldtrip structure
+        blk_data{b_ix} = struct;
+        % data.fsample=new_srate;
+        blk_data{b_ix}.label{1,1}='LFP';
+        blk_data{b_ix}.label{2,1}='OFC';
+        
+        ad1 = biopac_start./500;
+        % Have checked the timings of this and it works now.
+        % !!! CWH: unclear what these timestamps are, but Simon says above it's okay...
+        PCS_comb_bhv_start = matlab_bsln_time+ad1;
+        
+        % Find where a button was pressed %
+        trial_type = zeros([n_choice_trl 1]);
+        for trl_ix = 1:n_choice_trl
+            if ~isempty(bhv(trl_ix).key)
+                trial_type(trl_ix)=bhv(trl_ix).key==37 | bhv(trl_ix).key==39;
+            end
+        end
+        resp_ix = find(trial_type==1);
+        
+        blk_effort{b_ix}   = nan(size(trial_type));
+        blk_stake{b_ix}    = nan(size(trial_type));
+        blk_decision{b_ix} = nan(size(trial_type));
+        trial_onset        = nan(size(trial_type));
+        blk_data{b_ix}.time  = cell(size(trial_type));
+        blk_data{b_ix}.trial = cell(size(trial_type));
+        for t = 1:length(resp_ix)
+            trl_ix = resp_ix(t);
+            blk_effort{b_ix}(trl_ix,1)   = bhv(trl_ix).effortIx;
+            blk_stake{b_ix}(trl_ix,1)    = bhv(trl_ix).stakeIx;
+            trial_onset(trl_ix,1) = bhv(trl_ix).startStim-PCS_comb_bhv_start;  %1.5 seconds until motor mapping revealed.
+            
+            if bhv(trl_ix).Yestrial ==1
+                choice_onset(trl_ix,1) = bhv(trl_ix).YesChoice-PCS_comb_bhv_start;
+            else
+                choice_onset(trl_ix,1) = bhv(trl_ix).NoChoice-PCS_comb_bhv_start;
+            end
+            
+            blk_decision{b_ix}(trl_ix,1) = bhv(trl_ix).Yestrial;
+            
+            if strcmp(evnt_lab,'stim')
+                start_samp = round(trial_onset(trl_ix)*new_srate) + trl_lim_samp(1);
+            elseif strcmp(evnt_lab,'dec')
+                start_samp = round(choicestr(trl_ix)*new_srate) + trl_lim_samp(1);
+            else
+                error('not ready for event besides stim or dec');
+            end
+            end_samp   = start_samp + trl_lim_samp(2);                         % to end plus 6 seconds after
+            blk_data{b_ix}.trial{trl_ix} = nrl_trim(:,start_samp:end_samp);
+            
+            % Remember this is dependent on sample rate and should be in seconds.
+            blk_data{b_ix}.time{trl_ix} = ([start_samp:end_samp]-start_samp+trl_lim_samp(1))./new_srate;
+            blk_data{b_ix}.sampleinfo(trl_ix,:) = [start_samp end_samp];
+            %     blk_data.trialinfo(trl_ix,1)=trls1(trl_ix).effortIx;
+            %     blk_data.trialinfo(trl_ix,2)=trls1(trl_ix).stakeIx;
+        end
+        
+        % Create previous trial regressors
+        blk_effort_prv{b_ix} = blk_effort{b_ix};
+        blk_effort_prv{b_ix}(end) = [];                     % remove last trial
+        blk_effort_prv{b_ix} = [nan; blk_effort_prv{b_ix}]; % add nan to start, shifting by 1
+        
+        blk_stake_prv{b_ix} = blk_stake{b_ix};
+        blk_stake_prv{b_ix}(end) = [];
+        blk_stake_prv{b_ix} = [nan; blk_stake_prv{b_ix}];
+        
+        blk_decision_prv{b_ix} = blk_decision{b_ix};
+        blk_decision_prv{b_ix}(end) = [];
+        blk_decision_prv{b_ix} = [nan; blk_decision_prv{b_ix}];
+        
+        clear syncR1 syncR2 result signal nrl_resamp nrl_trim orig_time_ax power
+%         close all
     end
-    whrtrl=find(trialtype==1);
     
-    for trl_ix=whrtrl
-        effort2(trl_ix,1)=trls2(trl_ix).effortIx;
-        stake2(trl_ix,1)=trls2(trl_ix).stakeIx;
-        trialstr2(trl_ix,1)=trls2(trl_ix).startStim-PCSst2;  %1.5 seconds until motor mapping revealed.
-        
-%         if trls2(trl_ix).Yestrial ==1
-%             choicestr2(trl_ix,1)=trls2(trl_ix).YesChoice-PCSst2;
-%         else
-%             choicestr2(trl_ix,1)=trls2(trl_ix).NoChoice-PCSst2;
-%         end
-        
-        decision2(trl_ix,1)=trls2(trl_ix).Yestrial;
-        
-        st=round(trialstr2(trl_ix)*1000)-3000;
-        ed=st+6000;
-        data2.trial{trl_ix}=dtrst2(:,st:ed);
-        
-%         st=round(choicestr2(trl_ix)*1000)-3000;
-%         ed=st+6000;
-%         data2.trial{trl_ix}=dtrst2(:,st:ed);
-        
-        % Remember this is dependent on sample rate and should be in seconds.
-        data2.time{trl_ix}=([st:ed]-st-3000)./1000;
-        data2.sampleinfo(trl_ix,:)=[st ed];
-        %     data2.trialinfo(trl_ix,1)=trls2(trl_ix).effortIx;
-        %     data2.trialinfo(trl_ix,2)=trls2(trl_ix).stakeIx;
-    end
+    %% Combine data across blocks
+    % Combine behavioral data
+    effort   = [blk_effort{1}; blk_effort{2}];
+    stake    = [blk_stake{1}; blk_stake{2}];
+    decision = [blk_decision{1}; blk_decision{2}];
+    effort_prv   = [blk_effort_prv{1}; blk_effort_prv{2}];
+    stake_prv    = [blk_stake_prv{1}; blk_stake_prv{2}];
+    decision_prv = [blk_decision_prv{1}; blk_decision_prv{2}];
     
-    close all;
-    clear syncR1 syncR2 result signal
-    
-    %% Combine together
-    
-    % Create previous trial regressors
-    effortS=effort;
-    effortS2=effort2;
-    effortS(end)=[];            % remove last trial
-    effortS=[nan;effortS];      % add nan to start, shifting by 1
-    effortS2(end)=[];
-    effortS2=[nan;effortS2];    
-    
-    stakeS=stake;
-    stakeS2=stake2;
-    stakeS(end)=[];
-    stakeS=[nan;stakeS];
-    stakeS2(end)=[];
-    stakeS2=[nan;stakeS2];
-    
-    decisionS=decision;
-    decisionS(end)=[];
-    decisionS=[nan;decisionS];
-    decisionS2=decision2;
-    decisionS2(end)=[];
-    decisionS2=[nan;decisionS2];
-
-    % Combine both blocks
-    effortS=[effortS; effortS2];
-    decisionS=[decisionS;decisionS2];
-    stakeS=[stakeS;stakeS2];
-    
-    % Just add data2 to data 55
-    effort=[effort;effort2];
-    stake=[stake; stake2];
-    decision=[decision;decision2];
-
-    for trl_ix=1:75
-        data.trial{trl_ix+75}=data2.trial{trl_ix};
-        data.time{trl_ix+75}=data2.time{trl_ix};
-%         data.trialbl{trl_ix+75}=data2.trialbl{75};
+    % Combine neural data
+    data = blk_data{1};
+    for trl_ix=1:n_choice_trl
+        data.trial{trl_ix+n_choice_trl} = blk_data{2}.trial{trl_ix};
+        data.time{trl_ix+n_choice_trl}  = blk_data{2}.time{trl_ix};
+%         data.trialbl{trl_ix+n_choice_trl} = blk_data{2}.trialbl{n_choice_trl};
     end
     
     %% Find where the was a missing trial (not completed).
-    whrempty=find(effort==0);
+    empty_ix = find(effort==0);
+    if ~isempty(empty_ix); error('why are there still empty trials after excluding above?'); end
     
-    effort(whrempty)=[];
-    stake(whrempty)=[];
-    decision(whrempty)=[];
-    data.trial(whrempty)=[];
-    data.time(whrempty)=[];
+%     effort(whrempty)=[];
+%     stake(whrempty)=[];
+%     decision(whrempty)=[];
+%     data.trial(whrempty)=[];
+%     data.time(whrempty)=[];
 %     data.trialbl(whrempty)=[];
     
     % data.sampleinfo(76:150,:)=data2.sampleinfo;
     
     %% Find and reject outliers
-    for trl_ix=1:size(data.trial,2)
-        tmp=data.trial{trl_ix};
-        trialstd(trl_ix,:)=std(tmp,1,2);
-        trialmean(trl_ix,:)=mean(abs(tmp),2);    % why are you taking abs here?
+    % Get standard deviation and normalize per channel
+    trial_std = nan([size(data.trial,1) length(data.label)]);
+    for trl_ix = 1:size(data.trial,1)
+        tmp = data.trial{trl_ix};
+        trial_std(trl_ix,:)  = std(tmp,1,2);
+%         trialmean(trl_ix,:) = mean(abs(tmp),2);    % why are you taking abs here?
     end
-    
-    mnstd=mean(trialstd);
-    trialstdN=trialstd./mnstd;
+    trial_std_norm = trial_std./mean(trial_std);
     
     % figure;
     % subplot(2,1,1); plot(trialstdN(:,1));
     % subplot(2,1,2); plot(trialmean);
     
-    whrc=[];
+    % Find trials with outlier standard deviations
+    bad_trl_ix = [];
     for ch_ix = 1:2
-        whr=find(trialstdN(:,ch_ix)>3);
-        whrc=[whrc;whr];
+        bad_trl_ix = [bad_trl_ix; find(trial_std_norm(:,ch_ix)>outlier_std_thresh)];
+    end
+    bad_trl_ix = unique(bad_trl_ix);
+    if isempty(bad_trl_ix)
+        fprintf('%s: No bad trials identified.\n',SBJs{s});
+    else
+        fprintf(2,'%s: Removing %d trials!\n',SBJs{s},length(bad_trl_ix));
     end
     
-    whrc=unique(whrc);
+    % Remove outlier trials
+    data.trial(bad_trl_ix) = [];
+%     data.trialbl(bad_trl_ix) = [];
+    data.time(bad_trl_ix) = [];
+    data.sampleinfo(bad_trl_ix,:) = [];
     
-    % Now delete trial whrc on in all data.
-    
-    data.trial(whrc)=[];
-%     data.trialbl(whrc)=[];
-    data.time(whrc)=[];
-    data.sampleinfo(whrc,:)=[];
-    
-    effort(whrc)=[];
-    stake(whrc)=[];
-    decision(whrc)=[];
+    effort(bad_trl_ix)   = [];
+    stake(bad_trl_ix)    = [];
+    decision(bad_trl_ix) = [];
+    effort_prv(bad_trl_ix)   = [];
+    stake_prv(bad_trl_ix)    = [];
+    decision_prv(bad_trl_ix) = [];
     
     %% BEHAVIORAL MODELLING %%
     
     % Matlab timer baseline time is at the beginning of the first synchronisation acquisition
     
-    effortlevels =[0.16 0.32 0.48 0.64 0.80];
-    stakelevels  =[1 4 7 10 13];
+    effortlevels = [0.16 0.32 0.48 0.64 0.80];
+    stakelevels  = [1 4 7 10 13];
     
     effortfr=zeros(size(effort,1),1);
     for g=1:5
@@ -467,7 +392,7 @@ for s=1:3
     AllData.beh.fit=fit;
     AllData.expS.stakeS=stakeS;
     AllData.expS.decisionS=decisionS;
-    AllData.expS.effortS=effortS;
+    AllData.expS.effortS=effort_prv;
     
     outfold='C:\Users\slittle\Box\Research\Motivation\OFC_recordings_squeeze\Analysis\Group\Preprocess\Output_files_shifted_behavior';
     
