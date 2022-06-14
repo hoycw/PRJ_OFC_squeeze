@@ -1,5 +1,6 @@
 %% Mixed modelling on the Processed data %%
 addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
+addpath('/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/');
 ft_defaults
 
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'

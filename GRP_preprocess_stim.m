@@ -10,6 +10,7 @@ ft_defaults
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 
+plot_it  = 0;           % 0/1 whether to creat plots
 evnt_lab = 'stim';      % event to time-lock segmented data {'stim' | 'dec'}
 trl_lim = [-3 6];       % cut trial data (in sec) relative to event
 new_srate = 1000;
@@ -18,15 +19,17 @@ n_choice_trl = 75;
 
 outlier_std_thresh = 3;
 
+prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
+
 %% Load parameters %%
 % Columns in SqueezeSubjectSyncSummary.xlsx:
 %   Patient, Block1 Neural Data, Block1 Behavioral Data, Blck1 Sync1, Blck1
 %   Sync 2, Block2 Neural Data, Block1 Behavioral Data (likely typo?),
 %   Blck1 Sync 1, Blck1 Sync 2, SampleRate
-DataStorage='/Users/colinhoy/Code/PRJ_OFC_squeeze/box/Analysis/Group/Preprocess';
-DataStorage2='/Users/colinhoy/Code/PRJ_OFC_squeeze/box/Analysis/Group/Preprocess/Output_files_shifted_behavior';
+DataStorage  = [prj_dir 'box/Analysis/Group/Preprocess/'];
+DataStorage2 = [prj_dir 'box/Analysis/Group/Preprocess/Output_files_shifted_behavior/'];
 
-[numbers, strings, raw] = xlsread(strcat(DataStorage,'/','SqueezeSubjectSyncSummary.xlsx'));
+[numbers, strings, raw] = xlsread(strcat(DataStorage,'SqueezeSubjectSyncSummary.xlsx'));
 % SBJs: PFC03, PFC04, PFC05, PFC01, PMC10
 if ~all(strcmp(strings(2:6,1),[SBJs {'PMC10'}]')); error('SBJ order off!'); end
 
@@ -34,20 +37,20 @@ FileDetails = strings(2:end,:);
 SyncDetails = numbers;
 
 %% Process data
-for s=1:3
+for s=1:4
 %     clearvars -except s SBJs sbj_pfc_roi evnt_lab trl_lim new_srate trl_lim_samp n_choice_trl Flnum SyncDetails FileDetails
 %     close all;
     
-    for b_ix = 1:2
+    for r_ix = 1:2
         % Set SBJ-specific filenames and sync details
-        if b_ix==1
-            nrl_fname = fullfile(cd,'DataFiles',FileDetails{s,2});    % Block1 Neural Data
-            bhv_fname = fullfile(cd,'DataFiles',FileDetails{s,3});    % Block1 Behavioral Data
+        if r_ix==1
+            nrl_fname = fullfile(DataStorage,'DataFiles',FileDetails{s,2});    % Block1 Neural Data
+            bhv_fname = fullfile(DataStorage,'DataFiles',FileDetails{s,3});    % Block1 Behavioral Data
             PCS_start    = SyncDetails(s,1);  % Blck1 Sync 1
             biopac_start = SyncDetails(s,2);  % Blck1 Sync 2
-        elseif b_ix==2
-            nrl_fname = fullfile(cd,'DataFiles',FileDetails{s,6});    % Block2 Neural Data
-            bhv_fname = fullfile(cd,'DataFiles',FileDetails{s,7}); % Block2? behavioral data
+        elseif r_ix==2
+            nrl_fname = fullfile(DataStorage,'DataFiles',FileDetails{s,6});    % Block2 Neural Data
+            bhv_fname = fullfile(DataStorage,'DataFiles',FileDetails{s,7}); % Block2? behavioral data
             PCS_start    = SyncDetails(s,5);    % Blck2? Sync 1
             biopac_start = SyncDetails(s,6);  % Blck2? Sync 2
         else
@@ -56,6 +59,12 @@ for s=1:3
         
         % Loading neural data
         load(nrl_fname);
+        
+        % PFC01 - put it back into signal.
+        if strcmp(SBJs{s},'PFC01') && ~exist('signal','var')
+            signal(1,:)=datar(:,1)';        % 1 = +2 -0      % 2 = +1 -3
+            signal(2,:)=datar(:,3)';        % 3 = +9 -8    % 4 = +11 -10
+        end
         
         % Synchronise data- CWH: resample to 1 kHz
         % Set the resample rate of PCS data to be the same as the sampling rate in the Matlab /
@@ -72,98 +81,112 @@ for s=1:3
         end
         
         %% Plot PSDs of the data
-        [pxx1,f] = pwelch(nrl_resamp(1,:),new_srate,0,[1:100],new_srate);
-        [pxx2,f] = pwelch(nrl_resamp(2,:),new_srate,0,[1:100],new_srate);
-        figure; loglog(f,pxx1); hold on; loglog(f,pxx2); box off
-        xticks([1 4 8 12 20 30:10:100]);
-        legend('Signal 1- LFP','Signal 2 - PFC'); legend boxoff
-        title([SBJs{s} ' block ' num2str(b_ix) ' PSDs']);
+        if plot_it
+            [pxx1,f] = pwelch(nrl_resamp(1,:),new_srate,0,[1:100],new_srate);
+            [pxx2,f] = pwelch(nrl_resamp(2,:),new_srate,0,[1:100],new_srate);
+            figure; loglog(f,pxx1); hold on; loglog(f,pxx2); box off
+            xticks([1 4 8 12 20 30:10:100]);
+            legend('Signal 1- LFP','Signal 2 - PFC'); legend boxoff
+            title([SBJs{s} ' block ' num2str(r_ix) ' PSDs']);
+        end
         
         %% Find and clean up the PCS data
         %     figure; plot(dtrs1(1,:));
         % PCSstr=input('Input timing of the final pulse   ');
         nrl_trim = nrl_resamp(:,PCS_start:end);
         
-        
         load(bhv_fname);
         
         % Matlab timer baseline time is at the beginning of the first synchronisation acquisition
         matlab_bsln_time = syncR1.strtm;
         % Find and sync the Biopacs / Matlab data.
-        figure; plot(syncR1.data(:,3)); title([SBJs{s} ' block ' num2str(b_ix) ' Biopac data']);
+        if plot_it
+            figure; plot(syncR1.data(:,3)); title([SBJs{s} ' block ' num2str(r_ix) ' Biopac data']);
+        end
         % Biopstr=input('Input timing of the final pulse');
         
-        bhv = result.data;
-        
-        %% Create Fieldtrip structure
-        blk_data{b_ix} = struct;
+        %% Compile all neural and behavioral data       
+        % Create Fieldtrip structure
+        run_data{r_ix} = struct;
         % data.fsample=new_srate;
-        blk_data{b_ix}.label{1,1}='LFP';
-        blk_data{b_ix}.label{2,1}='OFC';
+        run_data{r_ix}.label{1,1} = 'LFP';
+        run_data{r_ix}.label{2,1} = sbj_pfc_roi{s};
         
         ad1 = biopac_start./500;
         % Have checked the timings of this and it works now.
         % !!! CWH: unclear what these timestamps are, but Simon says above it's okay...
         PCS_comb_bhv_start = matlab_bsln_time+ad1;
         
-        % Find where a button was pressed %
-        trial_type = zeros([n_choice_trl 1]);
-        for trl_ix = 1:n_choice_trl
-            if ~isempty(bhv(trl_ix).key)
-                trial_type(trl_ix)=bhv(trl_ix).key==37 | bhv(trl_ix).key==39;
-            end
+        % 
+        bhv_raw = result.data;
+        choice_trl_ix   = find(~isnan([bhv_raw.yeslocation]));
+        if numel(choice_trl_ix)~=n_choice_trl || ~all(choice_trl_ix==1:n_choice_trl)
+            error('Why are the first 75 trials not choice trials?\n');
         end
-        resp_ix = find(trial_type==1);
+        if length(bhv_raw)~=n_choice_trl+10
+            warning('\t%s run #%d has different number of trials! (%d)\n',SBJs{s},r_ix,length(bhv_raw));
+        end
         
-        blk_effort{b_ix}   = nan(size(trial_type));
-        blk_stake{b_ix}    = nan(size(trial_type));
-        blk_decision{b_ix} = nan(size(trial_type));
-        trial_onset        = nan(size(trial_type));
-        blk_data{b_ix}.time  = cell(size(trial_type));
-        blk_data{b_ix}.trial = cell(size(trial_type));
-        for t = 1:length(resp_ix)
-            trl_ix = resp_ix(t);
-            blk_effort{b_ix}(trl_ix,1)   = bhv(trl_ix).effortIx;
-            blk_stake{b_ix}(trl_ix,1)    = bhv(trl_ix).stakeIx;
-            trial_onset(trl_ix,1) = bhv(trl_ix).startStim-PCS_comb_bhv_start;  %1.5 seconds until motor mapping revealed.
-            
-            if bhv(trl_ix).Yestrial ==1
-                choice_onset(trl_ix,1) = bhv(trl_ix).YesChoice-PCS_comb_bhv_start;
-            else
-                choice_onset(trl_ix,1) = bhv(trl_ix).NoChoice-PCS_comb_bhv_start;
+        % Compile behavioral data
+%             effortlevels = [0.16 0.32 0.48 0.64 0.80];
+%             stakelevels  = [1 4 7 10 13];
+        run_effort{r_ix}     = [bhv_raw(choice_trl_ix).effort]';  %.effortIx
+        run_stake{r_ix}      = [bhv_raw(choice_trl_ix).stake]';   %.stakeIx
+        run_decision{r_ix}   = [bhv_raw(choice_trl_ix).Yestrial]';
+        run_blk_ix{r_ix}     = [bhv_raw(choice_trl_ix).block]';
+        run_trl_ix{r_ix}     = [bhv_raw(choice_trl_ix).trialIndex]';
+        run_all_trl_ix{r_ix} = [bhv_raw(choice_trl_ix).allTrialIndex]';
+        
+        % Segment neural data based on event timestamps
+        key{r_ix} = nan(size(run_effort{r_ix}));
+        run_data{r_ix}.time  = cell([n_choice_trl 1]);
+        run_data{r_ix}.trial = cell([n_choice_trl 1]);
+%         run_data{r_ix}.sampleinfo = nan([n_choice_trl 2]);
+        for trl_ix = choice_trl_ix
+            % Add behavioral data (loop through to cover empty
+            if ~isempty(bhv_raw(trl_ix).key)
+                key{r_ix}(trl_ix) = bhv_raw(trl_ix).key;
             end
             
-            blk_decision{b_ix}(trl_ix,1) = bhv(trl_ix).Yestrial;
+            % Find event timestamps
+            trial_onset = bhv_raw(trl_ix).startStim-PCS_comb_bhv_start;  %1.5 seconds until motor mapping revealed.
+            if bhv_raw(trl_ix).Yestrial ==1
+                choice_onset = bhv_raw(trl_ix).YesChoice-PCS_comb_bhv_start;
+            else
+                choice_onset = bhv_raw(trl_ix).NoChoice-PCS_comb_bhv_start;
+            end
             
+            % Convert to neural timestamp
             if strcmp(evnt_lab,'stim')
-                start_samp = round(trial_onset(trl_ix)*new_srate) + trl_lim_samp(1);
+                start_samp = round(trial_onset*new_srate) + trl_lim_samp(1);
             elseif strcmp(evnt_lab,'dec')
-                start_samp = round(choicestr(trl_ix)*new_srate) + trl_lim_samp(1);
+                start_samp = round(choice_onset*new_srate) + trl_lim_samp(1);
             else
                 error('not ready for event besides stim or dec');
             end
             end_samp   = start_samp + trl_lim_samp(2);                         % to end plus 6 seconds after
-            blk_data{b_ix}.trial{trl_ix} = nrl_trim(:,start_samp:end_samp);
             
-            % Remember this is dependent on sample rate and should be in seconds.
-            blk_data{b_ix}.time{trl_ix} = ([start_samp:end_samp]-start_samp+trl_lim_samp(1))./new_srate;
-            blk_data{b_ix}.sampleinfo(trl_ix,:) = [start_samp end_samp];
-            %     blk_data.trialinfo(trl_ix,1)=trls1(trl_ix).effortIx;
-            %     blk_data.trialinfo(trl_ix,2)=trls1(trl_ix).stakeIx;
+            % Segment neural data
+            %   Remember this is dependent on sample rate and should be in seconds.
+            run_data{r_ix}.trial{trl_ix} = nrl_trim(:,start_samp:end_samp);
+            run_data{r_ix}.time{trl_ix} = ([start_samp:end_samp]-start_samp+trl_lim_samp(1))./new_srate;
+%             run_data{r_ix}.sampleinfo(trl_ix,:) = [start_samp end_samp];
+%             run_data.trialinfo(trl_ix,1)=trls1(trl_ix).effortIx;
+%             run_data.trialinfo(trl_ix,2)=trls1(trl_ix).stakeIx;
         end
         
         % Create previous trial regressors
-        blk_effort_prv{b_ix} = blk_effort{b_ix};
-        blk_effort_prv{b_ix}(end) = [];                     % remove last trial
-        blk_effort_prv{b_ix} = [nan; blk_effort_prv{b_ix}]; % add nan to start, shifting by 1
+        run_effort_prv{r_ix} = run_effort{r_ix};
+        run_effort_prv{r_ix}(end) = [];                     % remove last trial
+        run_effort_prv{r_ix} = [nan; run_effort_prv{r_ix}]; % add nan to start, shifting by 1
         
-        blk_stake_prv{b_ix} = blk_stake{b_ix};
-        blk_stake_prv{b_ix}(end) = [];
-        blk_stake_prv{b_ix} = [nan; blk_stake_prv{b_ix}];
+        run_stake_prv{r_ix} = run_stake{r_ix};
+        run_stake_prv{r_ix}(end) = [];
+        run_stake_prv{r_ix} = [nan; run_stake_prv{r_ix}];
         
-        blk_decision_prv{b_ix} = blk_decision{b_ix};
-        blk_decision_prv{b_ix}(end) = [];
-        blk_decision_prv{b_ix} = [nan; blk_decision_prv{b_ix}];
+        run_decision_prv{r_ix} = run_decision{r_ix};
+        run_decision_prv{r_ix}(end) = [];
+        run_decision_prv{r_ix} = [nan; run_decision_prv{r_ix}];
         
         clear syncR1 syncR2 result signal nrl_resamp nrl_trim orig_time_ax power
 %         close all
@@ -171,35 +194,106 @@ for s=1:3
     
     %% Combine data across blocks
     % Combine behavioral data
-    effort   = [blk_effort{1}; blk_effort{2}];
-    stake    = [blk_stake{1}; blk_stake{2}];
-    decision = [blk_decision{1}; blk_decision{2}];
-    effort_prv   = [blk_effort_prv{1}; blk_effort_prv{2}];
-    stake_prv    = [blk_stake_prv{1}; blk_stake_prv{2}];
-    decision_prv = [blk_decision_prv{1}; blk_decision_prv{2}];
+    bhv = struct;
+    bhv.key          = [key{1}; key{2}];
+    bhv.blk          = [run_blk_ix{1}; run_blk_ix{2}];
+    bhv.blk_trl      = [run_trl_ix{1}; run_trl_ix{2}];
+    bhv.run_trl      = [run_all_trl_ix{1}; run_all_trl_ix{2}];
+    bhv.trl          = [run_all_trl_ix{1}; run_all_trl_ix{2}+run_all_trl_ix{1}(end)];
+    bhv.run          = [ones(size(run_blk_ix{1})); ones(size(run_blk_ix{2}))*2];
+    bhv.effort       = [run_effort{1}; run_effort{2}];
+    bhv.stake        = [run_stake{1}; run_stake{2}];
+    bhv.decision     = [run_decision{1}; run_decision{2}];
+    bhv.effort_prv   = [run_effort_prv{1}; run_effort_prv{2}];
+    bhv.stake_prv    = [run_stake_prv{1}; run_stake_prv{2}];
+    bhv.decision_prv = [run_decision_prv{1}; run_decision_prv{2}];
     
     % Combine neural data
-    data = blk_data{1};
+    data = run_data{1};
     for trl_ix=1:n_choice_trl
-        data.trial{trl_ix+n_choice_trl} = blk_data{2}.trial{trl_ix};
-        data.time{trl_ix+n_choice_trl}  = blk_data{2}.time{trl_ix};
-%         data.trialbl{trl_ix+n_choice_trl} = blk_data{2}.trialbl{n_choice_trl};
+        data.trial{trl_ix+n_choice_trl} = run_data{2}.trial{trl_ix};
+        data.time{trl_ix+n_choice_trl}  = run_data{2}.time{trl_ix};
+%         data.sampleinfo{trl_ix+n_choice_trl} = run_data{2}.sampleinfo(trl_ix,:);
     end
     
-    %% Find where the was a missing trial (not completed).
-    empty_ix = find(effort==0);
-    if ~isempty(empty_ix); error('why are there still empty trials after excluding above?'); end
+    %% Remove trials with missing behavioral data
+    bhv.resp_ix     = find(bhv.key==37 | bhv.key==39);
+    bhv.empty_ix    = find(isnan(bhv.key));
+    bhv.bad_resp_ix = find(~isnan(bhv.key) & bhv.key~=37 & bhv.key~=39);
+    missing_ix = union(bhv.empty_ix,bhv.bad_resp_ix);
+    if ~isempty(missing_ix)
+        fprintf(2,'\t%s: Removing %d empty and %d bad response trials...\n',...
+            SBJs{s},length(bhv.empty_ix),length(bhv.bad_resp_ix));
+        % Remove from neural
+        data.time(missing_ix)  = [];
+        data.trial(missing_ix) = [];
+        
+        % Remove from behavior
+        bhv_fields = fieldnames(bhv);
+        for f = 1:length(bhv_fields)
+            if length(bhv.(bhv_fields{f}))==n_choice_trl*2 && ~strcmp(bhv_fields{f},'resp_ix')
+                bhv.(bhv_fields{f})(missing_ix) = [];
+            end
+        end
+    end
     
-%     effort(whrempty)=[];
-%     stake(whrempty)=[];
-%     decision(whrempty)=[];
-%     data.trial(whrempty)=[];
-%     data.time(whrempty)=[];
-%     data.trialbl(whrempty)=[];
+    %% BEHAVIORAL MODELLING %%
+    % Fit the behavior. Minimise the difference between the probability and the decision
+    decisionfun=@(p) norm( (exp(p(1)*(bhv.stake-(p(2)*(bhv.effort).^2))) ./ ...
+        (exp(p(1)) + exp(p(1)*(bhv.stake-(p(2)*(bhv.effort).^2))))) - bhv.decision);
+    [par, fit]=fminsearch(decisionfun, [1,1]);
     
-    % data.sampleinfo(76:150,:)=data2.sampleinfo;
+    SV_fn    = @(k) bhv.stake-(k*(bhv.effort).^2);
+    EFF_fn   = @(k) (k*(bhv.effort).^2);
+    bhv.SV   = SV_fn(par(2));
+    bhv.EFFs = EFF_fn(par(2));
+    bhv.p_accept = (exp(par(1)*(bhv.stake-(par(2)*(bhv.effort).^2))) ./...
+        (exp(par(1)) + exp(par(1)*(bhv.stake-(par(2)*(bhv.effort).^2)))));
     
-    %% Find and reject outliers
+    if plot_it
+        figure;
+        subplot(3,1,1);
+        scatter(bhv.stake,bhv.SV)
+        xlabel('Apples'); ylabel('SV');
+        subplot(3,1,2);
+        scatter(bhv.effort,bhv.SV)
+        xlabel('Effort - Proportion max'); ylabel('SV');
+        subplot(3,1,3);
+        scatter(bhv.SV,bhv.p_accept)
+        xlabel('SV'); ylabel('Probabilty of acceptance');
+        
+        % Plot a regression line %
+%         SVtmp = bhv.SV;
+%         
+%         figure; scatter(SVtmp,ProbAccept,'.')
+%         
+%         sigparam=sigm_fit(SVtmp,ProbAccept,1)
+%         
+%         [p,S,mu]  = polyfit(SVtmp,ProbAccept,12)
+%         PotValues=[-10:0.1:10];
+%         Pout=polyval(p,PotValues);
+%         
+%         figure; plot(PotValues,Pout)
+        
+        % Test behavioral modelling.
+        figure;
+        subplot(2,1,1);
+        scatter(bhv.stake, bhv.SV);
+        title('Reward')
+        subplot(2,1,2);
+        scatter(bhv.effort, bhv.SV);
+        title('Effort');
+    end
+    
+    % Regression
+    % Create regression
+%     RG    = [ones(size(bhv.stake)),bhv.stake,bhv.effort];
+%     betas = regress(bhv.SV,RG); %% FIELDTRIP TF ANALYSIS
+    
+    % Start by ignoring the autonomic data and just do a correlation of the
+    % neural features by the decision features.
+    
+    %% Find and reject neural outliers
     % Get standard deviation and normalize per channel
     trial_std = nan([size(data.trial,1) length(data.label)]);
     for trl_ix = 1:size(data.trial,1)
@@ -214,103 +308,30 @@ for s=1:3
     % subplot(2,1,2); plot(trialmean);
     
     % Find trials with outlier standard deviations
-    bad_trl_ix = [];
+    reject_ix = [];
     for ch_ix = 1:2
-        bad_trl_ix = [bad_trl_ix; find(trial_std_norm(:,ch_ix)>outlier_std_thresh)];
+        reject_ix = [reject_ix; find(trial_std_norm(:,ch_ix)>outlier_std_thresh)];
     end
-    bad_trl_ix = unique(bad_trl_ix);
-    if isempty(bad_trl_ix)
+    reject_ix = unique(reject_ix);
+    if isempty(reject_ix)
         fprintf('%s: No bad trials identified.\n',SBJs{s});
     else
-        fprintf(2,'%s: Removing %d trials!\n',SBJs{s},length(bad_trl_ix));
+        fprintf(2,'%s: Removing %d trials!\n',SBJs{s},length(reject_ix));
     end
     
     % Remove outlier trials
-    data.trial(bad_trl_ix) = [];
+    data.trial(reject_ix) = [];
+    data.time(reject_ix)  = [];
 %     data.trialbl(bad_trl_ix) = [];
-    data.time(bad_trl_ix) = [];
-    data.sampleinfo(bad_trl_ix,:) = [];
+%     data.sampleinfo(bad_trl_ix,:) = [];
     
-    effort(bad_trl_ix)   = [];
-    stake(bad_trl_ix)    = [];
-    decision(bad_trl_ix) = [];
-    effort_prv(bad_trl_ix)   = [];
-    stake_prv(bad_trl_ix)    = [];
-    decision_prv(bad_trl_ix) = [];
-    
-    %% BEHAVIORAL MODELLING %%
-    
-    % Matlab timer baseline time is at the beginning of the first synchronisation acquisition
-    
-    effortlevels = [0.16 0.32 0.48 0.64 0.80];
-    stakelevels  = [1 4 7 10 13];
-    
-    effortfr=zeros(size(effort,1),1);
-    for g=1:5
-        wh=find(effort==g);
-        effortfr(wh)=effortlevels(g);
+    bhv.reject_ix = reject_ix;
+    bhv_fields = fieldnames(bhv);
+    for f = 1:length(bhv_fields)
+        if length(bhv.(bhv_fields{f}))==length(bhv.resp_ix) && ~strcmp(bhv_fields{f},'resp_ix')
+            bhv.(bhv_fields{f})(reject_ix) = [];
+        end
     end
-    
-    for g=1:5;
-        stake2(stake==g)=stakelevels(g);
-    end
-    
-    stake=stake2;
-    
-    % Fit the behavior. Minimise the difference between the probability and the decision
-    decisionfun=@(p) norm( (exp(p(1)*(stake-(p(2)*(effortfr).^2))) ./ (exp(p(1)) + exp(p(1)*(stake-(p(2)*(effortfr).^2))))) - decision);
-    [par fit]=fminsearch(decisionfun, [1,1]);
-    
-    SV=@(k) stake-(k*(effortfr).^2);
-    EFF=@(k) (k*(effortfr).^2);
-    SubjVal1=SV(par(2));
-    EFFs=EFF(par(2));
-           
-    figure;
-    subplot(3,1,1);
-    scatter(stake,SV(par(2)))
-    xlabel('Apples'); ylabel('SV');
-    subplot(3,1,2);
-    scatter(effortfr,SV(par(2)))
-    xlabel('Effort - Proportion max'); ylabel('SV');
-    subplot(3,1,3);
-    scatter(SV(par(2)),(exp(par(1)*(stake-(par(2)*(effortfr).^2))) ./ (exp(par(1)) + exp(par(1)*(stake-(par(2)*(effortfr).^2))))))
-    xlabel('SV'); ylabel('Probabilty of acceptance');
-
-    % Plot a regression line %
-    SVtmp=SV(par(2));
-    ProbAccept=(exp(par(1)*(stake-(par(2)*(effortfr).^2))) ./ (exp(par(1)) + exp(par(1)*(stake-(par(2)*(effortfr).^2)))))
-    
-%     figure; scatter(SVtmp,ProbAccept,'.')  
-
-%     sigparam=sigm_fit(SVtmp,ProbAccept,1)
-    
-%     [p,S,mu]  = polyfit(SVtmp,ProbAccept,12)
-%     PotValues=[-10:0.1:10];
-%     Pout=polyval(p,PotValues);
-    
-%     figure; plot(PotValues,Pout)
-    
-    %% Test behavioral modelling.
-    
-    figure;
-    subplot(2,1,1);
-    scatter(stake, SubjVal1);
-    title('Reward')
-    subplot(2,1,2);
-    scatter(effortfr, SubjVal1);
-    title('Effort');
-    
-    % Regression
-    % Create regression
-    RG=[ones(size(stake)),stake,effortfr];
-    betas=regress(SubjVal1,RG)%% FIELDTRIP TF ANALYSIS
-    
-    % Start by ignoring the autonomic data and just do a correlation of the
-    % neural features by the decision features.
-    
-    
-    
     
     %% Time Frequency analysis on the dataset.
     cfg=[];
@@ -319,19 +340,19 @@ for s=1:3
     cfg.output          = 'pow';
     cfg.method          = 'mtmconvol';
     cfg.taper           = 'hanning';
-    cfg.foi             =2:80;
+    cfg.foi             = 2:80;
     % data.sampleinfo(1,2)
     cfg.toi             = -3:0.02:3;
-    cfg.pad             ='maxperlen'
+    cfg.pad             = 'maxperlen';
     % cfg.t_ftimwin    = ones(length(cfg.foi),1).*1;
     % Frequecy dependent wavelet length %
-    cfg.t_ftimwin       =4 ./cfg.foi;
+    cfg.t_ftimwin       = 4./cfg.foi;
     freqout             = ft_freqanalysis(cfg, data);
     
-    cfg.baseline     = [-1 0]
-    cfg.baselinetype = 'zscore'    % 'absolute', 'relative' ratio, 'relchange' %, 'normchange', 'db', 'zscore'.
+    cfg.baseline     = [-1 0];
+    cfg.baselinetype = 'zscore';    % 'absolute', 'relative' ratio, 'relchange' %, 'normchange', 'db', 'zscore'.
     cfg.parameter    = 'powspctrm';
-    freqoutbl=ft_freqbaseline(cfg,freqout)
+    freqoutbl = ft_freqbaseline(cfg,freqout);
 
     
 %     databl=data;
@@ -376,51 +397,48 @@ for s=1:3
 %     freqoutbl=freqout;
 %     freqoutbl.powspctrm=pwr;
     
+    %% Plot TFR
+    if plot_it
+        %     cfg = [];
+        %     figure;
+        %     subplot(2,1,1);
+        %     cfg.channel      = 'OFC';
+        %     ft_singleplotTFR(cfg,freqout);
+        %     xlim([-1.5 1.5]);
+        %     subplot(2,1,2);
+        %     cfg.channel      = 'LFP';
+        %     ft_singleplotTFR(cfg,freqout);
+        %     xlim([-1.5 1.5]);
+        
+        cfg = [];
+        figure;
+        subplot(2,1,1);
+        cfg.channel      = 'OFC';
+        ft_singleplotTFR(cfg,freqoutbl);
+        xlim([-0.5 2]);
+        ylim([ 2 35]);
+        subplot(2,1,2);
+        cfg.channel      = 'LFP';
+        ft_singleplotTFR(cfg,freqoutbl);
+        xlim([-0.5 2]);
+        ylim([ 2 35]);
+    end
+    
     %% SAVE data
-    AllData=struct;
-    AllData.desp=strcat(FileDetails{s,1},'Stimulus_Locked'); % Patient code
-    AllData.raw=data;
-    AllData.TF=freqout;
-    AllData.TFbl=freqoutbl;
-    AllData.TFcfg=cfg;
-    AllData.exp.stake=stake;
-    AllData.exp.effort=effortfr;
-    AllData.exp.EFFs=EFFs;
-    AllData.exp.decision=decision;
-    AllData.exp.SV=SubjVal1;
-    AllData.beh.par=par;
-    AllData.beh.fit=fit;
-    AllData.expS.stakeS=stakeS;
-    AllData.expS.decisionS=decisionS;
-    AllData.expS.effortS=effort_prv;
+    preproc_name = [FileDetails{s,1} '_' evnt_lab]; % Patient code _ event
+    sbj_data = struct;
+    sbj_data.desp    = preproc_name;
+    sbj_data.ts      = data;
+    sbj_data.TF      = freqout;
+    sbj_data.TFbl    = freqoutbl;
+    sbj_data.bhv     = bhv;
+    sbj_data.mdl.par = par;
+    sbj_data.mdl.fit = fit;
     
-    outfold='C:\Users\slittle\Box\Research\Motivation\OFC_recordings_squeeze\Analysis\Group\Preprocess\Output_files_shifted_behavior';
-    
-%     save(fullfile(outfold,strcat(FileDetails{Flnum,1},'Stimulus_Locked')),'AllData');
-    
-%     cfg = [];
-%     figure;
-%     subplot(2,1,1);
-%     cfg.channel      = 'OFC';
-%     ft_singleplotTFR(cfg,freqout);
-%     xlim([-1.5 1.5]);
-%     subplot(2,1,2);
-%     cfg.channel      = 'LFP';
-%     ft_singleplotTFR(cfg,freqout);
-%     xlim([-1.5 1.5]);
-    
-    cfg = [];
-    figure;
-    subplot(2,1,1);
-    cfg.channel      = 'OFC';
-    ft_singleplotTFR(cfg,freqoutbl);
-    xlim([-0.5 2]);
-    ylim([ 2 35])
-    subplot(2,1,2);
-    cfg.channel      = 'LFP';
-    ft_singleplotTFR(cfg,freqoutbl);
-    xlim([-0.5 2]);
-    ylim([ 2 35])
+    out_dir = [prj_dir 'data/' SBJs{s} '/'];
+    out_fname = [out_dir preproc_name '_preproc.mat'];
+    fprintf('Saving %s\n',out_fname);
+    save(out_fname,'sbj_data');
     
     %% Statistical testing %%
     
@@ -431,167 +449,167 @@ for s=1:3
     % Start by examining the reward and effort separately %
     % compute statistics with ft_statfun_indepsamplesregrT
     
-    cfg = [];
-    cfg.channel          = 'OFC';
-    cfg.statistic        = 'ft_statfun_indepsamplesregrT';
-    % cfg.statistic        = 'ft_statfun_depsamplesregrT';
-    cfg.method           = 'montecarlo';
-    cfg.correctm         = 'cluster';
-    cfg.numrandomization = 1000;
-    cfg.alpha            = 0.05;
-    cfg.tail             = 0;
-    cfg.correcttail      ='alpha';
-    cfg.frequency        = [2 30];
-    % This should be 1 - 3 as this actually include the post presentation
-    % period only.
-    cfg.latency          = [0 1.5];
-    
-    n1 = size(stake,1);
-    design(1,1:n1)       = stake';
-    
-    cfg.design           = design;
-    cfg.ivar             = 1;
-    
-    statOFCstake = ft_freqstatistics(cfg, freqoutbl);
-    
-    cfg = [];
-    cfg.channel          = 'OFC';
-    cfg.statistic        = 'ft_statfun_indepsamplesregrT';
-    % cfg.statistic        = 'ft_statfun_depsamplesregrT';
-    cfg.method           = 'montecarlo';
-    cfg.correctm         = 'cluster';
-    cfg.numrandomization = 1000;
-    cfg.alpha            = 0.05;
-    cfg.tail             = 0;
-    cfg.correcttail      ='alpha';
-    cfg.frequency        = [2 30];
-    cfg.latency          = [0 1.5];
-    
-    n1 = size(stake,1);
-    design(1,1:n1)       = EFF(par(2))';
-    
-    cfg.design           = design;
-    cfg.ivar             = 1;
-    
-    statOFCeffort = ft_freqstatistics(cfg, freqoutbl);
-    
-    cfg = [];
-    cfg.channel          = 'OFC';
-    cfg.statistic        = 'ft_statfun_indepsamplesregrT';
-    % cfg.statistic        = 'ft_statfun_depsamplesregrT';
-    cfg.method           = 'montecarlo';
-    cfg.correctm         = 'cluster';
-    cfg.numrandomization = 1000;
-    cfg.alpha            = 0.05;
-    cfg.tail             = 0;
-    cfg.correcttail      ='alpha';
-    cfg.frequency        = [2 30];
-    cfg.latency          = [0 1.5];
-    
-    n1 = size(stake,1);
-    design(1,1:n1)       = SubjVal1';
-    
-    cfg.design           = design;
-    cfg.ivar             = 1;
-    
-    statOFCSV = ft_freqstatistics(cfg, freqoutbl);
-    
-    cfg = [];
-    cfg.channel          = 'LFP';
-    cfg.statistic        = 'ft_statfun_indepsamplesregrT';
-    cfg.method           = 'montecarlo';
-    cfg.correctm         = 'cluster';
-    cfg.numrandomization = 1000;
-    cfg.alpha            = 0.05;
-    cfg.tail             = 0;
-    cfg.correcttail      ='alpha';
-    cfg.frequency        = [2 30];
-    cfg.latency          = [0 1.5];
-    
-    n1 = size(stake,1);
-    design(1,1:n1)       = stake';
-    
-    cfg.design           = design;
-    cfg.ivar             = 1;
-    
-    statLFPstake = ft_freqstatistics(cfg, freqoutbl);
-    
-    cfg = [];
-    cfg.channel          = 'LFP';
-    cfg.statistic        = 'ft_statfun_indepsamplesregrT';
-    cfg.method           = 'montecarlo';
-    cfg.correctm         = 'cluster';
-    cfg.numrandomization = 1000;
-    cfg.alpha            = 0.05;
-    cfg.tail             = 0;
-    cfg.correcttail      ='alpha';
-    cfg.frequency        = [2 30];
-    cfg.latency          = [0 1.5];
-    
-    n1 = size(stake,1);
-    design(1,1:n1)       = EFF(par(2))';
-    
-    cfg.design           = design;
-    cfg.ivar             = 1;
-    
-    statLFPeffort = ft_freqstatistics(cfg, freqoutbl);
-    
-    cfg = [];
-    cfg.channel          = 'LFP';
-    cfg.statistic        = 'ft_statfun_indepsamplesregrT';
-    cfg.method           = 'montecarlo';
-    cfg.correctm         = 'cluster';
-    cfg.numrandomization = 1000;
-    cfg.alpha            = 0.05;
-    cfg.tail             = 0;
-    cfg.correcttail      ='alpha';
-    cfg.frequency        = [2 30];
-    cfg.latency          = [0 1.5];
-    
-    n1 = size(stake,1);
-    design(1,1:n1)       = SubjVal1';
-    
-    cfg.design           = design;
-    cfg.ivar             = 1;
-    
-    statLFPSV = ft_freqstatistics(cfg, freqoutbl);
-    
-    % PLOT STATS RESULTS
-    
-    figure;
-    subplot(2,3,1);
-    cfg           = [];
-    cfg.channel   = {'OFC'};
-    cfg.parameter = 'stat';
-    cfg.colormap  = parula;
-    cfg.ylim      = [2 100];
-    cfg.xlim      = [-1.5 1.5];
-    % cfg.zlim      = [ ] ;
-    cfg.marker    ='off';
-    cfg.style     = 'fill';
-    cfg.comment   = 'off';
-    cfg.maskparameter = 'mask';
-    cfg.maskstyle = 'outline';
-    cfg.colorbar  = 'yes';
-    ft_singleplotTFR(cfg,statOFCstake);
-    
-    subplot(2,3,2);
-    cfg.channel   = {'OFC'};
-    ft_singleplotTFR(cfg,statOFCeffort);
-    
-    subplot(2,3,3);
-    cfg.channel   = {'OFC'};
-    ft_singleplotTFR(cfg,statOFCSV);
-    
-    subplot(2,3,4);
-    cfg.channel   = {'LFP'};
-    ft_singleplotTFR(cfg,statLFPstake);
-    
-    subplot(2,3,5);
-    cfg.channel   = {'LFP'};
-    ft_singleplotTFR(cfg,statLFPeffort);
-    
-    subplot(2,3,6);
-    cfg.channel   = {'LFP'};
-    ft_singleplotTFR(cfg,statLFPSV);
+%     cfg = [];
+%     cfg.channel          = 'OFC';
+%     cfg.statistic        = 'ft_statfun_indepsamplesregrT';
+%     % cfg.statistic        = 'ft_statfun_depsamplesregrT';
+%     cfg.method           = 'montecarlo';
+%     cfg.correctm         = 'cluster';
+%     cfg.numrandomization = 1000;
+%     cfg.alpha            = 0.05;
+%     cfg.tail             = 0;
+%     cfg.correcttail      ='alpha';
+%     cfg.frequency        = [2 30];
+%     % This should be 1 - 3 as this actually include the post presentation
+%     % period only.
+%     cfg.latency          = [0 1.5];
+%     
+%     n1 = size(stake,1);
+%     design(1,1:n1)       = stake';
+%     
+%     cfg.design           = design;
+%     cfg.ivar             = 1;
+%     
+%     statOFCstake = ft_freqstatistics(cfg, freqoutbl);
+%     
+%     cfg = [];
+%     cfg.channel          = 'OFC';
+%     cfg.statistic        = 'ft_statfun_indepsamplesregrT';
+%     % cfg.statistic        = 'ft_statfun_depsamplesregrT';
+%     cfg.method           = 'montecarlo';
+%     cfg.correctm         = 'cluster';
+%     cfg.numrandomization = 1000;
+%     cfg.alpha            = 0.05;
+%     cfg.tail             = 0;
+%     cfg.correcttail      ='alpha';
+%     cfg.frequency        = [2 30];
+%     cfg.latency          = [0 1.5];
+%     
+%     n1 = size(stake,1);
+%     design(1,1:n1)       = EFF(par(2))';
+%     
+%     cfg.design           = design;
+%     cfg.ivar             = 1;
+%     
+%     statOFCeffort = ft_freqstatistics(cfg, freqoutbl);
+%     
+%     cfg = [];
+%     cfg.channel          = 'OFC';
+%     cfg.statistic        = 'ft_statfun_indepsamplesregrT';
+%     % cfg.statistic        = 'ft_statfun_depsamplesregrT';
+%     cfg.method           = 'montecarlo';
+%     cfg.correctm         = 'cluster';
+%     cfg.numrandomization = 1000;
+%     cfg.alpha            = 0.05;
+%     cfg.tail             = 0;
+%     cfg.correcttail      ='alpha';
+%     cfg.frequency        = [2 30];
+%     cfg.latency          = [0 1.5];
+%     
+%     n1 = size(stake,1);
+%     design(1,1:n1)       = SubjVal1';
+%     
+%     cfg.design           = design;
+%     cfg.ivar             = 1;
+%     
+%     statOFCSV = ft_freqstatistics(cfg, freqoutbl);
+%     
+%     cfg = [];
+%     cfg.channel          = 'LFP';
+%     cfg.statistic        = 'ft_statfun_indepsamplesregrT';
+%     cfg.method           = 'montecarlo';
+%     cfg.correctm         = 'cluster';
+%     cfg.numrandomization = 1000;
+%     cfg.alpha            = 0.05;
+%     cfg.tail             = 0;
+%     cfg.correcttail      ='alpha';
+%     cfg.frequency        = [2 30];
+%     cfg.latency          = [0 1.5];
+%     
+%     n1 = size(stake,1);
+%     design(1,1:n1)       = stake';
+%     
+%     cfg.design           = design;
+%     cfg.ivar             = 1;
+%     
+%     statLFPstake = ft_freqstatistics(cfg, freqoutbl);
+%     
+%     cfg = [];
+%     cfg.channel          = 'LFP';
+%     cfg.statistic        = 'ft_statfun_indepsamplesregrT';
+%     cfg.method           = 'montecarlo';
+%     cfg.correctm         = 'cluster';
+%     cfg.numrandomization = 1000;
+%     cfg.alpha            = 0.05;
+%     cfg.tail             = 0;
+%     cfg.correcttail      ='alpha';
+%     cfg.frequency        = [2 30];
+%     cfg.latency          = [0 1.5];
+%     
+%     n1 = size(stake,1);
+%     design(1,1:n1)       = EFF(par(2))';
+%     
+%     cfg.design           = design;
+%     cfg.ivar             = 1;
+%     
+%     statLFPeffort = ft_freqstatistics(cfg, freqoutbl);
+%     
+%     cfg = [];
+%     cfg.channel          = 'LFP';
+%     cfg.statistic        = 'ft_statfun_indepsamplesregrT';
+%     cfg.method           = 'montecarlo';
+%     cfg.correctm         = 'cluster';
+%     cfg.numrandomization = 1000;
+%     cfg.alpha            = 0.05;
+%     cfg.tail             = 0;
+%     cfg.correcttail      ='alpha';
+%     cfg.frequency        = [2 30];
+%     cfg.latency          = [0 1.5];
+%     
+%     n1 = size(stake,1);
+%     design(1,1:n1)       = SubjVal1';
+%     
+%     cfg.design           = design;
+%     cfg.ivar             = 1;
+%     
+%     statLFPSV = ft_freqstatistics(cfg, freqoutbl);
+%     
+%     % PLOT STATS RESULTS
+%     
+%     figure;
+%     subplot(2,3,1);
+%     cfg           = [];
+%     cfg.channel   = {'OFC'};
+%     cfg.parameter = 'stat';
+%     cfg.colormap  = parula;
+%     cfg.ylim      = [2 100];
+%     cfg.xlim      = [-1.5 1.5];
+%     % cfg.zlim      = [ ] ;
+%     cfg.marker    ='off';
+%     cfg.style     = 'fill';
+%     cfg.comment   = 'off';
+%     cfg.maskparameter = 'mask';
+%     cfg.maskstyle = 'outline';
+%     cfg.colorbar  = 'yes';
+%     ft_singleplotTFR(cfg,statOFCstake);
+%     
+%     subplot(2,3,2);
+%     cfg.channel   = {'OFC'};
+%     ft_singleplotTFR(cfg,statOFCeffort);
+%     
+%     subplot(2,3,3);
+%     cfg.channel   = {'OFC'};
+%     ft_singleplotTFR(cfg,statOFCSV);
+%     
+%     subplot(2,3,4);
+%     cfg.channel   = {'LFP'};
+%     ft_singleplotTFR(cfg,statLFPstake);
+%     
+%     subplot(2,3,5);
+%     cfg.channel   = {'LFP'};
+%     ft_singleplotTFR(cfg,statLFPeffort);
+%     
+%     subplot(2,3,6);
+%     cfg.channel   = {'LFP'};
+%     ft_singleplotTFR(cfg,statLFPSV);
 end
