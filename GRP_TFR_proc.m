@@ -14,10 +14,17 @@ ft_defaults
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 
-an_ids = {'TFRw_S25t201_z25t05_fl2t40','TFRm_S25t201_zbtS_sm0_l0_wnVar'};
-bsln_types = {'relchange','zscore','zboot'};
+event_lab  = 'dec';
+an_ids     = {'TFRw_S25t201_z25t05_fl2t40','TFRm_S25t201_zbtS_sm0_l0_wnVar','simon'};
+bsln_types = {'relchange','db','zscore','zboot'};
 bsln_boots = 500;
-plt_id     = 'ts_S2t2_evnts_sigLine';
+
+save_fig  = 1;
+plt_id    = 'ts_S2t2_evnts_sigLine';
+fig_ftype = 'png';
+fig_vis   = 'on';
+fig_dir   = [prj_dir 'results/TFR/'];
+if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 
 outlier_std_thresh = 3;
 
@@ -28,9 +35,9 @@ eval(plt_vars_cmd);
 for s = 1:4
     %% Load data
     preproc_dir = [prj_dir 'data/' SBJs{s} '/'];
-    proc_fname = [preproc_dir SBJs{s} '_' an.evnt_lab '_preproc.mat'];
+    proc_fname = [preproc_dir SBJs{s} '_' event_lab '_preproc.mat'];
     fprintf('Loading %s\n',proc_fname);
-    data{s} = load(proc_fname,'sbj_data');
+    load(proc_fname,'sbj_data');
     
     %% Time-frequency representation
     tfr = cell([numel(an_ids) numel(bsln_types)]);
@@ -82,7 +89,7 @@ for s = 1:4
     for an_ix = 1:numel(an_ids)
         fig_name = [SBJs{s} '_' an_ids{an_ix}];
         figure('Name',fig_name,'units','normalized',...
-            'outerposition',[0 0 0.8 0.8],'Visible',fig_vis);
+            'outerposition',[0 0 1 1],'Visible',fig_vis);
         
         for ch_ix = 1:numel(tfr{an_ix,b_ix}.label)
             for b_ix = 1:numel(bsln_types)
@@ -111,33 +118,14 @@ for s = 1:4
                 set(gca,'FontSize',16);
             end
         end
-    end
-    
-    %%
-    if plot_it
-        %     cfg = [];
-        %     figure;
-        %     subplot(2,1,1);
-        %     cfg.channel      = 'OFC';
-        %     ft_singleplotTFR(cfg,freqout);
-        %     xlim([-1.5 1.5]);
-        %     subplot(2,1,2);
-        %     cfg.channel      = 'LFP';
-        %     ft_singleplotTFR(cfg,freqout);
-        %     xlim([-1.5 1.5]);
         
-        cfg = [];
-        figure;
-        subplot(2,1,1);
-        cfg.channel      = 'OFC';
-        ft_singleplotTFR(cfg,sbj_data.TFbl);
-        xlim([-0.5 2]);
-        ylim([ 2 35]);
-        subplot(2,1,2);
-        cfg.channel      = 'LFP';
-        ft_singleplotTFR(cfg,sbj_data.TFbl);
-        xlim([-0.5 2]);
-        ylim([ 2 35]);
+        % Save Figure
+        if save_fig
+            fig_fname = [fig_dir fig_name '.' fig_ftype];
+            fprintf('Saving %s\n',fig_fname);
+            saveas(gcf,fig_fname);
+        end
+        
     end
     
     %% SAVE data
@@ -154,176 +142,4 @@ for s = 1:4
 %     fprintf('Loading %s\n',proc_fname);
 %     load(proc_fname,'sbj_data');
     
-    %% Statistical testing %%
-    
-    % Start by examining for a change in the power with the event %
-    
-    % ft_statistics_montecarlo
-    
-    % Start by examining the reward and effort separately %
-    % compute statistics with ft_statfun_indepsamplesregrT
-    
-%     cfg = [];
-%     cfg.channel          = 'OFC';
-%     cfg.statistic        = 'ft_statfun_indepsamplesregrT';
-%     % cfg.statistic        = 'ft_statfun_depsamplesregrT';
-%     cfg.method           = 'montecarlo';
-%     cfg.correctm         = 'cluster';
-%     cfg.numrandomization = 1000;
-%     cfg.alpha            = 0.05;
-%     cfg.tail             = 0;
-%     cfg.correcttail      ='alpha';
-%     cfg.frequency        = [2 30];
-%     % This should be 1 - 3 as this actually include the post presentation
-%     % period only.
-%     cfg.latency          = [0 1.5];
-%     
-%     n1 = size(stake,1);
-%     design(1,1:n1)       = stake';
-%     
-%     cfg.design           = design;
-%     cfg.ivar             = 1;
-%     
-%     statOFCstake = ft_freqstatistics(cfg, freqoutbl);
-%     
-%     cfg = [];
-%     cfg.channel          = 'OFC';
-%     cfg.statistic        = 'ft_statfun_indepsamplesregrT';
-%     % cfg.statistic        = 'ft_statfun_depsamplesregrT';
-%     cfg.method           = 'montecarlo';
-%     cfg.correctm         = 'cluster';
-%     cfg.numrandomization = 1000;
-%     cfg.alpha            = 0.05;
-%     cfg.tail             = 0;
-%     cfg.correcttail      ='alpha';
-%     cfg.frequency        = [2 30];
-%     cfg.latency          = [0 1.5];
-%     
-%     n1 = size(stake,1);
-%     design(1,1:n1)       = EFF(par(2))';
-%     
-%     cfg.design           = design;
-%     cfg.ivar             = 1;
-%     
-%     statOFCeffort = ft_freqstatistics(cfg, freqoutbl);
-%     
-%     cfg = [];
-%     cfg.channel          = 'OFC';
-%     cfg.statistic        = 'ft_statfun_indepsamplesregrT';
-%     % cfg.statistic        = 'ft_statfun_depsamplesregrT';
-%     cfg.method           = 'montecarlo';
-%     cfg.correctm         = 'cluster';
-%     cfg.numrandomization = 1000;
-%     cfg.alpha            = 0.05;
-%     cfg.tail             = 0;
-%     cfg.correcttail      ='alpha';
-%     cfg.frequency        = [2 30];
-%     cfg.latency          = [0 1.5];
-%     
-%     n1 = size(stake,1);
-%     design(1,1:n1)       = SubjVal1';
-%     
-%     cfg.design           = design;
-%     cfg.ivar             = 1;
-%     
-%     statOFCSV = ft_freqstatistics(cfg, freqoutbl);
-%     
-%     cfg = [];
-%     cfg.channel          = 'LFP';
-%     cfg.statistic        = 'ft_statfun_indepsamplesregrT';
-%     cfg.method           = 'montecarlo';
-%     cfg.correctm         = 'cluster';
-%     cfg.numrandomization = 1000;
-%     cfg.alpha            = 0.05;
-%     cfg.tail             = 0;
-%     cfg.correcttail      ='alpha';
-%     cfg.frequency        = [2 30];
-%     cfg.latency          = [0 1.5];
-%     
-%     n1 = size(stake,1);
-%     design(1,1:n1)       = stake';
-%     
-%     cfg.design           = design;
-%     cfg.ivar             = 1;
-%     
-%     statLFPstake = ft_freqstatistics(cfg, freqoutbl);
-%     
-%     cfg = [];
-%     cfg.channel          = 'LFP';
-%     cfg.statistic        = 'ft_statfun_indepsamplesregrT';
-%     cfg.method           = 'montecarlo';
-%     cfg.correctm         = 'cluster';
-%     cfg.numrandomization = 1000;
-%     cfg.alpha            = 0.05;
-%     cfg.tail             = 0;
-%     cfg.correcttail      ='alpha';
-%     cfg.frequency        = [2 30];
-%     cfg.latency          = [0 1.5];
-%     
-%     n1 = size(stake,1);
-%     design(1,1:n1)       = EFF(par(2))';
-%     
-%     cfg.design           = design;
-%     cfg.ivar             = 1;
-%     
-%     statLFPeffort = ft_freqstatistics(cfg, freqoutbl);
-%     
-%     cfg = [];
-%     cfg.channel          = 'LFP';
-%     cfg.statistic        = 'ft_statfun_indepsamplesregrT';
-%     cfg.method           = 'montecarlo';
-%     cfg.correctm         = 'cluster';
-%     cfg.numrandomization = 1000;
-%     cfg.alpha            = 0.05;
-%     cfg.tail             = 0;
-%     cfg.correcttail      ='alpha';
-%     cfg.frequency        = [2 30];
-%     cfg.latency          = [0 1.5];
-%     
-%     n1 = size(stake,1);
-%     design(1,1:n1)       = SubjVal1';
-%     
-%     cfg.design           = design;
-%     cfg.ivar             = 1;
-%     
-%     statLFPSV = ft_freqstatistics(cfg, freqoutbl);
-%     
-%     % PLOT STATS RESULTS
-%     
-%     figure;
-%     subplot(2,3,1);
-%     cfg           = [];
-%     cfg.channel   = {'OFC'};
-%     cfg.parameter = 'stat';
-%     cfg.colormap  = parula;
-%     cfg.ylim      = [2 100];
-%     cfg.xlim      = [-1.5 1.5];
-%     % cfg.zlim      = [ ] ;
-%     cfg.marker    ='off';
-%     cfg.style     = 'fill';
-%     cfg.comment   = 'off';
-%     cfg.maskparameter = 'mask';
-%     cfg.maskstyle = 'outline';
-%     cfg.colorbar  = 'yes';
-%     ft_singleplotTFR(cfg,statOFCstake);
-%     
-%     subplot(2,3,2);
-%     cfg.channel   = {'OFC'};
-%     ft_singleplotTFR(cfg,statOFCeffort);
-%     
-%     subplot(2,3,3);
-%     cfg.channel   = {'OFC'};
-%     ft_singleplotTFR(cfg,statOFCSV);
-%     
-%     subplot(2,3,4);
-%     cfg.channel   = {'LFP'};
-%     ft_singleplotTFR(cfg,statLFPstake);
-%     
-%     subplot(2,3,5);
-%     cfg.channel   = {'LFP'};
-%     ft_singleplotTFR(cfg,statLFPeffort);
-%     
-%     subplot(2,3,6);
-%     cfg.channel   = {'LFP'};
-%     ft_singleplotTFR(cfg,statLFPSV);
 end

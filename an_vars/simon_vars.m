@@ -1,10 +1,19 @@
 %% Simon TFR parameters
+an.ROI         = {'all'};             % Channel to be analyzed
+an.event_type  = 'S';           % event around which to cut trials
+an.trial_lim_s = [-0.25 2.01];       % window in SEC for cutting trials
+an.demean_yn   = 'no';
+an.bsln_evnt   = 'S';
+an.bsln_type   = 'zscore';
+an.bsln_lim    = [-0.25 -0.05];
+an.bsln_boots  = 0;
+
 cfg=[];
 cfg.trials          = 'all';
 cfg.keeptrials      = 'yes';
 cfg.output          = 'pow';
 cfg.method          = 'mtmconvol';
-cfg.taper           = 'dpss';
+cfg.taper           = 'hanning';
 cfg.foi             = 2:80;
 % data.sampleinfo(1,2)
 cfg.toi             = -1:0.02:3;
@@ -14,7 +23,7 @@ cfg.pad             = 'maxperlen';
 cfg.t_ftimwin       = 4./cfg.foi;
 
 cfg.baseline     = [-1 0];
-cfg.baselinetype = 'zscore';    % 'absolute', 'relative' ratio, 'relchange' %, 'normchange', 'db', 'zscore'.
+cfg.baselinetype = an.bsln_type;    % 'absolute', 'relative' ratio, 'relchange' %, 'normchange', 'db', 'zscore'.
 cfg.parameter    = 'powspctrm';
 
 %% more older?

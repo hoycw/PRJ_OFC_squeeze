@@ -11,7 +11,7 @@ SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 
 plot_it  = 0;           % 0/1 whether to creat plots
-evnt_lab = 'stim';      % event to time-lock segmented data {'stim' | 'dec'}
+evnt_lab = 'dec';      % event to time-lock segmented data {'stim' | 'dec'}
 trl_lim = [-3 6];       % cut trial data (in sec) relative to event
 new_srate = 1000;
 trl_lim_samp = trl_lim.*new_srate;
@@ -167,12 +167,14 @@ for s=1:4
             end_samp   = start_samp + trl_lim_samp(2);                         % to end plus 6 seconds after
             
             % Segment neural data
-            %   Remember this is dependent on sample rate and should be in seconds.
-            run_data{r_ix}.trial{trl_ix} = nrl_trim(:,start_samp:end_samp);
-            run_data{r_ix}.time{trl_ix} = ([start_samp:end_samp]-start_samp+trl_lim_samp(1))./new_srate;
-%             run_data{r_ix}.sampleinfo(trl_ix,:) = [start_samp end_samp];
-%             run_data.trialinfo(trl_ix,1)=trls1(trl_ix).effortIx;
-%             run_data.trialinfo(trl_ix,2)=trls1(trl_ix).stakeIx;
+            if all(~isnan([start_samp end_samp])) % skip choice trials with no response
+                %   Remember this is dependent on sample rate and should be in seconds.
+                run_data{r_ix}.trial{trl_ix} = nrl_trim(:,start_samp:end_samp);
+                run_data{r_ix}.time{trl_ix} = ([start_samp:end_samp]-start_samp+trl_lim_samp(1))./new_srate;
+                run_data{r_ix}.sampleinfo(trl_ix,:) = [start_samp end_samp];
+%                 run_data.trialinfo(trl_ix,1)=trls1(trl_ix).effortIx;
+%                 run_data.trialinfo(trl_ix,2)=trls1(trl_ix).stakeIx;
+            end
         end
         
         % Create previous trial regressors

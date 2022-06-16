@@ -2,7 +2,7 @@ plt.evnt_lab    = {'S'};
 plt.evnt_styles = {'-'};
 
 plt.plt_lim  = [-0.2 2.0];
-plt.x_step_sz  = 0.1;
+plt.x_step_sz  = 0.2;
 plt.legend     = 1;
 plt.legend_loc_S = 'northwest';
 plt.legend_loc_R = 'northeast';
