@@ -6,7 +6,7 @@ function [trial_lim_s_pad] = fn_get_filter_padding(cfg_tfr,trial_lim_s,bsln_lim)
 %   but ft_preprocessing would return a filtered time series with an edge artifact.)
 %   Also note this padding buffer should be at least 3x the slowest cycle
 %   of interest.
-if strcmp(cfg_tfr.method,'mtmconvol')
+if isfield(cfg_tfr,'t_ftimwin')
     % Cover at least 3 cycles of slowest frequency
     pad_len = 0.5*max(cfg_tfr.t_ftimwin)*3;
 elseif strcmp(cfg_tfr.method,'wavelet')

@@ -9,10 +9,14 @@ ft_defaults
 %% Parameters
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
+man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 128 139 148 149 150]};
+% PFC01 manual trial flags: (full trl_ix after accountinf for tossing missing trials)
+%   big spikes: 27 28 97 98 128 139 148 149 150
+%   medium spikes: 79 80 86 87 102 103
 
 plot_it  = 0;           % 0/1 whether to creat plots
-evnt_lab = 'full';      % event to time-lock segmented data {'stim' | 'dec'}
-trl_lim = [-1.5 2];     % cut trial data (in sec) relative to event
+evnt_lab = 'stim';      % event to time-lock segmented data {'stim' | 'dec'}
+trl_lim = [-3 10];     % cut trial data (in sec) relative to event
 new_srate = 1000;
 trl_lim_samp = trl_lim.*new_srate;
 n_choice_trl = 75;
@@ -94,7 +98,7 @@ for s=1:4
             legend('Signal 1- LFP','Signal 2 - PFC'); legend boxoff
             title(fig_name);
             
-            fig_fname = [fig_dir fig_name '.' fig_ftype];
+            fig_fname = [fig_dir 'PSDs/' fig_name '.' fig_ftype];
             fprintf('Saving %s\n',fig_fname);
             saveas(gcf,fig_fname);
         end
@@ -120,6 +124,7 @@ for s=1:4
         % data.fsample=new_srate;
         run_data{r_ix}.label{1,1} = 'LFP';
         run_data{r_ix}.label{2,1} = sbj_pfc_roi{s};
+        run_data{r_ix}.fsample    = new_srate;
         
         ad1 = biopac_start./500;
         % Have checked the timings of this and it works now.
@@ -269,7 +274,7 @@ for s=1:4
         title(SBJs{s});
         set(gca,'FontSize',16);
         
-        fig_fname = [fig_dir fig_name '.' fig_ftype];
+        fig_fname = [fig_dir 'RT_hist/' fig_name '.' fig_ftype];
         fprintf('Saving %s\n',fig_fname);
         saveas(gcf,fig_fname);
     end
@@ -333,6 +338,13 @@ for s=1:4
     %% Data Visualization for Trial Rejection
     if plot_it
         data_plot = rmfield(data,'sampleinfo');
+%         cfgpp = [];
+%         cfgpp.lpfilter = 'yes';
+%         cfgpp.lpfreq   = 50;
+%         cfgpp.hpfilter = 'yes';
+%         cfgpp.hpfreq   = 0.5;
+%         cfgpp.hpfiltord = 4;
+%         data_pp = ft_preprocessing(cfgpp,data_plot);
         
         cfgp = []; cfgp.viewmode = 'vertical';
         db_out = ft_databrowser(cfgp, data_plot);
@@ -346,10 +358,10 @@ for s=1:4
     trial_std = nan([size(data.trial,1) length(data.label)]);
     for trl_ix = 1:size(data.trial,1)
         tmp = data.trial{trl_ix};
-        trial_std(trl_ix,:)  = std(tmp,1,2);
+        trial_std(trl_ix,:)  = nanstd(tmp,1,2);
 %         trialmean(trl_ix,:) = mean(abs(tmp),2);    % why are you taking abs here?
     end
-    trial_std_norm = trial_std./mean(trial_std);
+    trial_std_norm = trial_std./nanmedian(trial_std);
     
     % figure;
     % subplot(2,1,1); plot(trialstdN(:,1));
@@ -363,23 +375,27 @@ for s=1:4
     var_reject_ix = unique(var_reject_ix);
     
     % Manual rejection based on visual inspection
-    if isempty(reject_ix)
+    man_ix = nan(size(man_trl_rej_ix{s}));
+    for t = 1:numel(man_trl_rej_ix{s})
+        man_ix(t) = find(bhv.trl==man_trl_rej_ix{s}(t));
+    end
+    if isempty(man_ix)
         fprintf('%s: No bad trials identified.\n',SBJs{s});
     else
-        fprintf(2,'%s: Removing %d trials!\n',SBJs{s},length(reject_ix));
+        fprintf(2,'%s: Removing %d trials!\n',SBJs{s},length(man_ix));
     end
     
     % Remove outlier trials
-    data.trial(reject_ix) = [];
-    data.time(reject_ix)  = [];
+    data.trial(man_ix) = [];
+    data.time(man_ix)  = [];
 %     data.trialbl(bad_trl_ix) = [];
 %     data.sampleinfo(bad_trl_ix,:) = [];
     
-    bhv.reject_ix = reject_ix;
+    bhv.reject_ix = man_ix;
     bhv_fields = fieldnames(bhv);
     for f = 1:length(bhv_fields)
         if length(bhv.(bhv_fields{f}))==length(bhv.resp_ix) && ~strcmp(bhv_fields{f},'resp_ix')
-            bhv.(bhv_fields{f})(reject_ix) = [];
+            bhv.(bhv_fields{f})(man_ix) = [];
         end
     end
     
@@ -388,8 +404,8 @@ for s=1:4
     sbj_data = struct;
     sbj_data.desp    = preproc_name;
     sbj_data.ts      = data;
-    sbj_data.TF      = freqout;
-    sbj_data.TFbl    = freqoutbl;
+%     sbj_data.TF      = freqout;
+%     sbj_data.TFbl    = freqoutbl;
     sbj_data.bhv     = bhv;
     sbj_data.mdl.par = par;
     sbj_data.mdl.fit = fit;
