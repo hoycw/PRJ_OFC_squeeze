@@ -5,7 +5,7 @@ an.demean_yn   = 'no';             % z-score for HFA instead
 an.bsln_evnt   = 'S';
 an.bsln_type   = 'zboot';
 an.bsln_lim    = [-0.25 -0.05];    % window in SEC for baseline correction
-an.bsln_boots  = 500;              % repetitions for non-parametric stats
+an.bsln_boots  = 1000;              % repetitions for non-parametric stats
 
 % HFA Calculations
 an.foi_center  = [2:0.5:8 8:20 22:2:40];

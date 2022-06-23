@@ -6,7 +6,7 @@ an.demean_yn   = 'no';
 an.bsln_evnt   = 'S';
 an.bsln_type   = 'zboot';
 an.bsln_lim    = [-0.25 -0.05];
-an.bsln_boots  = 0;
+an.bsln_boots  = 1000;
 
 % TFR Parameters
 cfg_tfr = [];

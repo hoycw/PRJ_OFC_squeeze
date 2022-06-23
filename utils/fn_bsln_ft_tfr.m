@@ -57,7 +57,7 @@ for ch = 1:size(tfr.powspctrm,2)
             trl_bsln = bsln_tfr.powspctrm(t,ch,f,:);
             switch bsln_type
                 case 'zboot'
-                    bslnd_tfr.powspctrm(t,ch,f,:) = (trials-mean(sample_means))/mean(sample_stds);                    
+                    bslnd_tfr.powspctrm(t,ch,f,:) = (trials-nanmean(sample_means))/nanmean(sample_stds);                    
                 case 'zscore'
                     bslnd_tfr.powspctrm(t,ch,f,:) = (trials-nanmean(trl_bsln))/nanstd(trl_bsln);
                 case 'demean'

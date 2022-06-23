@@ -45,16 +45,27 @@ for s = 1:4
         % Extract time-frequency representation
         tfr_raw = ft_freqanalysis(cfg_tfr, sbj_data.ts);%trim);
         
+        % Trim back down to original trial_lim_s to exclude NaNs
+        cfg_trim = [];
+        if strcmp(an.event_type,'S')
+            cfg_trim.latency = an.trial_lim_s;
+        elseif strcmp(an.event_type,'D') && strcmp(an.bsln_evnt,'S')
+            cfg_trim.latency = [an.bsln_lim(1) max(sbj_data.bhv.rt)+an.trial_lim_s(2)];
+        else
+            error('mismatched event without S-locked baseline!');
+        end
+        tfr_trim = ft_selectdata(cfg_trim,tfr_raw);
+        
         % Baseline correction
         switch an.bsln_type
             case {'zscore', 'zboot', 'demean', 'my_relchange'}
-                tfr_bsln = fn_bsln_ft_tfr(tfr_raw,an.bsln_lim,an.bsln_type,an.bsln_boots);
+                tfr = fn_bsln_ft_tfr(tfr_trim,an.bsln_lim,an.bsln_type,an.bsln_boots);
             case {'relchange','db'}
                 cfgbsln = [];
                 cfgbsln.baseline     = an.bsln_lim;
                 cfgbsln.baselinetype = an.bsln_type;
                 cfgbsln.parameter    = 'powspctrm';
-                tfr_bsln = ft_freqbaseline(cfgbsln,tfr_raw);
+                tfr = ft_freqbaseline(cfgbsln,tfr_trim);
             case 'none'
                 if an.complex
                     fprintf('\tNo baseline correction for ITPC data...\n');
@@ -65,21 +76,14 @@ for s = 1:4
                 error(['No baseline implemented for bsln_type: ' an.bsln_type]);
         end
         
-        % Re-align to decision and trim
+        % Re-align to decision and re-trim
         if ~strcmp(an.event_type,an.bsln_evnt)
             if strcmp(an.event_type,'D') && strcmp(an.bsln_evnt,'S')
-                [tfr_bsln] = fn_realign_tfr_s2r(tfr_bsln,sbj_data.bhv.rt,an.trial_lim_s);
+                [tfr] = fn_realign_tfr_s2r(tfr,sbj_data.bhv.rt,an.trial_lim_s);
             else
                 error('unknown combination of analysis and baseline events');
             end
         end
-        
-        % Average trials and trim back down to analysis window
-        cfgs = [];
-        % cfgs.trials = setdiff([1:numel(trials.trial)], exclude_trials');
-        cfgs.channel = an.ROI;
-        cfgs.latency = an.trial_lim_s;
-        tfr = ft_selectdata(cfgs, tfr_bsln);
         
         % SAVE data
         tfr_fname = [sbj_dir SBJs{s} '_' an_ids{an_ix} '.mat'];

@@ -6,7 +6,7 @@ an.demean_yn   = 'no';
 an.bsln_evnt   = 'S';
 an.bsln_type   = 'zboot';
 an.bsln_lim    = [-1 0];
-an.bsln_boots  = 0;
+an.bsln_boots  = 1000;
 
 cfg_tfr=[];
 cfg_tfr.trials          = 'all';
