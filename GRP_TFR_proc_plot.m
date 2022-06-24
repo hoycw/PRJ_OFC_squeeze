@@ -11,8 +11,14 @@ ft_defaults
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 
-an_id = 'TFRw_S25t201_zbt25t05_fl2t40';%'TFRw_S25t201_zbt25t05_fl2t40_varWid';%'simon_zbt';%,,
-% an_id = 'TFRw_D101t201_zbt25t05_fl2t40_varWid';%'simon_D101t201_zbt25t05';%
+% an_id = 'TFRw_S25t201_zbt25t05_fl2t40_varWid';%'TFRw_S25t201_zbt25t05_fl2t40';%'simon_zbt';%,,
+an_id = 'TFRw_D101t201_zbt25t05_fl2t40_varWid';%'simon_D101t201_zbt25t05';%
+
+if contains(an_id,'_S')
+    psd_win_lim = [0 2];
+elseif contains(an_id,'_D')
+    psd_win_lim = [-0.5 0];
+end
 
 % Analysis parameters:
 theta_lim  = [4 7];
@@ -52,7 +58,6 @@ for s = 1:length(sbj_beta_pk)
 end
 
 %% Load TFR data
-tfr = cell(size(SBJs));
 for s = 1:length(SBJs)
     %% Load data
     sbj_dir = [prj_dir 'data/' SBJs{s} '/'];
@@ -71,10 +76,17 @@ for s = 1:length(SBJs)
         time_vec = tmp.tfr.time;
         freq_vec = tmp.tfr.freq;
         tfr      = nan([length(SBJs) 2 numel(tmp.tfr.freq) numel(tmp.tfr.time)]);
+        psd      = nan([length(SBJs) 2 numel(tmp.tfr.freq)]);
     end
     
     % Average across trials
     tfr(s,:,:,:) = squeeze(nanmean(tmp.tfr.powspctrm,1));
+    
+    % Compute PSD
+    cfgs = [];
+    cfgs.latency = psd_win_lim;
+    psd_tfr = ft_selectdata(cfgs,tmp.tfr);
+    psd(s,:,:) = squeeze(nanmean(nanmean(psd_tfr.powspctrm,1),4));
     
     % Compute power bands
     cfg = [];
@@ -129,7 +141,7 @@ for s = 1:length(SBJs)
         'outerposition',[0 0 1 1],'Visible',fig_vis);
     
     for ch_ix = 1:2
-        subplot(2,3,ch_ix*3-2); hold on;
+        subplot(2,4,ch_ix*4-3); hold on;
         % Get color lims per condition
         vals = tfr(s,ch_ix,:,:);
         clim = [prctile(vals(:),plt.clim_perc(1)) prctile(vals(:),plt.clim_perc(2))];
@@ -154,8 +166,18 @@ for s = 1:length(SBJs)
         ylabel('Frequency (Hz)');
         set(gca,'FontSize',16);
         
+        %% Plot PSD
+        subplot(2,4,ch_ix*4-2); hold on;
+        lfp_line = plot(freq_vec,squeeze(psd(s,1,:)),'Color','b');
+        pfc_line = plot(freq_vec,squeeze(psd(s,2,:)),'Color',[255,165,0]./255);
+        xlabel('Frequency (Hz)');
+        ylabel('Power (norm)');
+        legend([lfp_line pfc_line],{'LFP',sbj_pfc_roi{s}},'Location','best');
+        title(['PSD (' num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2)) 's)']);
+        set(gca,'FontSize',16);
+        
         %% Plot theta
-        subplot(2,3,ch_ix*3-1); hold on;
+        subplot(2,4,ch_ix*4-1); hold on;
         
         shadedErrorBar(time_vec, squeeze(theta_avg(s,ch_ix,:)),squeeze(theta_sem(s,ch_ix,:)));%, 'transparent',sem_alpha);
         line([0 0],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
@@ -171,7 +193,7 @@ for s = 1:length(SBJs)
         set(gca,'FontSize',16);
         
         %% Plot beta
-        subplot(2,3,ch_ix*3); hold on;
+        subplot(2,4,ch_ix*4); hold on;
         
         b_line = shadedErrorBar(time_vec, squeeze(beta_avg(s,ch_ix,:)),...
             squeeze(beta_sem(s,ch_ix,:)),'lineprops',{'Color','r'});
@@ -209,7 +231,7 @@ figure('Name',fig_name,'units','normalized',...
 %---------------------- LFP ----------------------
 %--------------------------------------------------------------------------
 % Plot TFR
-subplot(3,3,1); hold on;
+subplot(3,4,1); hold on;
 % Get color lims per condition
 clim = [prctile(lfp_tfr_grp(:),plt.clim_perc(1)) prctile(lfp_tfr_grp(:),plt.clim_perc(2))];
 
@@ -231,8 +253,16 @@ xlabel('Time (s)');
 ylabel('Frequency (Hz)');
 set(gca,'FontSize',16);
 
+% Plot PSD
+subplot(3,4,2); hold on;
+plot(freq_vec,squeeze(nanmean(psd(:,1,:),1)),'Color','b');
+xlabel('Frequency (Hz)');
+ylabel('Power (norm)');
+title(['GRP LFP PSD (' num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2)) 's)']);
+set(gca,'FontSize',16);
+
 % Plot theta
-subplot(3,3,2); hold on;
+subplot(3,4,3); hold on;
 
 shadedErrorBar(time_vec, lfp_theta_grp_avg, lfp_theta_grp_sem);%, 'transparent',sem_alpha);
 line([0 0],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
@@ -248,7 +278,7 @@ ylabel('Normalized Power');
 set(gca,'FontSize',16);
 
 % Plot beta
-subplot(3,3,3); hold on;
+subplot(3,4,4); hold on;
 
 b_line = shadedErrorBar(time_vec, lfp_beta_grp_avg, lfp_beta_grp_sem,'lineprops',{'Color','r'});
 bpk_line = shadedErrorBar(time_vec, lfp_betapk_grp_avg, lfp_betapk_grp_sem,'lineprops',{'Color','b'});
@@ -269,7 +299,7 @@ set(gca,'FontSize',16);
 %---------------------- FPC ----------------------
 %--------------------------------------------------------------------------
 % Plot TFR
-subplot(3,3,4); hold on;
+subplot(3,4,5); hold on;
 % Get color lims per condition
 clim = [prctile(fpc_tfr_grp(:),plt.clim_perc(1)) prctile(fpc_tfr_grp(:),plt.clim_perc(2))];
 
@@ -291,8 +321,16 @@ xlabel('Time (s)');
 ylabel('Frequency (Hz)');
 set(gca,'FontSize',16);
 
+% Plot PSD
+subplot(3,4,6); hold on;
+plot(freq_vec,squeeze(nanmean(psd(strcmp(sbj_pfc_roi,'FPC'),2,:),1)),'Color',[255,165,0]./255);
+xlabel('Frequency (Hz)');
+ylabel('Power (norm)');
+title(['GRP FPC PSD (' num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2)) 's)']);
+set(gca,'FontSize',16);
+
 % Plot theta
-subplot(3,3,5); hold on;
+subplot(3,4,7); hold on;
 
 shadedErrorBar(time_vec, fpc_theta_grp_avg, fpc_theta_grp_sem);%, 'transparent',sem_alpha);
 line([0 0],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
@@ -308,7 +346,7 @@ ylabel('Normalized Power');
 set(gca,'FontSize',16);
 
 % Plot beta
-subplot(3,3,6); hold on;
+subplot(3,4,8); hold on;
 
 b_line = shadedErrorBar(time_vec, fpc_beta_grp_avg, fpc_beta_grp_sem,'lineprops',{'Color','r'});
 bpk_line = shadedErrorBar(time_vec, fpc_betapk_grp_avg, fpc_betapk_grp_sem,'lineprops',{'Color','b'});
@@ -329,7 +367,7 @@ set(gca,'FontSize',16);
 %---------------------- OFC ----------------------
 %--------------------------------------------------------------------------
 % Plot TFR
-subplot(3,3,7); hold on;
+subplot(3,4,9); hold on;
 % Get color lims per condition
 clim = [prctile(ofc_tfr_grp(:),plt.clim_perc(1)) prctile(ofc_tfr_grp(:),plt.clim_perc(2))];
 
@@ -351,8 +389,16 @@ xlabel('Time (s)');
 ylabel('Frequency (Hz)');
 set(gca,'FontSize',16);
 
+% Plot PSD
+subplot(3,4,10); hold on;
+plot(freq_vec,squeeze(nanmean(psd(strcmp(sbj_pfc_roi,'OFC'),2,:),1)),'Color',[255,165,0]./255);
+xlabel('Frequency (Hz)');
+ylabel('Power (norm)');
+title(['GRP OFC PSD (' num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2)) 's)']);
+set(gca,'FontSize',16);
+
 % Plot theta
-subplot(3,3,8); hold on;
+subplot(3,4,11); hold on;
 
 shadedErrorBar(time_vec, ofc_theta_grp_avg, ofc_theta_grp_sem);%, 'transparent',sem_alpha);
 line([0 0],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
@@ -368,7 +414,7 @@ ylabel('Normalized Power');
 set(gca,'FontSize',16);
 
 % Plot beta
-subplot(3,3,9); hold on;
+subplot(3,4,12); hold on;
 
 b_line = shadedErrorBar(time_vec, ofc_beta_grp_avg, ofc_beta_grp_sem,'lineprops',{'Color','r'});
 bpk_line = shadedErrorBar(time_vec, ofc_betapk_grp_avg, ofc_betapk_grp_sem,'lineprops',{'Color','b'});
