@@ -14,7 +14,7 @@ ft_defaults
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 % sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 
-an_ids     = {'TFRw_S25t201_zbt25t05_fl2t40_varWid','simon_zbt','TFRw_S25t201_zbt25t05_fl2t40'};%,'TFRm_S25t201_zbtS_sm0_l0_wnVar','simon'};
+an_ids     = {'TFRw_S25t201_zbt25t05_fl2t40_c7'};%'TFRw_S25t201_zbt25t05_fl2t40_varWid','simon_zbt','TFRw_S25t201_zbt25t05_fl2t40'};%,'TFRm_S25t201_zbtS_sm0_l0_wnVar','simon'};
 % an_ids = {'TFRw_D101t201_zbt25t05_fl2t40_varWid','simon_D101t201_zbt25t05'};
 % bsln_type  = 'zboot';
 % bsln_boots = 500;

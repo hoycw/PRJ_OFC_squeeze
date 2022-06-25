@@ -11,8 +11,8 @@ ft_defaults
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 
-% an_id = 'TFRw_S25t201_zbt25t05_fl2t40_varWid';%'TFRw_S25t201_zbt25t05_fl2t40';%'simon_zbt';%,,
-an_id = 'TFRw_D101t201_zbt25t05_fl2t40_varWid';%'simon_D101t201_zbt25t05';%
+an_id = 'TFRw7_S25t201_zbt25t05_fl2t40';%'simon_zbt';%,,
+% an_id = 'TFRw7_D101t201_zbt25t05_fl2t40';%'simon_D101t201_zbt25t05';%
 
 if contains(an_id,'_S')
     psd_win_lim = [0 2];
