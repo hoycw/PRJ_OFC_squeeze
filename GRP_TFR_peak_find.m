@@ -11,19 +11,22 @@ ft_defaults
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 
-an_id = 'TFRw_S25t2_zbtS25t05_fl2t40_c7';%'TFRw_D1t1_zbtS25t05_fl2t40_c7';%
+an_id = 'TFRw_S25t2_zbtS25t05_fl2t40_c7';
 
 if contains(an_id,'_S')
     psd_win_lim = [0 2];
+    an_lim = [0.5 1.5];
 elseif contains(an_id,'_D')
     psd_win_lim = [-0.5 0];
+    an_lim = [-0.5 0];
 end
 
 % Analysis parameters:
-theta_lim  = [4 7];
+theta_lim  = [3 9];
 beta_lim   = [13 30];    
 sbj_beta_pk = [10,17,13,12]; % PFC03, PFC04, PFC05, PFC01
 % alternatives: (1)=[17,17,13,12]; (2)=[17,22,13,13];
+thetapk_bw = 4;
 betapk_bw = 4;
 
 % Plotting parameters
@@ -43,7 +46,7 @@ elseif contains(an_id,'_D')
 else
     error('couldnt pick plt_id based on an_id');
 end
-fig_dir   = [prj_dir 'results/TFR/' an_id '/'];
+fig_dir   = [prj_dir 'results/TFR/' an_id '/pk_find/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 
 an_vars_cmd = ['run ' prj_dir '/scripts/an_vars/' an_id '_vars.m'];
@@ -51,14 +54,11 @@ eval(an_vars_cmd);
 plt_vars_cmd = ['run ' prj_dir 'scripts/plt_vars/' plt_id '_vars.m'];
 eval(plt_vars_cmd);
 
-betapk_lim = nan(length(SBJs),2);
-for s = 1:length(sbj_beta_pk)
-    betapk_lim(s,:) = [sbj_beta_pk(s)-betapk_bw/2 sbj_beta_pk(s)+betapk_bw/2];
-end
-
 %% Load TFR data
 theta_pk = nan([length(SBJs) 2]);
 beta_pk = nan([length(SBJs) 2]);
+thetapk_lim = nan(length(SBJs),2,2);
+betapk_lim  = nan(length(SBJs),2,2);
 for s = 1:length(SBJs)
     %% Load data
     sbj_dir = [prj_dir 'data/' SBJs{s} '/'];
@@ -69,9 +69,11 @@ for s = 1:length(SBJs)
     % Initialize data
     if s==1
         theta_avg  = nan([length(SBJs) 2 numel(tmp.tfr.time)]);
+        thetapk_avg= nan([length(SBJs) 2 numel(tmp.tfr.time)]);
         beta_avg   = nan([length(SBJs) 2 numel(tmp.tfr.time)]);
         betapk_avg = nan([length(SBJs) 2 numel(tmp.tfr.time)]);
         theta_sem  = nan([length(SBJs) 2 numel(tmp.tfr.time)]);
+        thetapk_sem= nan([length(SBJs) 2 numel(tmp.tfr.time)]);
         beta_sem   = nan([length(SBJs) 2 numel(tmp.tfr.time)]);
         betapk_sem = nan([length(SBJs) 2 numel(tmp.tfr.time)]);
         time_vec = tmp.tfr.time;
@@ -89,30 +91,83 @@ for s = 1:length(SBJs)
     psd_tfr = ft_selectdata(cfgs,tmp.tfr);
     psd(s,:,:) = squeeze(nanmean(nanmean(psd_tfr.powspctrm,1),4));
     
-    % Compute power bands
-    cfg = [];
-    cfg.avgoverfreq = 'yes';
-    cfg.avgoverrpt  = 'no';
-    cfg.frequency = theta_lim;
-    theta_pow = ft_selectdata(cfg, tmp.tfr);
-    theta_sem(s,:,:) = squeeze(nanstd(theta_pow.powspctrm,[],1))./sqrt(size(theta_pow.powspctrm,1));
-    theta_avg(s,:,:) = squeeze(nanmean(theta_pow.powspctrm,1));
-    
-    cfg.frequency = beta_lim;
-    beta_pow = ft_selectdata(cfg, tmp.tfr);
-    beta_sem(s,:,:) = squeeze(nanstd(beta_pow.powspctrm,[],1))./sqrt(size(beta_pow.powspctrm,1));
-    beta_avg(s,:,:) = squeeze(nanmean(beta_pow.powspctrm,1));
-    
-    cfg.frequency = betapk_lim(s,:);
-    betapk_pow = ft_selectdata(cfg, tmp.tfr);
-    betapk_sem(s,:,:) = squeeze(nanstd(betapk_pow.powspctrm,[],1))./sqrt(size(betapk_pow.powspctrm,1));
-    betapk_avg(s,:,:) = squeeze(nanmean(betapk_pow.powspctrm,1));
+    % Find PSD peaks
+    for ch_ix = 1:2
+        % Theta
+        [~,min_ix] = min(abs(freq_vec-theta_lim(1)));
+        [~,max_ix] = min(abs(freq_vec-theta_lim(2)));
+        [pk,pk_ix] = findpeaks(squeeze(psd(s,ch_ix,min_ix:max_ix)));
+        if numel(pk_ix)~=0
+            if numel(pk_ix)>1
+                [~,best_ix] = max(pk);
+                pk_ix = pk_ix(best_ix);
+                warning('Warning: %s has more than one peak in %s theta! taking the max...',SBJs{s},tmp.tfr.label{ch_ix});
+            end
+            theta_pk(s,ch_ix) = freq_vec(min_ix+pk_ix-1);
+        else
+            warning('Warning: No peaks found for %s in theta band...');
+        end
+        
+        % Beta
+        [~,min_ix] = min(abs(freq_vec-beta_lim(1)));
+        [~,max_ix] = min(abs(freq_vec-beta_lim(2)));
+        [pk,pk_ix] = findpeaks(squeeze(psd(s,ch_ix,min_ix:max_ix)));
+        if numel(pk_ix)~=0
+            if numel(pk_ix)>1
+                [~,best_ix] = max(pk);
+                pk_ix = pk_ix(best_ix);
+                warning('Warning: %s has more than one peak in %s beta! taking the max...',SBJs{s},tmp.tfr.label{ch_ix});
+            end
+            beta_pk(s,ch_ix) = freq_vec(min_ix+pk_ix-1);
+        else
+            warning('Warning: No peaks found for %s in theta band...');
+        end
+        
+        % Compute bandwidth
+        if ~isnan(theta_pk(s,ch_ix))
+            thetapk_lim(s,ch_ix,:) = [theta_pk(s,ch_ix,1)-thetapk_bw/2 theta_pk(s,ch_ix,1)+thetapk_bw/2];
+        else
+            thetapk_lim(s,ch_ix,:) = theta_lim;
+        end
+        if ~isnan(beta_pk(s,ch_ix))
+            betapk_lim(s,ch_ix,:) = [beta_pk(s,ch_ix,1)-betapk_bw/2 beta_pk(s,ch_ix,1)+betapk_bw/2];
+        else
+            betapk_lim(s,ch_ix,:) = beta_lim;
+        end
+        
+        % Compute power bands
+        cfg = [];
+        cfg.channel = tmp.tfr.label(ch_ix);
+        cfg.avgoverfreq = 'yes';
+        cfg.avgoverrpt  = 'no';
+        cfg.frequency = theta_lim;
+        theta_pow = ft_selectdata(cfg, tmp.tfr);
+        theta_sem(s,ch_ix,:) = squeeze(nanstd(theta_pow.powspctrm,[],1))./sqrt(size(theta_pow.powspctrm,1));
+        theta_avg(s,ch_ix,:) = squeeze(nanmean(theta_pow.powspctrm,1));
+        
+        cfg.frequency = squeeze(thetapk_lim(s,ch_ix,:))';
+        thetapk_pow = ft_selectdata(cfg, tmp.tfr);
+        thetapk_sem(s,ch_ix,:) = squeeze(nanstd(thetapk_pow.powspctrm,[],1))./sqrt(size(thetapk_pow.powspctrm,1));
+        thetapk_avg(s,ch_ix,:) = squeeze(nanmean(thetapk_pow.powspctrm,1));
+        
+        cfg.frequency = beta_lim;
+        beta_pow = ft_selectdata(cfg, tmp.tfr);
+        beta_sem(s,ch_ix,:) = squeeze(nanstd(beta_pow.powspctrm,[],1))./sqrt(size(beta_pow.powspctrm,1));
+        beta_avg(s,ch_ix,:) = squeeze(nanmean(beta_pow.powspctrm,1));
+        
+        cfg.frequency = squeeze(betapk_lim(s,ch_ix,:))';
+        betapk_pow = ft_selectdata(cfg, tmp.tfr);
+        betapk_sem(s,ch_ix,:) = squeeze(nanstd(betapk_pow.powspctrm,[],1))./sqrt(size(betapk_pow.powspctrm,1));
+        betapk_avg(s,ch_ix,:) = squeeze(nanmean(betapk_pow.powspctrm,1));
+    end
 end
 
 %% Average at group level
 lfp_tfr_grp        = squeeze(nanmean(tfr(:,1,:,:),1));
 lfp_theta_grp_avg  = squeeze(mean(theta_avg(:,1,:),1));
 lfp_theta_grp_sem  = squeeze(std(theta_avg(:,1,:),[],1)./sqrt(size(theta_avg(:,1,:),1)));
+lfp_thetapk_grp_avg  = squeeze(mean(thetapk_avg(:,1,:),1));
+lfp_thetapk_grp_sem  = squeeze(std(thetapk_avg(:,1,:),[],1)./sqrt(size(thetapk_avg(:,1,:),1)));
 lfp_beta_grp_avg   = squeeze(mean(beta_avg(:,1,:),1));
 lfp_beta_grp_sem   = squeeze(std(beta_avg(:,1,:),[],1)./sqrt(size(beta_avg(:,1,:),1)));
 lfp_betapk_grp_avg = squeeze(mean(betapk_avg(:,1,:),1));
@@ -121,6 +176,8 @@ lfp_betapk_grp_sem = squeeze(std(betapk_avg(:,1,:),[],1)./sqrt(size(betapk_avg(:
 fpc_tfr_grp        = squeeze(nanmean(tfr(strcmp(sbj_pfc_roi,'FPC'),2,:,:),1));
 fpc_theta_grp_avg  = squeeze(mean(theta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
 fpc_theta_grp_sem  = squeeze(std(theta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)./sqrt(size(theta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1)));
+fpc_thetapk_grp_avg  = squeeze(mean(thetapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
+fpc_thetapk_grp_sem  = squeeze(std(thetapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)./sqrt(size(thetapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1)));
 fpc_beta_grp_avg   = squeeze(mean(beta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
 fpc_beta_grp_sem   = squeeze(std(beta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)./sqrt(size(beta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1)));
 fpc_betapk_grp_avg = squeeze(mean(betapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
@@ -129,6 +186,8 @@ fpc_betapk_grp_sem = squeeze(std(betapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)
 ofc_tfr_grp        = squeeze(nanmean(tfr(strcmp(sbj_pfc_roi,'OFC'),2,:,:),1));
 ofc_theta_grp_avg  = squeeze(mean(theta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
 ofc_theta_grp_sem  = squeeze(std(theta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(theta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
+ofc_thetapk_grp_avg  = squeeze(mean(thetapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
+ofc_thetapk_grp_sem  = squeeze(std(thetapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(thetapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
 ofc_beta_grp_avg   = squeeze(mean(beta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
 ofc_beta_grp_sem   = squeeze(std(beta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(beta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
 ofc_betapk_grp_avg = squeeze(mean(betapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
@@ -170,7 +229,18 @@ for s = 1:length(SBJs)
         %% Plot PSD
         subplot(2,4,ch_ix*4-2); hold on;
         lfp_line = plot(freq_vec,squeeze(psd(s,1,:)),'Color','b');
-        pfc_line = plot(freq_vec,squeeze(psd(s,2,:)),'Color',[255,165,0]./255);
+        pfc_line = plot(freq_vec,squeeze(psd(s,2,:)),'Color',[255,165,0]./255); %orange
+        ylims = ylim;
+        if ~isnan(theta_pk(s,ch_ix))
+            patch([thetapk_lim(s,ch_ix,1) thetapk_lim(s,ch_ix,1) ...
+                thetapk_lim(s,ch_ix,2) thetapk_lim(s,ch_ix,2)],...
+                [ylims(1) ylims(2) ylims(2) ylims(1)],'k','FaceAlpha',0.1);
+        end
+        if ~isnan(beta_pk(s,ch_ix))
+            patch([betapk_lim(s,ch_ix,1) betapk_lim(s,ch_ix,1) ...
+                betapk_lim(s,ch_ix,2) betapk_lim(s,ch_ix,2)],...
+                [ylims(1) ylims(2) ylims(2) ylims(1)],'k','FaceAlpha',0.1);
+        end
         xlabel('Frequency (Hz)');
         ylabel('Power (norm)');
         legend([lfp_line pfc_line],{'LFP',sbj_pfc_roi{s}},'Location','best');
@@ -180,17 +250,21 @@ for s = 1:length(SBJs)
         %% Plot theta
         subplot(2,4,ch_ix*4-1); hold on;
         
-        shadedErrorBar(time_vec, squeeze(theta_avg(s,ch_ix,:)),squeeze(theta_sem(s,ch_ix,:)));%, 'transparent',sem_alpha);
+        t_line = shadedErrorBar(time_vec, squeeze(theta_avg(s,ch_ix,:)),...
+            squeeze(theta_sem(s,ch_ix,:)),'lineprops',{'Color','r'});
+        tpk_line = shadedErrorBar(time_vec, squeeze(thetapk_avg(s,ch_ix,:)),...
+            squeeze(thetapk_sem(s,ch_ix,:)),'lineprops',{'Color','b'});
         line([0 0],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
             'LineStyle',plt.evnt_styles{1});
         
         % Axes and parameters
-        title([ch_lab ' theta (' num2str(theta_lim(1)) '-' ...
-            num2str(theta_lim(2)) ' Hz): ' an_id], 'interpreter', 'none');
+        title([ch_lab ' theta'], 'interpreter', 'none');
         set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
         set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
         xlabel('Time (s)');
         ylabel('Normalized Power');
+        legend([t_line.mainLine tpk_line.mainLine],{['theta (' num2str(theta_lim(1)) '-' num2str(theta_lim(2)) ...
+            ' Hz)'],['SBJ theta (' num2str(thetapk_lim(s,ch_ix,1)) '-' num2str(thetapk_lim(s,ch_ix,2)) ' Hz)']},'Location','best');
         set(gca,'FontSize',16);
         
         %% Plot beta
@@ -204,13 +278,13 @@ for s = 1:length(SBJs)
             'LineStyle',plt.evnt_styles{1});
         
         % Axes and parameters
-        title([ch_lab ' beta: ' an_id], 'interpreter', 'none');
+        title([ch_lab ' beta'], 'interpreter', 'none');
         set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
         set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
         xlabel('Time (s)');
         ylabel('Normalized Power');
         legend([b_line.mainLine bpk_line.mainLine],{['beta (' num2str(beta_lim(1)) '-' num2str(beta_lim(2)) ...
-            ' Hz)'],['SBJ beta (' num2str(betapk_lim(s,1)) '-' num2str(betapk_lim(s,2)) ' Hz)']},'Location','best');
+            ' Hz)'],['SBJ beta (' num2str(betapk_lim(s,ch_ix,1)) '-' num2str(betapk_lim(s,ch_ix,2)) ' Hz)']},'Location','best');
         set(gca,'FontSize',16);
         
     end
@@ -265,17 +339,19 @@ set(gca,'FontSize',16);
 % Plot theta
 subplot(3,4,3); hold on;
 
-shadedErrorBar(time_vec, lfp_theta_grp_avg, lfp_theta_grp_sem);%, 'transparent',sem_alpha);
+t_line = shadedErrorBar(time_vec, lfp_theta_grp_avg, lfp_theta_grp_sem,'lineprops',{'Color','r'});
+tpk_line = shadedErrorBar(time_vec, lfp_thetapk_grp_avg, lfp_thetapk_grp_sem,'lineprops',{'Color','b'});
 line([0 0],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
     'LineStyle',plt.evnt_styles{1});
 
 % Axes and parameters
-title(['LFP theta (' num2str(theta_lim(1)) '-' ...
-    num2str(theta_lim(2)) ' Hz): ' an_id], 'interpreter', 'none');
+title('LFP theta', 'interpreter', 'none');
 set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
 set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
 xlabel('Time (s)');
 ylabel('Normalized Power');
+legend([t_line.mainLine tpk_line.mainLine],{['theta (' num2str(theta_lim(1)) '-' num2str(theta_lim(2)) ...
+    ' Hz)'],['SBJ beta (' num2str(mean(thetapk_lim(:,1,1))) '-' num2str(mean(thetapk_lim(:,1,2))) ' Hz)']},'Location','best');
 set(gca,'FontSize',16);
 
 % Plot beta
@@ -287,13 +363,13 @@ line([0 0],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
     'LineStyle',plt.evnt_styles{1});
 
 % Axes and parameters
-title(['LFP beta: ' an_id], 'interpreter', 'none');
+title('LFP beta', 'interpreter', 'none');
 set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
 set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
 xlabel('Time (s)');
 ylabel('Normalized Power');
 legend([b_line.mainLine bpk_line.mainLine],{['beta (' num2str(beta_lim(1)) '-' num2str(beta_lim(2)) ...
-    ' Hz)'],['SBJ beta (' num2str(betapk_lim(s,1)) '-' num2str(betapk_lim(s,2)) ' Hz)']},'Location','best');
+    ' Hz)'],['SBJ beta (' num2str(mean(betapk_lim(:,1,1))) '-' num2str(mean(betapk_lim(:,1,2))) ' Hz)']},'Location','best');
 set(gca,'FontSize',16);
 
 %--------------------------------------------------------------------------
@@ -333,17 +409,20 @@ set(gca,'FontSize',16);
 % Plot theta
 subplot(3,4,7); hold on;
 
-shadedErrorBar(time_vec, fpc_theta_grp_avg, fpc_theta_grp_sem);%, 'transparent',sem_alpha);
+t_line = shadedErrorBar(time_vec, fpc_theta_grp_avg, fpc_theta_grp_sem,'lineprops',{'Color','r'});
+tpk_line = shadedErrorBar(time_vec, fpc_thetapk_grp_avg, fpc_thetapk_grp_sem,'lineprops',{'Color','b'});
 line([0 0],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
     'LineStyle',plt.evnt_styles{1});
 
 % Axes and parameters
-title(['FPC theta (' num2str(theta_lim(1)) '-' ...
-    num2str(theta_lim(2)) ' Hz): ' an_id], 'interpreter', 'none');
+title('FPC theta', 'interpreter', 'none');
 set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
 set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
 xlabel('Time (s)');
 ylabel('Normalized Power');
+legend([t_line.mainLine tpk_line.mainLine],{['theta (' num2str(theta_lim(1)) '-' num2str(theta_lim(2)) ...
+    ' Hz)'],['SBJ theta (' num2str(mean(thetapk_lim(strcmp(sbj_pfc_roi,'FPC'),2,1)))...
+    '-' num2str(mean(thetapk_lim(strcmp(sbj_pfc_roi,'FPC'),2,2))) ' Hz)']},'Location','best');
 set(gca,'FontSize',16);
 
 % Plot beta
@@ -355,13 +434,14 @@ line([0 0],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
     'LineStyle',plt.evnt_styles{1});
 
 % Axes and parameters
-title(['FPC beta: ' an_id], 'interpreter', 'none');
+title('FPC beta:', 'interpreter', 'none');
 set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
 set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
 xlabel('Time (s)');
 ylabel('Normalized Power');
 legend([b_line.mainLine bpk_line.mainLine],{['beta (' num2str(beta_lim(1)) '-' num2str(beta_lim(2)) ...
-    ' Hz)'],['SBJ beta (' num2str(betapk_lim(s,1)) '-' num2str(betapk_lim(s,2)) ' Hz)']},'Location','best');
+    ' Hz)'],['SBJ beta (' num2str(mean(betapk_lim(strcmp(sbj_pfc_roi,'FPC'),2,1)))...
+    '-' num2str(mean(betapk_lim(strcmp(sbj_pfc_roi,'FPC'),2,2))) ' Hz)']},'Location','best');
 set(gca,'FontSize',16);
 
 %--------------------------------------------------------------------------
@@ -401,17 +481,20 @@ set(gca,'FontSize',16);
 % Plot theta
 subplot(3,4,11); hold on;
 
-shadedErrorBar(time_vec, ofc_theta_grp_avg, ofc_theta_grp_sem);%, 'transparent',sem_alpha);
+t_line = shadedErrorBar(time_vec, ofc_theta_grp_avg, ofc_theta_grp_sem,'lineprops',{'Color','r'});
+tpk_line = shadedErrorBar(time_vec, ofc_thetapk_grp_avg, ofc_thetapk_grp_sem,'lineprops',{'Color','b'});
 line([0 0],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
     'LineStyle',plt.evnt_styles{1});
 
 % Axes and parameters
-title(['OFC theta (' num2str(theta_lim(1)) '-' ...
-    num2str(theta_lim(2)) ' Hz): ' an_id], 'interpreter', 'none');
+title('OFC theta', 'interpreter', 'none');
 set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
 set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
 xlabel('Time (s)');
 ylabel('Normalized Power');
+legend([t_line.mainLine tpk_line.mainLine],{['theta (' num2str(theta_lim(1)) '-' num2str(theta_lim(2)) ...
+    ' Hz)'],['SBJ theta (' num2str(mean(thetapk_lim(strcmp(sbj_pfc_roi,'OFC'),2,1)))...
+    '-' num2str(mean(thetapk_lim(strcmp(sbj_pfc_roi,'OFC'),2,2))) ' Hz)']},'Location','best');
 set(gca,'FontSize',16);
 
 % Plot beta
@@ -423,13 +506,14 @@ line([0 0],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
     'LineStyle',plt.evnt_styles{1});
 
 % Axes and parameters
-title(['OFC beta: ' an_id], 'interpreter', 'none');
+title(['OFC beta'], 'interpreter', 'none');
 set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
 set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
 xlabel('Time (s)');
 ylabel('Normalized Power');
 legend([b_line.mainLine bpk_line.mainLine],{['beta (' num2str(beta_lim(1)) '-' num2str(beta_lim(2)) ...
-    ' Hz)'],['SBJ beta (' num2str(betapk_lim(s,1)) '-' num2str(betapk_lim(s,2)) ' Hz)']},'Location','best');
+    ' Hz)'],['SBJ beta (' num2str(mean(betapk_lim(strcmp(sbj_pfc_roi,'OFC'),2,1)))...
+    '-' num2str(mean(betapk_lim(strcmp(sbj_pfc_roi,'OFC'),2,2))) ' Hz)']},'Location','best');
 set(gca,'FontSize',16);
 
 % Save Figure

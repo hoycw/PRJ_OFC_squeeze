@@ -14,10 +14,7 @@ ft_defaults
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 % sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 
-an_ids     = {'TFRw_S25t201_zbt25t05_fl2t40_c7'};%'TFRw_S25t201_zbt25t05_fl2t40_varWid','simon_zbt','TFRw_S25t201_zbt25t05_fl2t40'};%,'TFRm_S25t201_zbtS_sm0_l0_wnVar','simon'};
-% an_ids = {'TFRw_D101t201_zbt25t05_fl2t40_varWid','simon_D101t201_zbt25t05'};
-% bsln_type  = 'zboot';
-% bsln_boots = 500;
+an_ids = {'TFRw_S25t2_zbtS25t05_fl2t40_c7','TFRw_D1t1_zbtS25t05_fl2t40_c7'};
 
 %% Time Frequency analysis
 for s = 1:4
@@ -29,7 +26,7 @@ for s = 1:4
     
     %% Time-frequency representation
     for an_ix = 1:length(an_ids)
-        an_vars_cmd = ['run ' prj_dir '/scripts/an_vars/' an_ids{an_ix} '_vars.m'];
+        an_vars_cmd = ['run ' prj_dir 'scripts/an_vars/' an_ids{an_ix} '_vars.m'];
         eval(an_vars_cmd);
         
 %         % Trim to analysis time

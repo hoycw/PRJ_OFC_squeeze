@@ -9,19 +9,25 @@ ft_defaults
 %% Parameters
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
-man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 128 139 148 149 150]};
-% PFC01 manual trial flags: (full trl_ix after accountinf for tossing missing trials)
-%   big spikes: 27 28 97 98 128 139 148 149 150
-%   medium spikes: 79 80 86 87 102 103
+man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 148 149 150]};
+% These are true trl_ix after accounting for bad behavioral trials
+%   tossed trials are based on maxabs using:
+%   outlier_std_thresh = 2
+%   evnt_lab = 'full' (so covering any data points included in TFR calculations
+%   trl_lim = [-2 2.75];
+%       2 hz min freq with 7 cycle wavelet = 1.75s added to trl_lim
+%       baseline -250:50 ms means -2, then RT+1+1.75 = 2.75
 
 plot_it  = 0;           % 0/1 whether to creat plots
-evnt_lab = 'stim';      % event to time-lock segmented data {'stim' | 'dec'}
-trl_lim = [-3 10];     % cut trial data (in sec) relative to event
+evnt_lab = 'stim';      % event to time-lock segmented data {'stim' | 'dec' | 'full' = [lim(1)+S lim(2)+D]}
+trl_lim = [-2 9];       % cut trial data (in sec) relative to event
 new_srate = 1000;
 trl_lim_samp = trl_lim.*new_srate;
 n_choice_trl = 75;
 
-outlier_std_thresh = 3;
+rt_thresh = 6;              % hard threshold in sec for outlier RTs
+amp_thresh = 100;           % hard threshold in voltage for outlier artifact trials
+outlier_std_thresh = 2;
 
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 fig_dir   = [prj_dir 'results/preproc/'];
@@ -238,33 +244,13 @@ for s=1:4
     for trl_ix=1:n_choice_trl
         data.trial{trl_ix+n_choice_trl} = run_data{2}.trial{trl_ix};
         data.time{trl_ix+n_choice_trl}  = run_data{2}.time{trl_ix};
-%         data.sampleinfo{trl_ix+n_choice_trl} = run_data{2}.sampleinfo(trl_ix,:);
-    end
-    
-    %% Remove trials with missing behavioral data
-    bhv.resp_ix     = find(bhv.key==37 | bhv.key==39);
-    bhv.empty_ix    = find(isnan(bhv.key));
-    bhv.bad_resp_ix = find(~isnan(bhv.key) & bhv.key~=37 & bhv.key~=39);
-    missing_ix = union(bhv.empty_ix,bhv.bad_resp_ix);
-    if ~isempty(missing_ix)
-        fprintf(2,'\t%s: Removing %d empty and %d bad response trials...\n',...
-            SBJs{s},length(bhv.empty_ix),length(bhv.bad_resp_ix));
-        % Remove from neural
-        data.time(missing_ix)  = [];
-        data.trial(missing_ix) = [];
-        
-        % Remove from behavior
-        bhv_fields = fieldnames(bhv);
-        for f = 1:length(bhv_fields)
-            if length(bhv.(bhv_fields{f}))==n_choice_trl*2 && ~strcmp(bhv_fields{f},'resp_ix')
-                bhv.(bhv_fields{f})(missing_ix) = [];
-            end
-        end
+        data.sampleinfo(trl_ix+n_choice_trl,:) = run_data{2}.sampleinfo(trl_ix,:);
     end
     
     %% Plot RTs
     if plot_it
-        rt_thresh = nanmean(bhv.rt) + nanstd(bhv.rt)*outlier_std_thresh;
+        % now using hard threshold
+        % rt_thresh = nanmean(bhv.rt) + nanstd(bhv.rt)*outlier_std_thresh;
         fig_name = [SBJs{s} '_RT_histogram'];
         figure('name',fig_name); hold on;
         histogram(bhv.rt,25);
@@ -277,6 +263,28 @@ for s=1:4
         fig_fname = [fig_dir 'RT_hist/' fig_name '.' fig_ftype];
         fprintf('Saving %s\n',fig_fname);
         saveas(gcf,fig_fname);
+    end
+    
+    %% Remove trials with bad behavioral data
+    bhv.resp_ix     = find(bhv.key==37 | bhv.key==39);
+    bhv.empty_ix    = find(isnan(bhv.key));
+    bhv.bad_resp_ix = find(~isnan(bhv.key) & bhv.key~=37 & bhv.key~=39);
+    bhv.bad_rt_ix   = find(bhv.rt > rt_thresh);
+    bad_ix = unique([bhv.empty_ix,bhv.bad_resp_ix,bhv.bad_rt_ix]);
+    if ~isempty(bad_ix)
+        fprintf(2,'\t%s: Removing %d empty, %d bad response, and %d bad RT trials...\n',...
+            SBJs{s},length(bhv.empty_ix),length(bhv.bad_resp_ix),length(bhv.bad_rt_ix));
+        % Remove from neural
+        data.time(bad_ix)  = [];
+        data.trial(bad_ix) = [];
+        
+        % Remove from behavior
+        bhv_fields = fieldnames(bhv);
+        for f = 1:length(bhv_fields)
+            if length(bhv.(bhv_fields{f}))==n_choice_trl*2 && ~strcmp(bhv_fields{f},'resp_ix')
+                bhv.(bhv_fields{f})(bad_ix) = [];
+            end
+        end
     end
     
     %% BEHAVIORAL MODELLING %%
@@ -353,49 +361,51 @@ for s=1:4
         reject_out = ft_rejectvisual(cfgr,data_plot);
     end
     
-    %% Find and reject neural outliers
+    %% Find neural outliers
     % Get standard deviation and normalize per channel
-    trial_std = nan([size(data.trial,1) length(data.label)]);
+    trial_abs = nan([size(data.trial,1) length(data.label)]);
     for trl_ix = 1:size(data.trial,1)
         tmp = data.trial{trl_ix};
-        trial_std(trl_ix,:)  = nanstd(tmp,1,2);
+        for ch_ix = 1:2
+            trial_abs(trl_ix,ch_ix)  = max(abs(tmp(ch_ix,:)));
+        end
 %         trialmean(trl_ix,:) = mean(abs(tmp),2);    % why are you taking abs here?
     end
-    trial_std_norm = trial_std./nanmedian(trial_std);
+    trial_abs_norm = trial_abs./nanmean(trial_abs);
     
     % figure;
-    % subplot(2,1,1); plot(trialstdN(:,1));
-    % subplot(2,1,2); plot(trialmean);
+    % scatter(1:length(trial_abs_norm),squeeze(trial_abs_norm(:,1)));
     
     % Find trials with outlier standard deviations
     var_reject_ix = [];
     for ch_ix = 1:2
-        var_reject_ix = [var_reject_ix; find(trial_std_norm(:,ch_ix)>outlier_std_thresh)];
+        var_reject_ix = [var_reject_ix; find(trial_abs_norm(:,ch_ix)>outlier_std_thresh)];
     end
     var_reject_ix = unique(var_reject_ix);
     
-    % Manual rejection based on visual inspection
-    man_ix = nan(size(man_trl_rej_ix{s}));
+    %% Reject neural outliers
+    % Rejection based on criteria listed in parameter definition
+    outlier_ix = nan(size(man_trl_rej_ix{s}));
     for t = 1:numel(man_trl_rej_ix{s})
-        man_ix(t) = find(bhv.trl==man_trl_rej_ix{s}(t));
+        outlier_ix(t) = find(bhv.trl==man_trl_rej_ix{s}(t));
     end
-    if isempty(man_ix)
+    if isempty(man_trl_rej_ix{s})
         fprintf('%s: No bad trials identified.\n',SBJs{s});
     else
-        fprintf(2,'%s: Removing %d trials!\n',SBJs{s},length(man_ix));
+        fprintf(2,'%s: Removing %d trials!\n',SBJs{s},length(man_trl_rej_ix{s}));
     end
     
     % Remove outlier trials
-    data.trial(man_ix) = [];
-    data.time(man_ix)  = [];
+    data.trial(outlier_ix) = [];
+    data.time(outlier_ix)  = [];
 %     data.trialbl(bad_trl_ix) = [];
 %     data.sampleinfo(bad_trl_ix,:) = [];
     
-    bhv.reject_ix = man_ix;
+    bhv.reject_ix = outlier_ix;
     bhv_fields = fieldnames(bhv);
     for f = 1:length(bhv_fields)
         if length(bhv.(bhv_fields{f}))==length(bhv.resp_ix) && ~strcmp(bhv_fields{f},'resp_ix')
-            bhv.(bhv_fields{f})(man_ix) = [];
+            bhv.(bhv_fields{f})(outlier_ix) = [];
         end
     end
     
