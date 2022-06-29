@@ -14,7 +14,7 @@ sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 an_id = 'TFRw_S25t2_zbtS25t05_fl2t40_c7';
 
 if contains(an_id,'_S')
-    psd_win_lim = [0 2];
+    psd_win_lim = [0.25 1.5];
     an_lim = [0.5 1.5];
 elseif contains(an_id,'_D')
     psd_win_lim = [-0.5 0];
@@ -351,7 +351,7 @@ set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
 xlabel('Time (s)');
 ylabel('Normalized Power');
 legend([t_line.mainLine tpk_line.mainLine],{['theta (' num2str(theta_lim(1)) '-' num2str(theta_lim(2)) ...
-    ' Hz)'],['SBJ beta (' num2str(mean(thetapk_lim(:,1,1))) '-' num2str(mean(thetapk_lim(:,1,2))) ' Hz)']},'Location','best');
+    ' Hz)'],['SBJ thWeta (' num2str(mean(thetapk_lim(:,1,1))) '-' num2str(mean(thetapk_lim(:,1,2))) ' Hz)']},'Location','best');
 set(gca,'FontSize',16);
 
 % Plot beta

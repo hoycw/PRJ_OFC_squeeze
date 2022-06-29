@@ -266,7 +266,7 @@ for s=1:4
     end
     
     %% Remove trials with bad behavioral data
-    bhv.resp_ix     = find(bhv.key==37 | bhv.key==39);
+    bhv.good_key_ix = find(bhv.key==37 | bhv.key==39);
     bhv.empty_ix    = find(isnan(bhv.key));
     bhv.bad_resp_ix = find(~isnan(bhv.key) & bhv.key~=37 & bhv.key~=39);
     bhv.bad_rt_ix   = find(bhv.rt > rt_thresh);
@@ -281,7 +281,7 @@ for s=1:4
         % Remove from behavior
         bhv_fields = fieldnames(bhv);
         for f = 1:length(bhv_fields)
-            if length(bhv.(bhv_fields{f}))==n_choice_trl*2 && ~strcmp(bhv_fields{f},'resp_ix')
+            if length(bhv.(bhv_fields{f}))==n_choice_trl*2 && ~contains(bhv_fields{f},'_ix')
                 bhv.(bhv_fields{f})(bad_ix) = [];
             end
         end
@@ -403,8 +403,9 @@ for s=1:4
     
     bhv.reject_ix = outlier_ix;
     bhv_fields = fieldnames(bhv);
+    n_good_bhv = length(bhv.trl);
     for f = 1:length(bhv_fields)
-        if length(bhv.(bhv_fields{f}))==length(bhv.resp_ix) && ~strcmp(bhv_fields{f},'resp_ix')
+        if length(bhv.(bhv_fields{f}))==n_good_bhv && ~contains(bhv_fields{f},'_ix')
             bhv.(bhv_fields{f})(outlier_ix) = [];
         end
     end
