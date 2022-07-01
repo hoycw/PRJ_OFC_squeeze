@@ -14,7 +14,7 @@ ft_defaults
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 % sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 
-an_ids = {'TFRw_S25t2_zbtS25t05_fl2t40_c7','TFRw_D1t1_zbtS25t05_fl2t40_c7'};
+an_ids = {'TFRw_S25t2_noBsln_fl2t40_c7'};%'TFRw_S25t2_zbtS25t05_fl2t40_c7','TFRw_D1t1_zbtS25t05_fl2t40_c7'};
 
 %% Time Frequency analysis
 for s = 1:4
@@ -64,11 +64,8 @@ for s = 1:4
                 cfgbsln.parameter    = 'powspctrm';
                 tfr = ft_freqbaseline(cfgbsln,tfr_trim);
             case 'none'
-                if an.complex
-                    fprintf('\tNo baseline correction for ITPC data...\n');
-                else
-                    error('Why no baseline correction if not ITPC?');
-                end
+                warning('\tSkipping baseline correction!');
+                tfr = tfr_trim;
             otherwise
                 error(['No baseline implemented for bsln_type: ' an.bsln_type]);
         end

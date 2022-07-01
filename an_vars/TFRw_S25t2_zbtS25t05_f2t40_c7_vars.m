@@ -1,7 +1,7 @@
 % Data Selection
 an.ROI         = {'all'};             % Channel to be analyzed
-an.event_type  = 'D';           % event around which to cut trials
-an.trial_lim_s = [-1.01 1.01];       % window in SEC for cutting trials
+an.event_type  = 'S';           % event around which to cut trials
+an.trial_lim_s = [-0.25 2.01];       % window in SEC for cutting trials
 an.demean_yn   = 'no';
 an.bsln_evnt   = 'S';
 an.bsln_type   = 'zboot';
@@ -13,7 +13,7 @@ cfg_tfr = [];
 cfg_tfr.method     = 'wavelet';
 cfg_tfr.output     = 'pow';
 cfg_tfr.taper      = 'hanning';
-cfg_tfr.foi        = [2:0.5:8 9:20 22:2:40];
+cfg_tfr.foi        = [2:40];
 cfg_tfr.width      = 7; %default
 cfg_tfr.toi        = 'all'; %-0.2:0.004:1.0;
 cfg_tfr.keeptrials = 'yes'; % need trials for stats, can average later

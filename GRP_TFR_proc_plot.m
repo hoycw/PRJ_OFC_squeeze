@@ -8,10 +8,11 @@ addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 
 %% Parameters
+error('TFR y lim not corrected!');
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 
-an_id = 'TFRw_S25t2_zbtS25t05_fl2t40_c7';%'TFRw_D1t1_zbtS25t05_fl2t40_c7';%
+an_id = 'TFRw_S25t2_zbtS25t05_f2t40_c7';%'TFRw_D1t1_zbtS25t05_fl2t40_c7';%
 
 if contains(an_id,'_S')
     psd_win_lim = [0 2];

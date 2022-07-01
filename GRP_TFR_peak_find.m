@@ -2,7 +2,7 @@
 % Based on /Analysis/Group/Preprocess/Squeeze_preprocess_all_data_stimulus_locked.m
 clear all
 close all
-clc
+% clc
 
 addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
@@ -11,11 +11,11 @@ ft_defaults
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 
-an_id = 'TFRw_S25t2_zbtS25t05_fl2t40_c7';
+an_id = 'TFRw_S25t2_noBsln_fl2t40_c7';
 
 if contains(an_id,'_S')
-    psd_win_lim = [0.25 1.5];
-    an_lim = [0.5 1.5];
+    psd_win_lim = [0 2];
+    an_lim = [0.5 1];
 elseif contains(an_id,'_D')
     psd_win_lim = [-0.5 0];
     an_lim = [-0.5 0];
@@ -39,6 +39,7 @@ prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 addpath([prj_dir 'scripts/']);
 addpath([prj_dir 'scripts/utils/']);
 
+freq_ticks = 5:5:35;
 if contains(an_id,'_S') || contains(an_id,'simon')
     plt_id = 'ts_S2t2_evnts_sigLine';
 elseif contains(an_id,'_D')
@@ -162,38 +163,19 @@ for s = 1:length(SBJs)
     end
 end
 
-%% Average at group level
-lfp_tfr_grp        = squeeze(nanmean(tfr(:,1,:,:),1));
-lfp_theta_grp_avg  = squeeze(mean(theta_avg(:,1,:),1));
-lfp_theta_grp_sem  = squeeze(std(theta_avg(:,1,:),[],1)./sqrt(size(theta_avg(:,1,:),1)));
-lfp_thetapk_grp_avg  = squeeze(mean(thetapk_avg(:,1,:),1));
-lfp_thetapk_grp_sem  = squeeze(std(thetapk_avg(:,1,:),[],1)./sqrt(size(thetapk_avg(:,1,:),1)));
-lfp_beta_grp_avg   = squeeze(mean(beta_avg(:,1,:),1));
-lfp_beta_grp_sem   = squeeze(std(beta_avg(:,1,:),[],1)./sqrt(size(beta_avg(:,1,:),1)));
-lfp_betapk_grp_avg = squeeze(mean(betapk_avg(:,1,:),1));
-lfp_betapk_grp_sem = squeeze(std(betapk_avg(:,1,:),[],1)./sqrt(size(betapk_avg(:,1,:),1)));
-
-fpc_tfr_grp        = squeeze(nanmean(tfr(strcmp(sbj_pfc_roi,'FPC'),2,:,:),1));
-fpc_theta_grp_avg  = squeeze(mean(theta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
-fpc_theta_grp_sem  = squeeze(std(theta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)./sqrt(size(theta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1)));
-fpc_thetapk_grp_avg  = squeeze(mean(thetapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
-fpc_thetapk_grp_sem  = squeeze(std(thetapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)./sqrt(size(thetapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1)));
-fpc_beta_grp_avg   = squeeze(mean(beta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
-fpc_beta_grp_sem   = squeeze(std(beta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)./sqrt(size(beta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1)));
-fpc_betapk_grp_avg = squeeze(mean(betapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
-fpc_betapk_grp_sem = squeeze(std(betapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)./sqrt(size(betapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1)));
-
-ofc_tfr_grp        = squeeze(nanmean(tfr(strcmp(sbj_pfc_roi,'OFC'),2,:,:),1));
-ofc_theta_grp_avg  = squeeze(mean(theta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
-ofc_theta_grp_sem  = squeeze(std(theta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(theta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
-ofc_thetapk_grp_avg  = squeeze(mean(thetapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
-ofc_thetapk_grp_sem  = squeeze(std(thetapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(thetapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
-ofc_beta_grp_avg   = squeeze(mean(beta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
-ofc_beta_grp_sem   = squeeze(std(beta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(beta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
-ofc_betapk_grp_avg = squeeze(mean(betapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
-ofc_betapk_grp_sem = squeeze(std(betapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(betapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
-
 %% Plot SBJ TFRs
+% Get frequency and time ticks
+freq_tick_ix = nan(size(freq_ticks));
+for f = 1:numel(freq_ticks)
+    [~,freq_tick_ix(f)] = min(abs(freq_vec-freq_ticks(f)));
+end
+time_ticks = plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2);
+time_tick_ix = nan(size(time_ticks));
+for t = 1:numel(time_ticks)
+    [~,time_tick_ix(t)] = min(abs(time_vec-time_ticks(t)));
+end
+if ~any(time_ticks==0); error('cant plot event with no tick at 0'); end
+
 for s = 1:length(SBJs)
     %% Plot TFRs for each SBJ
     fig_name = [SBJs{s} '_TFR_theta_beta_' an_id];
@@ -207,21 +189,25 @@ for s = 1:length(SBJs)
         clim = [prctile(vals(:),plt.clim_perc(1)) prctile(vals(:),plt.clim_perc(2))];
         
         % Plot TFR
-        imagesc(time_vec, freq_vec, squeeze(tfr(s,ch_ix,:,:)));
-        set(gca,'YDir','normal');
+        imagesc(squeeze(tfr(s,ch_ix,:,:)));
         caxis(clim);
         colorbar;
         
         % Plot Events
-        line([0 0],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
+        line([time_tick_ix(time_ticks==0) time_tick_ix(time_ticks==0)],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
             'LineStyle',plt.evnt_styles{1});
         
         % Axes and parameters
         if ch_ix==1; ch_lab = 'LFP'; else ch_lab = sbj_pfc_roi{s}; end
         title([ch_lab '- ' an_id], 'interpreter', 'none');
-        set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
-        set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
-        ylim([min(freq_vec) max(freq_vec)]);
+        set(gca,'XLim',[1 numel(time_vec)]);
+        set(gca,'XTick', time_tick_ix);
+        set(gca,'XTickLabels', time_ticks);
+        set(gca,'YLim',[1 numel(freq_vec)]);
+        set(gca,'YTick',freq_tick_ix);
+        set(gca,'YTickLabels',freq_ticks);
+        set(gca,'YDir','normal');
+%         ylim([min(freq_vec) max(freq_vec)]);
         xlabel('Time (s)');
         ylabel('Frequency (Hz)');
         set(gca,'FontSize',16);
@@ -297,6 +283,37 @@ for s = 1:length(SBJs)
     end
 end
 
+%% Average at group level
+lfp_tfr_grp        = squeeze(nanmean(tfr(:,1,:,:),1));
+lfp_theta_grp_avg  = squeeze(mean(theta_avg(:,1,:),1));
+lfp_theta_grp_sem  = squeeze(std(theta_avg(:,1,:),[],1)./sqrt(size(theta_avg(:,1,:),1)));
+lfp_thetapk_grp_avg  = squeeze(mean(thetapk_avg(:,1,:),1));
+lfp_thetapk_grp_sem  = squeeze(std(thetapk_avg(:,1,:),[],1)./sqrt(size(thetapk_avg(:,1,:),1)));
+lfp_beta_grp_avg   = squeeze(mean(beta_avg(:,1,:),1));
+lfp_beta_grp_sem   = squeeze(std(beta_avg(:,1,:),[],1)./sqrt(size(beta_avg(:,1,:),1)));
+lfp_betapk_grp_avg = squeeze(mean(betapk_avg(:,1,:),1));
+lfp_betapk_grp_sem = squeeze(std(betapk_avg(:,1,:),[],1)./sqrt(size(betapk_avg(:,1,:),1)));
+
+fpc_tfr_grp        = squeeze(nanmean(tfr(strcmp(sbj_pfc_roi,'FPC'),2,:,:),1));
+fpc_theta_grp_avg  = squeeze(mean(theta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
+fpc_theta_grp_sem  = squeeze(std(theta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)./sqrt(size(theta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1)));
+fpc_thetapk_grp_avg  = squeeze(mean(thetapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
+fpc_thetapk_grp_sem  = squeeze(std(thetapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)./sqrt(size(thetapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1)));
+fpc_beta_grp_avg   = squeeze(mean(beta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
+fpc_beta_grp_sem   = squeeze(std(beta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)./sqrt(size(beta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1)));
+fpc_betapk_grp_avg = squeeze(mean(betapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
+fpc_betapk_grp_sem = squeeze(std(betapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)./sqrt(size(betapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1)));
+
+ofc_tfr_grp        = squeeze(nanmean(tfr(strcmp(sbj_pfc_roi,'OFC'),2,:,:),1));
+ofc_theta_grp_avg  = squeeze(mean(theta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
+ofc_theta_grp_sem  = squeeze(std(theta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(theta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
+ofc_thetapk_grp_avg  = squeeze(mean(thetapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
+ofc_thetapk_grp_sem  = squeeze(std(thetapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(thetapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
+ofc_beta_grp_avg   = squeeze(mean(beta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
+ofc_beta_grp_sem   = squeeze(std(beta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(beta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
+ofc_betapk_grp_avg = squeeze(mean(betapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
+ofc_betapk_grp_sem = squeeze(std(betapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(betapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
+
 %% Plot TFRs for the GROUP
 fig_name = ['GRP_TFR_theta_beta_' an_id];
 figure('Name',fig_name,'units','normalized',...
@@ -310,20 +327,23 @@ subplot(3,4,1); hold on;
 % Get color lims per condition
 clim = [prctile(lfp_tfr_grp(:),plt.clim_perc(1)) prctile(lfp_tfr_grp(:),plt.clim_perc(2))];
 
-imagesc(time_vec, freq_vec, lfp_tfr_grp);
+imagesc(lfp_tfr_grp);
 set(gca,'YDir','normal');
 caxis(clim);
 colorbar;
 
 % Plot Events
-line([0 0],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
-    'LineStyle',plt.evnt_styles{1});
+line([time_tick_ix(time_ticks==0) time_tick_ix(time_ticks==0)],ylim,...
+    'LineWidth',plt.evnt_width,'Color',plt.evnt_color,'LineStyle',plt.evnt_styles{1});
 
 % Axes and parameters
 title(['LFP- ' an_id], 'interpreter', 'none');
-set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
-set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
-ylim([min(freq_vec) max(freq_vec)]);
+set(gca,'XLim',[1 numel(time_vec)]);
+set(gca,'XTick', time_tick_ix);
+set(gca,'XTickLabels', time_ticks);
+set(gca,'YLim',[1 numel(freq_vec)]);
+set(gca,'YTick',freq_tick_ix);
+set(gca,'YTickLabels',freq_ticks);
 xlabel('Time (s)');
 ylabel('Frequency (Hz)');
 set(gca,'FontSize',16);
@@ -380,21 +400,23 @@ subplot(3,4,5); hold on;
 % Get color lims per condition
 clim = [prctile(fpc_tfr_grp(:),plt.clim_perc(1)) prctile(fpc_tfr_grp(:),plt.clim_perc(2))];
 
-imagesc(time_vec, freq_vec, fpc_tfr_grp);
+imagesc(fpc_tfr_grp);
 set(gca,'YDir','normal');
 caxis(clim);
 colorbar;
 
 % Plot Events
-line([0 0],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
-    'LineStyle',plt.evnt_styles{1});
+line([time_tick_ix(time_ticks==0) time_tick_ix(time_ticks==0)],ylim,...
+    'LineWidth',plt.evnt_width,'Color',plt.evnt_color,'LineStyle',plt.evnt_styles{1});
 
 % Axes and parameters
 title(['FPC- ' an_id], 'interpreter', 'none');
-set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
-set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
-ylim([min(freq_vec) max(freq_vec)]);
-xlabel('Time (s)');
+set(gca,'XLim',[1 numel(time_vec)]);
+set(gca,'XTick', time_tick_ix);
+set(gca,'XTickLabels', time_ticks);
+set(gca,'YLim',[1 numel(freq_vec)]);
+set(gca,'YTick',freq_tick_ix);
+set(gca,'YTickLabels',freq_ticks);xlabel('Time (s)');
 ylabel('Frequency (Hz)');
 set(gca,'FontSize',16);
 
@@ -452,21 +474,23 @@ subplot(3,4,9); hold on;
 % Get color lims per condition
 clim = [prctile(ofc_tfr_grp(:),plt.clim_perc(1)) prctile(ofc_tfr_grp(:),plt.clim_perc(2))];
 
-imagesc(time_vec, freq_vec, ofc_tfr_grp);
+imagesc(ofc_tfr_grp);
 set(gca,'YDir','normal');
 caxis(clim);
 colorbar;
 
 % Plot Events
-line([0 0],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
-    'LineStyle',plt.evnt_styles{1});
+line([time_tick_ix(time_ticks==0) time_tick_ix(time_ticks==0)],ylim,...
+    'LineWidth',plt.evnt_width,'Color',plt.evnt_color,'LineStyle',plt.evnt_styles{1});
 
 % Axes and parameters
 title(['OFC- ' an_id], 'interpreter', 'none');
-set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
-set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
-ylim([min(freq_vec) max(freq_vec)]);
-xlabel('Time (s)');
+set(gca,'XLim',[1 numel(time_vec)]);
+set(gca,'XTick', time_tick_ix);
+set(gca,'XTickLabels', time_ticks);
+set(gca,'YLim',[1 numel(freq_vec)]);
+set(gca,'YTick',freq_tick_ix);
+set(gca,'YTickLabels',freq_ticks);xlabel('Time (s)');
 ylabel('Frequency (Hz)');
 set(gca,'FontSize',16);
 
