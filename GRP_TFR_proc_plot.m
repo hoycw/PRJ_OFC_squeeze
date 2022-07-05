@@ -11,9 +11,11 @@ ft_defaults
 error('TFR y lim not corrected!');
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
+sbj_bg_roi   = {'GPi','STN','GPi','STN'};
 
 an_id = 'TFRw_S25t2_zbtS25t05_f2t40_c7';%'TFRw_D1t1_zbtS25t05_fl2t40_c7';%
 
+freq_ticks = 5:5:35;
 if contains(an_id,'_S')
     psd_win_lim = [0 2];
 elseif contains(an_id,'_D')
@@ -136,6 +138,18 @@ ofc_betapk_grp_avg = squeeze(mean(betapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
 ofc_betapk_grp_sem = squeeze(std(betapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(betapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
 
 %% Plot SBJ TFRs
+% Get frequency and time ticks
+freq_tick_ix = nan(size(freq_ticks));
+for f = 1:numel(freq_ticks)
+    [~,freq_tick_ix(f)] = min(abs(freq_vec-freq_ticks(f)));
+end
+time_ticks = plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2);
+time_tick_ix = nan(size(time_ticks));
+for t = 1:numel(time_ticks)
+    [~,time_tick_ix(t)] = min(abs(time_vec-time_ticks(t)));
+end
+if ~any(time_ticks==0); error('cant plot event with no tick at 0'); end
+
 for s = 1:length(SBJs)
     %% Plot TFRs for each SBJ
     fig_name = [SBJs{s} '_TFR_theta_beta_' an_id];
@@ -149,13 +163,13 @@ for s = 1:length(SBJs)
         clim = [prctile(vals(:),plt.clim_perc(1)) prctile(vals(:),plt.clim_perc(2))];
         
         % Plot TFR
-        imagesc(time_vec, freq_vec, squeeze(tfr(s,ch_ix,:,:)));
+        imagesc(squeeze(tfr(s,ch_ix,:,:)));
         set(gca,'YDir','normal');
         caxis(clim);
         colorbar;
         
         % Plot Events
-        line([0 0],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
+        line([time_tick_ix(time_ticks==0) time_tick_ix(time_ticks==0)],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
             'LineStyle',plt.evnt_styles{1});
         
         % Axes and parameters

@@ -10,20 +10,24 @@ ft_defaults
 %% Parameters
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
+sbj_bg_roi   = {'GPi','STN','GPi','STN'};
 
-an_id = 'TFRw_S25t2_noBsln_fl2t40_c7';
+an_id = 'TFRw_S25t2_zbtS25t05_fl2t40_c7';%'TFRw_S25t2_noBsln_fl1t40_c7';%'TFRw_S25t2_noBsln_fl2t40_c7';
+% an_id = 'TFRw_D1t1_zbtS25t05_fl2t40_c7';%
 
 if contains(an_id,'_S')
-    psd_win_lim = [0 2];
-    an_lim = [0.5 1];
+    psd_win_lim = [0.25 1.5];
+    peak_sign = 1;
+%     an_lim = [0.5 1];
 elseif contains(an_id,'_D')
-    psd_win_lim = [-0.5 0];
-    an_lim = [-0.5 0];
+    psd_win_lim = [-0.25 0.25];
+    peak_sign = -1;
+%     an_lim = [-0.5 0];
 end
 
 % Analysis parameters:
-theta_lim  = [3 9];
-beta_lim   = [13 30];    
+theta_lim  = [2 9];
+beta_lim   = [10 30];    
 sbj_beta_pk = [10,17,13,12]; % PFC03, PFC04, PFC05, PFC01
 % alternatives: (1)=[17,17,13,12]; (2)=[17,22,13,13];
 thetapk_bw = 4;
@@ -40,6 +44,7 @@ addpath([prj_dir 'scripts/']);
 addpath([prj_dir 'scripts/utils/']);
 
 freq_ticks = 5:5:35;
+symmetric_clim = 1;
 if contains(an_id,'_S') || contains(an_id,'simon')
     plt_id = 'ts_S2t2_evnts_sigLine';
 elseif contains(an_id,'_D')
@@ -81,6 +86,8 @@ for s = 1:length(SBJs)
         freq_vec = tmp.tfr.freq;
         tfr      = nan([length(SBJs) 2 numel(tmp.tfr.freq) numel(tmp.tfr.time)]);
         psd      = nan([length(SBJs) 2 numel(tmp.tfr.freq)]);
+        sig_pow  = nan([length(SBJs) 2 numel(tmp.tfr.freq)]);
+        sig_powq = nan([length(SBJs) 2 numel(tmp.tfr.freq)]);
     end
     
     % Average across trials
@@ -90,10 +97,22 @@ for s = 1:length(SBJs)
     cfgs = [];
     cfgs.latency = psd_win_lim;
     psd_tfr = ft_selectdata(cfgs,tmp.tfr);
+    trl_pow = nanmean(psd_tfr.powspctrm,4);
     psd(s,:,:) = squeeze(nanmean(nanmean(psd_tfr.powspctrm,1),4));
     
     % Find PSD peaks
     for ch_ix = 1:2
+        % Stats on power versus zero
+        % Compute t-test per time point
+        pvals = nan(size(freq_vec));
+        for f_ix = 1:numel(freq_vec)
+            [sig_pow(s,ch_ix,f_ix), pvals(f_ix)] = ttest(squeeze(trl_pow(:,ch_ix,f_ix)));
+        end
+        
+        % Find epochs with significant task activations
+        %     [h, crit_p, adj_ci_cvrg, adj_p]=fdr_bh(pvals,q,method,report);
+        [sig_powq(s,ch_ix,:), ~, ~, ~] = fdr_bh(pvals);
+        
         % Theta
         [~,min_ix] = min(abs(freq_vec-theta_lim(1)));
         [~,max_ix] = min(abs(freq_vec-theta_lim(2)));
@@ -112,7 +131,7 @@ for s = 1:length(SBJs)
         % Beta
         [~,min_ix] = min(abs(freq_vec-beta_lim(1)));
         [~,max_ix] = min(abs(freq_vec-beta_lim(2)));
-        [pk,pk_ix] = findpeaks(squeeze(psd(s,ch_ix,min_ix:max_ix)));
+        [pk,pk_ix] = findpeaks(squeeze(peak_sign*psd(s,ch_ix,min_ix:max_ix)));
         if numel(pk_ix)~=0
             if numel(pk_ix)>1
                 [~,best_ix] = max(pk);
@@ -186,7 +205,19 @@ for s = 1:length(SBJs)
         subplot(2,4,ch_ix*4-3); hold on;
         % Get color lims per condition
         vals = tfr(s,ch_ix,:,:);
-        clim = [prctile(vals(:),plt.clim_perc(1)) prctile(vals(:),plt.clim_perc(2))];
+        if symmetric_clim
+            clim = max(abs([prctile(vals(:),plt.clim_perc(1)) prctile(vals(:),plt.clim_perc(2))]));
+            clim = [-clim clim];
+        else
+            clim = [prctile(vals(:),plt.clim_perc(1)) prctile(vals(:),plt.clim_perc(2))];
+        end
+        if ch_ix==1
+            ch_lab = sbj_bg_roi{s};
+            ch_color = [0 0 1];
+        else
+            ch_lab = sbj_pfc_roi{s};
+            ch_color = [255,165,0]./255; % orange
+        end
         
         % Plot TFR
         imagesc(squeeze(tfr(s,ch_ix,:,:)));
@@ -198,7 +229,6 @@ for s = 1:length(SBJs)
             'LineStyle',plt.evnt_styles{1});
         
         % Axes and parameters
-        if ch_ix==1; ch_lab = 'LFP'; else ch_lab = sbj_pfc_roi{s}; end
         title([ch_lab '- ' an_id], 'interpreter', 'none');
         set(gca,'XLim',[1 numel(time_vec)]);
         set(gca,'XTick', time_tick_ix);
@@ -214,8 +244,14 @@ for s = 1:length(SBJs)
         
         %% Plot PSD
         subplot(2,4,ch_ix*4-2); hold on;
-        lfp_line = plot(freq_vec,squeeze(psd(s,1,:)),'Color','b');
-        pfc_line = plot(freq_vec,squeeze(psd(s,2,:)),'Color',[255,165,0]./255); %orange
+        plot(freq_vec,squeeze(psd(s,ch_ix,:)),'Color',ch_color);
+%         lfp_line = plot(freq_vec,squeeze(psd(s,1,:)),'Color','b');
+%         pfc_line = plot(freq_vec,squeeze(psd(s,2,:)),'Color',[255,165,0]./255); %orange
+        line(xlim,[0 0],'Color','k','LineStyle','--');
+        sig_pts = find(squeeze(sig_pow(s,ch_ix,:)));
+        scatter(freq_vec(sig_pts),zeros(size(sig_pts)),25,'k','*');
+        sig_pts = find(squeeze(sig_powq(s,ch_ix,:)));
+        scatter(freq_vec(sig_pts),zeros(size(sig_pts)),50,'r','*');
         ylims = ylim;
         if ~isnan(theta_pk(s,ch_ix))
             patch([thetapk_lim(s,ch_ix,1) thetapk_lim(s,ch_ix,1) ...
@@ -229,7 +265,7 @@ for s = 1:length(SBJs)
         end
         xlabel('Frequency (Hz)');
         ylabel('Power (norm)');
-        legend([lfp_line pfc_line],{'LFP',sbj_pfc_roi{s}},'Location','best');
+%         legend([lfp_line pfc_line],{'LFP',sbj_pfc_roi{s}},'Location','best');
         title(['PSD (' num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2)) 's)']);
         set(gca,'FontSize',16);
         
@@ -244,7 +280,7 @@ for s = 1:length(SBJs)
             'LineStyle',plt.evnt_styles{1});
         
         % Axes and parameters
-        title([ch_lab ' theta'], 'interpreter', 'none');
+        title([ch_lab ' theta (' num2str(theta_pk(s,ch_ix)) ' Hz)'], 'interpreter', 'none');
         set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
         set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
         xlabel('Time (s)');
@@ -264,7 +300,7 @@ for s = 1:length(SBJs)
             'LineStyle',plt.evnt_styles{1});
         
         % Axes and parameters
-        title([ch_lab ' beta'], 'interpreter', 'none');
+        title([ch_lab ' beta (' num2str(beta_pk(s,ch_ix)) ' Hz)'], 'interpreter', 'none');
         set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
         set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
         xlabel('Time (s)');
@@ -325,7 +361,12 @@ figure('Name',fig_name,'units','normalized',...
 % Plot TFR
 subplot(3,4,1); hold on;
 % Get color lims per condition
-clim = [prctile(lfp_tfr_grp(:),plt.clim_perc(1)) prctile(lfp_tfr_grp(:),plt.clim_perc(2))];
+if symmetric_clim
+    clim = max(abs([prctile(lfp_tfr_grp(:),plt.clim_perc(1)) prctile(lfp_tfr_grp(:),plt.clim_perc(2))]));
+    clim = [-clim clim];
+else
+    clim = [prctile(lfp_tfr_grp(:),plt.clim_perc(1)) prctile(lfp_tfr_grp(:),plt.clim_perc(2))];
+end
 
 imagesc(lfp_tfr_grp);
 set(gca,'YDir','normal');
@@ -351,6 +392,7 @@ set(gca,'FontSize',16);
 % Plot PSD
 subplot(3,4,2); hold on;
 plot(freq_vec,squeeze(nanmean(psd(:,1,:),1)),'Color','b');
+line(xlim,[0 0],'Color','k','LineStyle','--');
 xlabel('Frequency (Hz)');
 ylabel('Power (norm)');
 title(['GRP LFP PSD (' num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2)) 's)']);
@@ -371,7 +413,7 @@ set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
 xlabel('Time (s)');
 ylabel('Normalized Power');
 legend([t_line.mainLine tpk_line.mainLine],{['theta (' num2str(theta_lim(1)) '-' num2str(theta_lim(2)) ...
-    ' Hz)'],['SBJ thWeta (' num2str(mean(thetapk_lim(:,1,1))) '-' num2str(mean(thetapk_lim(:,1,2))) ' Hz)']},'Location','best');
+    ' Hz)'],['SBJ theta (' num2str(mean(thetapk_lim(:,1,1))) '-' num2str(mean(thetapk_lim(:,1,2))) ' Hz)']},'Location','best');
 set(gca,'FontSize',16);
 
 % Plot beta
@@ -398,7 +440,12 @@ set(gca,'FontSize',16);
 % Plot TFR
 subplot(3,4,5); hold on;
 % Get color lims per condition
-clim = [prctile(fpc_tfr_grp(:),plt.clim_perc(1)) prctile(fpc_tfr_grp(:),plt.clim_perc(2))];
+if symmetric_clim
+    clim = max(abs([prctile(fpc_tfr_grp(:),plt.clim_perc(1)) prctile(fpc_tfr_grp(:),plt.clim_perc(2))]));
+    clim = [-clim clim];
+else
+    clim = [prctile(fpc_tfr_grp(:),plt.clim_perc(1)) prctile(fpc_tfr_grp(:),plt.clim_perc(2))];
+end
 
 imagesc(fpc_tfr_grp);
 set(gca,'YDir','normal');
@@ -423,6 +470,7 @@ set(gca,'FontSize',16);
 % Plot PSD
 subplot(3,4,6); hold on;
 plot(freq_vec,squeeze(nanmean(psd(strcmp(sbj_pfc_roi,'FPC'),2,:),1)),'Color',[255,165,0]./255);
+line(xlim,[0 0],'Color','k','LineStyle','--');
 xlabel('Frequency (Hz)');
 ylabel('Power (norm)');
 title(['GRP FPC PSD (' num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2)) 's)']);
@@ -472,7 +520,12 @@ set(gca,'FontSize',16);
 % Plot TFR
 subplot(3,4,9); hold on;
 % Get color lims per condition
-clim = [prctile(ofc_tfr_grp(:),plt.clim_perc(1)) prctile(ofc_tfr_grp(:),plt.clim_perc(2))];
+if symmetric_clim
+    clim = max(abs([prctile(ofc_tfr_grp(:),plt.clim_perc(1)) prctile(ofc_tfr_grp(:),plt.clim_perc(2))]));
+    clim = [-clim clim];
+else
+    clim = [prctile(ofc_tfr_grp(:),plt.clim_perc(1)) prctile(ofc_tfr_grp(:),plt.clim_perc(2))];
+end
 
 imagesc(ofc_tfr_grp);
 set(gca,'YDir','normal');
@@ -497,6 +550,7 @@ set(gca,'FontSize',16);
 % Plot PSD
 subplot(3,4,10); hold on;
 plot(freq_vec,squeeze(nanmean(psd(strcmp(sbj_pfc_roi,'OFC'),2,:),1)),'Color',[255,165,0]./255);
+line(xlim,[0 0],'Color','k','LineStyle','--');
 xlabel('Frequency (Hz)');
 ylabel('Power (norm)');
 title(['GRP OFC PSD (' num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2)) 's)']);

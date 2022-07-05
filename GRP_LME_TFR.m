@@ -199,8 +199,8 @@ lme = fitlme(table_A,'PFC_theta~ SV_A*PFC_roi + (1|sbj_n_A)')
 % lme = fitlme(table_A,'PFC_betaHi~ SV_A*PFC_roi + (1|sbj_n_A)')
 
 % Previous trial Subjective Value
-lme = fitlme(table_As,'PFC_theta~ SV_As*PFC_roi + (1|sbj_n_A)')
 lme = fitlme(table_As,'PFC_beta~ SV_As*PFC_roi + (1|sbj_n_A)')
+lme = fitlme(table_As,'PFC_theta~ SV_As*PFC_roi + (1|sbj_n_A)')
 
 % ================ BG ================
 % Current trial Subjective Value
@@ -208,8 +208,8 @@ lme = fitlme(table_A,'BG_beta~ SV_A*BG_roi + (1|sbj_n_A)')
 lme = fitlme(table_A,'BG_theta~ SV_A*BG_roi + (1|sbj_n_A)')
 
 % Previous trial Subjective Value
-lme = fitlme(table_As,'BG_theta~ SV_As*BG_roi + (1|sbj_n_A)')
 lme = fitlme(table_As,'BG_beta~ SV_As*BG_roi + (1|sbj_n_A)')
+lme = fitlme(table_As,'BG_theta~ SV_As*BG_roi + (1|sbj_n_A)')
 
 %% LME Modelling %%
 % OFC:
