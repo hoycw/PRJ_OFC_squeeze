@@ -12,22 +12,22 @@ SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 sbj_bg_roi   = {'GPi','STN','GPi','STN'};
 
-an_id = 'TFRw_S25t2_zbtS25t05_fl2t40_c7';%'TFRw_S25t2_noBsln_fl1t40_c7';%'TFRw_S25t2_noBsln_fl2t40_c7';
-% an_id = 'TFRw_D1t1_zbtS25t05_fl2t40_c7';%
+% an_id = 'TFRw_S25t2_dbS25t05_fl2t40_c7';%'TFRw_S25t2_noBsln_fl1t40_c7';%'TFRw_S25t2_noBsln_fl2t40_c7';
+an_id = 'TFRw_D1t1_dbS25t05_fl2t40_c7';%
 
 if contains(an_id,'_S')
-    psd_win_lim = [0.25 1.5];
+    psd_win_lim = [0.5 1.5];
     peak_sign = 1;
 %     an_lim = [0.5 1];
 elseif contains(an_id,'_D')
-    psd_win_lim = [-0.25 0.25];
+    psd_win_lim = [-0.5 0];
     peak_sign = -1;
 %     an_lim = [-0.5 0];
 end
 
 % Analysis parameters:
-theta_lim  = [2 9];
-beta_lim   = [10 30];    
+theta_lim  = [2 8];
+beta_lim   = [12 30];    
 sbj_beta_pk = [10,17,13,12]; % PFC03, PFC04, PFC05, PFC01
 % alternatives: (1)=[17,17,13,12]; (2)=[17,22,13,13];
 thetapk_bw = 4;
@@ -253,16 +253,16 @@ for s = 1:length(SBJs)
         sig_pts = find(squeeze(sig_powq(s,ch_ix,:)));
         scatter(freq_vec(sig_pts),zeros(size(sig_pts)),50,'r','*');
         ylims = ylim;
-        if ~isnan(theta_pk(s,ch_ix))
-            patch([thetapk_lim(s,ch_ix,1) thetapk_lim(s,ch_ix,1) ...
-                thetapk_lim(s,ch_ix,2) thetapk_lim(s,ch_ix,2)],...
-                [ylims(1) ylims(2) ylims(2) ylims(1)],'k','FaceAlpha',0.1);
-        end
-        if ~isnan(beta_pk(s,ch_ix))
-            patch([betapk_lim(s,ch_ix,1) betapk_lim(s,ch_ix,1) ...
-                betapk_lim(s,ch_ix,2) betapk_lim(s,ch_ix,2)],...
-                [ylims(1) ylims(2) ylims(2) ylims(1)],'k','FaceAlpha',0.1);
-        end
+%         if ~isnan(theta_pk(s,ch_ix))
+%             patch([thetapk_lim(s,ch_ix,1) thetapk_lim(s,ch_ix,1) ...
+%                 thetapk_lim(s,ch_ix,2) thetapk_lim(s,ch_ix,2)],...
+%                 [ylims(1) ylims(2) ylims(2) ylims(1)],'k','FaceAlpha',0.1);
+%         end
+%         if ~isnan(beta_pk(s,ch_ix))
+%             patch([betapk_lim(s,ch_ix,1) betapk_lim(s,ch_ix,1) ...
+%                 betapk_lim(s,ch_ix,2) betapk_lim(s,ch_ix,2)],...
+%                 [ylims(1) ylims(2) ylims(2) ylims(1)],'k','FaceAlpha',0.1);
+%         end
         xlabel('Frequency (Hz)');
         ylabel('Power (norm)');
 %         legend([lfp_line pfc_line],{'LFP',sbj_pfc_roi{s}},'Location','best');

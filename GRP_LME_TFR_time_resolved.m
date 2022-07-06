@@ -11,13 +11,13 @@ man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 
 
 % Analysis parameters:
 norm_bhv_reg = 0;
-an_id = 'TFRw_S25t2_dbS25t05_fl2t40_c7';%'TFRw_D1t1_dbS25t05_fl2t40_c7';%
-use_simon_tfr = 1;
+an_id = 'simon_S';%'TFRw_S25t2_dbS25t05_fl2t40_c7';%'TFRw_D1t1_dbS25t05_fl2t40_c7';%
 toss_same_trials = 1;
 if contains(an_id,'_S')
     an_lim = [0.5 1.5];
+    plt_lim = [-0.2 2];
     betahi_cf = ones([2 numel(SBJs)])*-1;
-    if use_simon_tfr
+    if contains(an_id,'simon')
         % Simon params: [10,17,13,12]
         theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
         betalo_cf = [-1 -1 -1 -1; 10 17 13 12]; % PFC03, PFC04, PFC05, PFC01
@@ -34,6 +34,7 @@ if contains(an_id,'_S')
     end
 elseif contains(an_id,'_D')
     an_lim = [-0.25 0.25];
+    error('not ready, simon results have no beta desynch');
     if strcmp(an_id,'TFRw_D1t1_dbS25t05_fl2t40_c7')
         theta_cf = [3.5 3 4.5 6; 3 3 4.5 3]; % BG (row1) then PFC (row2)
         betalo_cf  = [13 20 17 18; -1 -1 -1 -1];
@@ -95,7 +96,7 @@ for s = 1:length(SBJs)
 end
 
 %% Load Simon file details
-if use_simon_tfr
+if contains(an_id,'simon')
     DataStorage='/Users/colinhoy/Code/PRJ_OFC_squeeze/box/Analysis/Group/Preprocess';
     DataStorage2='/Users/colinhoy/Code/PRJ_OFC_squeeze/box/Analysis/Group/Preprocess/Output_files_shifted_behavior';
     
@@ -114,7 +115,7 @@ bhvs       = cell(size(SBJs));
 for s = 1:length(SBJs)
     %% Load TFR
     sbj_dir = [prj_dir 'data/' SBJs{s} '/'];
-    if use_simon_tfr
+    if contains(an_id,'simon')
         % Load data files
         proc_fname = strcat(DataStorage2,'/',FileDetails{s,1},'Stimulus_Locked.mat');
         fprintf('Loading %s\n',proc_fname);
@@ -161,29 +162,30 @@ for s = 1:length(SBJs)
         bhvs{s} = sbj_data.bhv;
     end
     
-    % Initialize data
-    time_vec = tfr.time;
-    freq_vec = tfr.freq;
+    %% Initialize data
+    full_time_vec = tfr.time;
+    full_freq_vec = tfr.freq;
     
     % Check channel index
     if ~strcmp(tfr.label{1},'LFP'); error('BG LFP is not first channel!'); end
     if ~any(strcmp(tfr.label{2},{'FPC','OFC'})); error('PFC is not second channel!'); end
     
-    % Compute single trial power
+    %% Compute single trial power
     for ch_ix = 1:2
         % Theta
         cfg = [];
         cfg.channel = tfr.label(ch_ix);
         cfg.avgoverfreq = 'yes';
-        cfg.avgovertime = 'yes';
+        cfg.avgovertime = 'no';
         cfg.avgoverrpt  = 'no';
-        cfg.latency     = an_lim;
+        cfg.latency     = plt_lim;
         cfg.frequency   = squeeze(theta_lim(s,ch_ix,:))';
         pow = ft_selectdata(cfg, tfr);
-        theta_pow{s,ch_ix} = pow.powspctrm;
+        plt_time_vec = pow.time;
+        theta_pow{s,ch_ix} = squeeze(pow.powspctrm);
         theta_cf(s,ch_ix) = pow.freq;
         if pow.freq-mean(theta_lim(s,ch_ix,:)) > 0.4
-            fprintf(2,'\tWARNING: %s theta center freq is off: aim = %.02f, actual = %.02f; recomputing with 2-6 Hz...\n',...
+            fprintf(2,'\tWARNING: %s theta center freq is off: aim = %.02f, actual = %.02f...\n',...
                 SBJs{s},mean(theta_lim(s,ch_ix,:)),pow.freq);
 %             cfg.frequency = [2 2+theta_bw];
 %             pow = ft_selectdata(cfg, tfr);
@@ -194,7 +196,7 @@ for s = 1:length(SBJs)
         % Beta Low
         cfg.frequency = squeeze(betalo_lim(s,ch_ix,:))';
         pow = ft_selectdata(cfg, tfr);
-        betalo_pow{s,ch_ix} = pow.powspctrm;
+        betalo_pow{s,ch_ix} = squeeze(pow.powspctrm);
         if pow.freq-mean(betalo_lim(s,ch_ix,:)) > 0.4
             fprintf(2,'\tWARNING: %s beta low center freq is off: aim = %.02f, actual = %.02f\n',...
                 SBJs{s},mean(betalo_lim(s,ch_ix,:)),pow.freq);
@@ -203,7 +205,7 @@ for s = 1:length(SBJs)
         % Beta High
         cfg.frequency = squeeze(betahi_lim(s,ch_ix,:))';
         pow = ft_selectdata(cfg, tfr);
-        betahi_pow{s,ch_ix} = pow.powspctrm;
+        betahi_pow{s,ch_ix} = squeeze(pow.powspctrm);
         if pow.freq-mean(betahi_lim(s,ch_ix,:)) > 0.4
             fprintf(2,'\tWARNING: %s beta high center freq is off: aim = %.02f, actual = %.02f\n',...
                 SBJs{s},mean(betahi_lim(s,ch_ix,:)),pow.freq);
@@ -211,18 +213,12 @@ for s = 1:length(SBJs)
     end
 end
 
-%% Convert into table format suitable for LME modelling
+%% Create data table for behavior
 % Initialise variables (A = current trial, As = previous trial)
 sbj_n_A = [];
 PFC_roi = [];
 BG_roi  = [];
 trl_n_A = [];
-PFC_theta = [];
-PFC_betalo  = [];
-PFC_betahi  = [];
-BG_theta  = [];
-BG_betalo   = [];
-BG_betahi   = [];
 
 % StakeA=[];
 reward_A   = [];
@@ -238,7 +234,7 @@ effortO_As  = [];
 decision_As = [];
 SV_As       = [];
 
-for s = 1:length(SBJs)
+for s = 1:4
     % Concatenate SBJ, beta, theta values
     trl_n = size(bhvs{s}.stake,1);
     trl_n_A = [trl_n_A; [1:trl_n]'];
@@ -247,13 +243,6 @@ for s = 1:length(SBJs)
     PFC_roi = [PFC_roi; num2str(ones(trl_n,1).*pfc_roi_ix)];
     if strcmp(sbj_bg_roi{s},'STN'); bg_roi_ix = 1; else; bg_roi_ix = 2; end
     BG_roi = [BG_roi; num2str(ones(trl_n,1).*bg_roi_ix)];
-    
-    PFC_theta  = [PFC_theta; theta_pow{s,2}];
-    PFC_betalo = [PFC_betalo; betalo_pow{s,2}];
-    PFC_betahi = [PFC_betahi; betahi_pow{s,2}];
-    BG_theta   = [BG_theta; theta_pow{s,1}];
-    BG_betalo  = [BG_betalo; betalo_pow{s,1}];
-    BG_betahi  = [BG_betahi; betahi_pow{s,1}];
     
     % Extract the behavioral variables %
     reward_A   = [reward_A; bhvs{s}.stake];
@@ -274,7 +263,7 @@ for s = 1:length(SBJs)
     effort_As = [effort_As; effort_prv];%bhvs{s}.effort_prv];
     
     % Obj. Effort
-%     effortO_prv = smooth(bhvs{s}.EFFs,1);
+    %     effortO_prv = smooth(bhvs{s}.EFFs,1);
     effortO_prv = bhvs{s}.EFFs;
     effortO_prv(end)=[]; effortO_prv = [nan(1,1); effortO_prv];
     effortO_As = [effortO_As; effortO_prv];
@@ -285,154 +274,194 @@ for s = 1:length(SBJs)
     decision_As = [decision_As; dec_prv];%bhvs{s}.decision_prv];
     
     % Subj Val.
-%     SV_prv = smooth(bhvs{s}.SV,1);
+    %     SV_prv = smooth(bhvs{s}.SV,1);
     SV_prv = bhvs{s}.SV;
     SV_prv(end) = []; SV_prv = [nan(1,1); SV_prv];
     SV_As = [SV_As; SV_prv];
 end
 
-table_A  = table(trl_n_A, sbj_n_A, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC_betahi, BG_theta, BG_betalo, BG_betahi,...
-                 reward_A, effort_A, decision_A, SV_A, EFF_A);
-table_As = table(trl_n_A, sbj_n_A, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC_betahi, BG_theta, BG_betalo, BG_betahi,...
-                 reward_As, effort_As, decision_As, SV_As, effortO_As);
+%% Run model per time point
+fprintf('Running LMEs:\n\t');
+theta_lme = cell([2 numel(plt_time_vec)]);
+beta_lme  = cell([2 numel(plt_time_vec)]);
+for t_ix = 1:numel(plt_time_vec)
+    %% Convert into table format suitable for LME modelling
+    % Initialise variables (A = current trial, As = previous trial)
+    PFC_theta = [];
+    PFC_betalo  = [];
+    PFC_betahi  = [];
+    BG_theta  = [];
+    BG_betalo   = [];
+    BG_betahi   = [];
+    
+    % Create time-specific neural table
+    for s = 1:length(SBJs)
+        PFC_theta  = [PFC_theta; theta_pow{s,2}(:,t_ix)];
+        PFC_betalo = [PFC_betalo; betalo_pow{s,2}(:,t_ix)];
+        PFC_betahi = [PFC_betahi; betahi_pow{s,2}(:,t_ix)];
+        BG_theta   = [BG_theta; theta_pow{s,1}(:,t_ix)];
+        BG_betalo  = [BG_betalo; betalo_pow{s,1}(:,t_ix)];
+        BG_betahi  = [BG_betahi; betahi_pow{s,1}(:,t_ix)];
+    end
+    
+    table_A  = table(trl_n_A, sbj_n_A, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC_betahi, BG_theta, BG_betalo, BG_betahi,...
+        reward_A, effort_A, decision_A, SV_A, EFF_A);
+    table_As = table(trl_n_A, sbj_n_A, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC_betahi, BG_theta, BG_betalo, BG_betahi,...
+        reward_As, effort_As, decision_As, SV_As, effortO_As);
+    
+    table_As_only = table(reward_As, effort_As, decision_As, SV_As, effortO_As);
+    
+    DatTable2tmp = table_As;
+    DatTable2tmp.sbj_n_A    = [];
+    DatTable2tmp.trl_n_A    = [];
+    DatTable2tmp.PFC_roi    = [];
+    DatTable2tmp.BG_roi     = [];
+    DatTable2tmp.PFC_theta  = [];
+    DatTable2tmp.PFC_betalo = [];
+    DatTable2tmp.PFC_betahi = [];
+    DatTable2tmp.BG_theta   = [];
+    DatTable2tmp.BG_betalo  = [];
+    DatTable2tmp.BG_betahi  = [];
+    
+    DatTable3 = [table_A, DatTable2tmp];
+    table_all = [table_A, table_As_only];
+    % These are different by trials 1 and 2 for each patient, unclear why (they
+    % look identical...)
+    
+    %% Run LME models
+    fprintf('%.02f..',plt_time_vec(t_ix));
+    theta_lme{1,t_ix} = fitlme(table_As,'BG_theta~ SV_As*PFC_roi + (1|sbj_n_A)');
+    beta_lme{1,t_ix}  = fitlme(table_A,'BG_betalo~ SV_A*PFC_roi + (1|sbj_n_A)');
+    theta_lme{2,t_ix} = fitlme(table_As,'PFC_theta~ SV_As*PFC_roi + (1|sbj_n_A)');
+    beta_lme{2,t_ix}  = fitlme(table_A,'PFC_betalo~ SV_A*PFC_roi + (1|sbj_n_A)');
+    if mod(t_ix,10)==0; fprintf('\n\t'); end
+end
+fprintf('\n');
 
-table_As_only = table(reward_As, effort_As, decision_As, SV_As, effortO_As);
-
-DatTable2tmp = table_As;
-DatTable2tmp.sbj_n_A    = [];
-DatTable2tmp.trl_n_A    = [];
-DatTable2tmp.PFC_roi    = [];
-DatTable2tmp.BG_roi     = [];
-DatTable2tmp.PFC_theta  = [];
-DatTable2tmp.PFC_betalo = [];
-DatTable2tmp.PFC_betahi = [];
-DatTable2tmp.BG_theta   = [];
-DatTable2tmp.BG_betalo  = [];
-DatTable2tmp.BG_betahi  = [];
-
-DatTable3 = [table_A, DatTable2tmp];
-table_all = [table_A, table_As_only];
-% These are different by trials 1 and 2 for each patient, unclear why (they
-% look identical...)
+%% Save LMEs
+grp_dir = [prj_dir 'data/GRP/'];
+lme_fname = [grp_dir 'GRP_' an_id '_LME_ts.mat'];
+fprintf('Saving %s\n',lme_fname);
+save(lme_fname,'-v7.3','theta_lme','beta_lme','plt_time_vec');
 
 %% New LME Modeling
-% Comparisons: effort and reward separately
-
-% ================ PFC ================
-% Current trial Subjective Value
-lme = fitlme(table_A,'PFC_theta~ SV_A*PFC_roi + (1|sbj_n_A)')   % PFC_roi p = 0.02; D -0.25:0.25 SV is trending p=0.056
-lme = fitlme(table_A,'PFC_betalo~ SV_A*PFC_roi + (1|sbj_n_A)')
-lme = fitlme(table_A,'PFC_betahi~ SV_A*PFC_roi + (1|sbj_n_A)')  % D -0.25:0.25 SV p = 0.044
-% lme = fitlme(table_A,'PFC_betaHi~ SV_A*PFC_roi + (1|sbj_n_A)')
-
-% Previous trial Subjective Value
-lme = fitlme(table_As,'PFC_theta~ SV_As*PFC_roi + (1|sbj_n_A)') % PFC_roi p = 0.0006, PFC*SV p = 0.016
-lme = fitlme(table_As,'PFC_betalo~ SV_As*PFC_roi + (1|sbj_n_A)')
-lme = fitlme(table_As,'PFC_betahi~ SV_As*PFC_roi + (1|sbj_n_A)')
-
-% ================ BG ================
-% Current trial Subjective Value
-lme = fitlme(table_A,'BG_theta~ SV_A*BG_roi + (1|sbj_n_A)')     % BG_roi p = 0.03
-lme = fitlme(table_A,'BG_betalo~ SV_A*BG_roi + (1|sbj_n_A)')    % BG_roi p = 0.0004; D -0.25:0.25 SV p - 0.03
-lme = fitlme(table_A,'BG_betahi~ SV_A*BG_roi + (1|sbj_n_A)')
-
-% Previous trial Subjective Value
-lme = fitlme(table_As,'BG_theta~ SV_As*BG_roi + (1|sbj_n_A)')   % BG_roi p = 0.04
-lme = fitlme(table_As,'BG_betalo~ SV_As*BG_roi + (1|sbj_n_A)')  % BG_roi p = 0.0009; D -0.25:0.25 SV_As p = 0.01
-lme = fitlme(table_As,'BG_betahi~ SV_As*BG_roi + (1|sbj_n_A)')
-
-%% LME Modelling %%
-% OFC:
-% Current trial
-lme = fitlme(table_A,'PFC_betalo~ SV_A + (1|sbj_n_A)')     %SV p = 0.01
-lme = fitlme(table_A,'PFC_theta~ SV_A + (1|sbj_n_A)')    %SV p = 0.4
-
-lme = fitlme(table_A,'PFC_betalo~ SV_A*PFC_roi + (1|sbj_n_A)')     %SV p = 0.0007; pfc_roi p = 0.0048; * p = 0.1
-% lme = fitlme(table_A,'PFC_beta~ SV_A + (SV_A|pfc_roi) + (1|sbj_n_A)')     %SV p = 0.048
-lme = fitlme(table_A,'PFC_theta~ SV_A*PFC_roi + (1|sbj_n_A)')    %none
-
-return;
-% Previous trial
-lme = fitlme(table_As,'PFC_theta~ SV_As + (1|sbj_n_A)')  %SV p = 0.04
-lme = fitlme(table_As,'PFC_beta~ SV_As + (1|sbj_n_A)')   %
-lme = fitlme(table_As,'BG_theta~ SV_As + (1|sbj_n_A)')
-lme = fitlme(table_As,'BG_beta~ SV_As + (1|sbj_n_A)')
-
-lme = fitlme(table_As,'PFC_theta~ SV_As*pfc_roi + (1|sbj_n_A)')  %SV p = 0.052
-lme = fitlme(table_As,'PFC_theta~ SV_As + (SV_As|pfc_roi) + (1|sbj_n_A)')  %SV p = 0.038
-
-lme = fitlme(table_A,'BG_beta~ SV_A + (1|sbj_n_A)')
-lme = fitlme(table_A,'BG_theta~ SV_A + (1|sbj_n_A)')
-
-
-lme = fitlme(table_As,'PFC_theta~ SV_As + (1|sbj_n_A)')  %SV p = 0.04
-
-
-% predict decision from neural data
-glme = fitglme(DatTable3, 'decision_A~ PFC_beta + PFC_theta + (1|sbj_n_A)','Link','log')    % beta p = 0.017
-glme = fitglme(DatTable3, 'decision_A~ BG_beta + BG_theta + (1|sbj_n_A)','Link','log')
-
-
-return;
-
-lme = fitlme(DatTable,'PFC_theta~ SV_A + (SV_A|sbj_n_A)')
-lme = fitlme(DatTable,'PFC_beta~ SV_A + (1|sbj_n_A)')
-lme = fitlme(DatTable,'PFC_beta~ SV_A*decision_A + (SV_A|sbj_n_A) + (decision_A|sbj_n_A)')
-lme = fitlme(table_As,'PFC_theta~ SV_As*decision_As + (SV_As|sbj_n_A) + (decision_As|sbj_n_A)')
-lme = fitlme(table_As,'PFC_theta~ SV_As + (SV_As|sbj_n_A)')
-lme = fitlme(table_As,'PFC_theta~ SV_As*decision_As + (1|sbj_n_A) + (1|sbj_n_A)')
-lme = fitlme(table_As,'PFC_theta~ SV_As + (SV_As|sbj_n_A)')
-lme = fitlme(table_As,'PFC_theta~ decision_As + (decision_As|sbj_n_A)')
-
-
+% % Comparisons: effort and reward separately
+% 
+% % ================ PFC ================
+% % Current trial Subjective Value
+% lme = fitlme(table_A,'PFC_theta~ SV_A*PFC_roi + (1|sbj_n_A)')   % PFC_roi p = 0.02; D -0.25:0.25 SV is trending p=0.056
+% lme = fitlme(table_A,'PFC_betalo~ SV_A*PFC_roi + (1|sbj_n_A)')
+% lme = fitlme(table_A,'PFC_betahi~ SV_A*PFC_roi + (1|sbj_n_A)')  % D -0.25:0.25 SV p = 0.044
+% % lme = fitlme(table_A,'PFC_betaHi~ SV_A*PFC_roi + (1|sbj_n_A)')
+% 
+% % Previous trial Subjective Value
+% lme = fitlme(table_As,'PFC_theta~ SV_As*PFC_roi + (1|sbj_n_A)') % PFC_roi p = 0.0006, PFC*SV p = 0.016
+% lme = fitlme(table_As,'PFC_betalo~ SV_As*PFC_roi + (1|sbj_n_A)')
+% lme = fitlme(table_As,'PFC_betahi~ SV_As*PFC_roi + (1|sbj_n_A)')
+% 
+% % ================ BG ================
+% % Current trial Subjective Value
+% lme = fitlme(table_A,'BG_theta~ SV_A*BG_roi + (1|sbj_n_A)')     % BG_roi p = 0.03
+% lme = fitlme(table_A,'BG_betalo~ SV_A*BG_roi + (1|sbj_n_A)')    % BG_roi p = 0.0004; D -0.25:0.25 SV p - 0.03
+% lme = fitlme(table_A,'BG_betahi~ SV_A*BG_roi + (1|sbj_n_A)')
+% 
+% % Previous trial Subjective Value
+% lme = fitlme(table_As,'BG_theta~ SV_As*BG_roi + (1|sbj_n_A)')   % BG_roi p = 0.04
+% lme = fitlme(table_As,'BG_betalo~ SV_As*BG_roi + (1|sbj_n_A)')  % BG_roi p = 0.0009; D -0.25:0.25 SV_As p = 0.01
+% lme = fitlme(table_As,'BG_betahi~ SV_As*BG_roi + (1|sbj_n_A)')
+% 
+% %% LME Modelling %%
+% % OFC:
+% % Current trial
+% lme = fitlme(table_A,'PFC_betalo~ SV_A + (1|sbj_n_A)')     %SV p = 0.01
+% lme = fitlme(table_A,'PFC_theta~ SV_A + (1|sbj_n_A)')    %SV p = 0.4
+% 
+% lme = fitlme(table_A,'PFC_betalo~ SV_A*PFC_roi + (1|sbj_n_A)')     %SV p = 0.0007; pfc_roi p = 0.0048; * p = 0.1
+% % lme = fitlme(table_A,'PFC_beta~ SV_A + (SV_A|pfc_roi) + (1|sbj_n_A)')     %SV p = 0.048
+% lme = fitlme(table_A,'PFC_theta~ SV_A*PFC_roi + (1|sbj_n_A)')    %none
+% 
+% return;
+% % Previous trial
+% lme = fitlme(table_As,'PFC_theta~ SV_As + (1|sbj_n_A)')  %SV p = 0.04
+% lme = fitlme(table_As,'PFC_beta~ SV_As + (1|sbj_n_A)')   %
+% lme = fitlme(table_As,'BG_theta~ SV_As + (1|sbj_n_A)')
+% lme = fitlme(table_As,'BG_beta~ SV_As + (1|sbj_n_A)')
+% 
+% lme = fitlme(table_As,'PFC_theta~ SV_As*pfc_roi + (1|sbj_n_A)')  %SV p = 0.052
+% lme = fitlme(table_As,'PFC_theta~ SV_As + (SV_As|pfc_roi) + (1|sbj_n_A)')  %SV p = 0.038
+% 
+% lme = fitlme(table_A,'BG_beta~ SV_A + (1|sbj_n_A)')
+% lme = fitlme(table_A,'BG_theta~ SV_A + (1|sbj_n_A)')
+% 
+% 
+% lme = fitlme(table_As,'PFC_theta~ SV_As + (1|sbj_n_A)')  %SV p = 0.04
+% 
+% 
+% % predict decision from neural data
+% glme = fitglme(DatTable3, 'decision_A~ PFC_beta + PFC_theta + (1|sbj_n_A)','Link','log')    % beta p = 0.017
+% glme = fitglme(DatTable3, 'decision_A~ BG_beta + BG_theta + (1|sbj_n_A)','Link','log')
+% 
+% 
+% return;
+% 
+% lme = fitlme(DatTable,'PFC_theta~ SV_A + (SV_A|sbj_n_A)')
+% lme = fitlme(DatTable,'PFC_beta~ SV_A + (1|sbj_n_A)')
+% lme = fitlme(DatTable,'PFC_beta~ SV_A*decision_A + (SV_A|sbj_n_A) + (decision_A|sbj_n_A)')
+% lme = fitlme(table_As,'PFC_theta~ SV_As*decision_As + (SV_As|sbj_n_A) + (decision_As|sbj_n_A)')
+% lme = fitlme(table_As,'PFC_theta~ SV_As + (SV_As|sbj_n_A)')
+% lme = fitlme(table_As,'PFC_theta~ SV_As*decision_As + (1|sbj_n_A) + (1|sbj_n_A)')
+% lme = fitlme(table_As,'PFC_theta~ SV_As + (SV_As|sbj_n_A)')
 % lme = fitlme(table_As,'PFC_theta~ decision_As + (decision_As|sbj_n_A)')
 % 
-
-
-return;
-
-% Objective value%
-% ObjVal=RewardA-EffortA
-
-% lme = fitlme(DatTable,'PFC_beta~ SV_A + (1|sbj_n_A)')
-% lme = fitlme(DatTable,'PFC_beta~ SV_A + (1|sbj_n_A) + (SV_A-1|sbj_n_A)')
-% figure();
-% plotResiduals(lme,'fitted')
-% find(residuals(lme) > 1.5)
-
-lme2 = fitlme(DatTable,'PFC_beta ~ SV_A ')
-compare(lme2,lme)
-
-[~,~,stats]=covarianceParameters(lme)
-
-%% Does theta = conflict?
-
-% Rescale reward and effort by max and minimum %
-maxR=max(RewardA); minR=min(RewardA);
-maxE=max(EffortA.^2); minE=min(EffortA.^2);
-
-maxRr=repmat(maxR,size(RewardA,1), size(RewardA,2));
-RewardArs=(RewardA./maxRr).*100;
-
-maxEr=repmat(maxE,size(EffortA,1), size(EffortA,2));
-EffortArs=((EffortA.^2)./maxEr).*100;
-
-% Conflict 
-% Abs here is critical - absolute conflict - distinguishes from subjective
-% value. 
-Conflict=abs(RewardArs-EffortArs);
-% Add new column to datTable
-DatTable_c=DatTable;
-DatTable_c.Conflict = Conflict;
-lmec = fitlme(DatTable_c,'PFC_theta~ Conflict + (Conflict|sbj_n_A)')
-% Conflict here is going to be related to SV - high reward 
-
-OV=RewardArs-EffortArs;
-DatTable_co=DatTable_c;
-DatTable_co.OV = OV;
-lmeo = fitlme(DatTable_co,'PFC_beta~ OV + (OV|sbj_n_A)'); %OV p = 0.02
-
-clc; close all;
-DatTable_cod=DatTable_co;
-DatTable_cod.DiffA = DiffA;
-lmdiff = fitlme(DatTable_cod,'PFC_theta~ DiffA + (DiffA|ptnumA)')
+% 
+% % lme = fitlme(table_As,'PFC_theta~ decision_As + (decision_As|sbj_n_A)')
+% % 
+% 
+% 
+% return;
+% 
+% % Objective value%
+% % ObjVal=RewardA-EffortA
+% 
+% % lme = fitlme(DatTable,'PFC_beta~ SV_A + (1|sbj_n_A)')
+% % lme = fitlme(DatTable,'PFC_beta~ SV_A + (1|sbj_n_A) + (SV_A-1|sbj_n_A)')
+% % figure();
+% % plotResiduals(lme,'fitted')
+% % find(residuals(lme) > 1.5)
+% 
+% lme2 = fitlme(DatTable,'PFC_beta ~ SV_A ')
+% compare(lme2,lme)
+% 
+% [~,~,stats]=covarianceParameters(lme)
+% 
+% %% Does theta = conflict?
+% 
+% % Rescale reward and effort by max and minimum %
+% maxR=max(RewardA); minR=min(RewardA);
+% maxE=max(EffortA.^2); minE=min(EffortA.^2);
+% 
+% maxRr=repmat(maxR,size(RewardA,1), size(RewardA,2));
+% RewardArs=(RewardA./maxRr).*100;
+% 
+% maxEr=repmat(maxE,size(EffortA,1), size(EffortA,2));
+% EffortArs=((EffortA.^2)./maxEr).*100;
+% 
+% % Conflict 
+% % Abs here is critical - absolute conflict - distinguishes from subjective
+% % value. 
+% Conflict=abs(RewardArs-EffortArs);
+% % Add new column to datTable
+% DatTable_c=DatTable;
+% DatTable_c.Conflict = Conflict;
+% lmec = fitlme(DatTable_c,'PFC_theta~ Conflict + (Conflict|sbj_n_A)')
+% % Conflict here is going to be related to SV - high reward 
+% 
+% OV=RewardArs-EffortArs;
+% DatTable_co=DatTable_c;
+% DatTable_co.OV = OV;
+% lmeo = fitlme(DatTable_co,'PFC_beta~ OV + (OV|sbj_n_A)'); %OV p = 0.02
+% 
+% clc; close all;
+% DatTable_cod=DatTable_co;
+% DatTable_cod.DiffA = DiffA;
+% lmdiff = fitlme(DatTable_cod,'PFC_theta~ DiffA + (DiffA|ptnumA)')

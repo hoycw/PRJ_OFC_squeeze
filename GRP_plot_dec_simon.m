@@ -269,6 +269,7 @@ for ch_ix = 1:length(ch_lab)
 %         line([sbj_beta_max(s,ch_ix) sbj_beta_max(s,ch_ix)],ylim,'Color','b');
         psdd_line = plot(frqs(2:end),diff(squeeze(nanmean(sbj_tfr(s,ch_ix,:,:),4))),'k');
 %         line([sbj_betad_max(s,ch_ix) sbj_betad_max(s,ch_ix)],ylim,'Color','k');
+        line(xlim,[0 0],'Color','k','LineStyle','--');
         xlabel('Frequency (Hz)');
         ylabel('Power (norm)');%'Power mV^2/Hz');
         xlim(plot_freq_lim);

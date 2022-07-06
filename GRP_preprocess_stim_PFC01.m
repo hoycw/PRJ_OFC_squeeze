@@ -26,10 +26,10 @@ SyncDetails = numbers;
 for s=4
     SBJ = FileDetails{s,1};
 %     1:size(FileDetails,1)
-    clearvars -except s SBJs sbj_pfc_roi SyncDetails FileDetails
+%     clearvars -except s SBJs sbj_pfc_roi SyncDetails FileDetails
     trlNan=[];
     close all;
-    fname=fullfile(cd,'DataFiles',FileDetails{s,2});    
+    fname=fullfile('/Users/colinhoy/Code/PRJ_OFC_squeeze/box/Analysis/Group/Preprocess','DataFiles',FileDetails{s,2});    
     load(fname);
     
     % PFC01 - put it back into signal.
@@ -69,7 +69,7 @@ for s=4
     
     % Matlab timer baseline time is at the beginning of the first synchronisation acquisition
     
-    fname=fullfile(cd,'DataFiles',FileDetails{s,3});
+    fname=fullfile('/Users/colinhoy/Code/PRJ_OFC_squeeze/box/Analysis/Group/Preprocess','DataFiles',FileDetails{s,3});
     load(fname);
 
     mlbltm1=syncR1.strtm;
@@ -131,7 +131,7 @@ for s=4
     clear syncR1 syncR2 result signal
     close all
     
-    fname=fullfile(cd,'DataFiles',FileDetails{s,6});
+    fname=fullfile('/Users/colinhoy/Code/PRJ_OFC_squeeze/box/Analysis/Group/Preprocess','DataFiles',FileDetails{s,6});
     load(fname);
        
         % PFC01 - put it back into signal.
@@ -174,7 +174,7 @@ for s=4
     
     % Matlab timer baseline time is at the beginning of the first synchronisation acquisition
     
-    fname=fullfile(cd,'DataFiles',FileDetails{s,7});
+    fname=fullfile('/Users/colinhoy/Code/PRJ_OFC_squeeze/box/Analysis/Group/Preprocess','DataFiles',FileDetails{s,7});
     load(fname);
     
     mlbltm2=syncR1.strtm;
