@@ -1,7 +1,7 @@
 %% Colin preprocessing script
 % Based on /Analysis/Group/Preprocess/Squeeze_preprocess_all_data_stimulus_locked.m
-% clear all
-% close all
+clear all
+close all
 % clc
 
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
@@ -14,7 +14,8 @@ ft_defaults
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 % sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 
-an_ids = {'TFRw_S25t2_dbS25t05_fl2t40_c7','TFRw_D1t1_dbS25t05_fl2t40_c7'};%'TFRw_S25t2_noBsln_fl1t40_c7','TFRw_S25t2_zbtS25t05_fl1t40_c7'};%'TFRw_S25t2_noBsln_fl2t40_c7'};%
+an_ids = {'TFRmth_S1t2_zS25t05_f2t40'};%'TFRw_S25t2_dbS25t05_fl2t40_c7','TFRw_D1t1_dbS25t05_fl2t40_c7'};
+%'TFRw_S25t2_noBsln_fl1t40_c7','TFRw_S25t2_zbtS25t05_fl1t40_c7'};%'TFRw_S25t2_noBsln_fl2t40_c7'};%
 
 %% Time Frequency analysis
 for s = 1:4
@@ -52,6 +53,14 @@ for s = 1:4
             error('mismatched event without S-locked baseline!');
         end
         tfr_trim = ft_selectdata(cfg_trim,tfr_raw);
+        
+        % Log transform
+        if isfield(an,'log_yn') && an.log_yn
+            cfgl = [];
+            cfgl.parameter = 'powspctrm';
+            cfgl.operation = 'log10';
+            tfr_trim = ft_math(cfgl,tfr_trim);
+        end
         
         % Baseline correction
         switch an.bsln_type

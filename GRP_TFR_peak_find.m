@@ -13,7 +13,8 @@ sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 sbj_bg_roi   = {'GPi','STN','GPi','STN'};
 
 % an_id = 'TFRw_S25t2_dbS25t05_fl2t40_c7';%'TFRw_S25t2_noBsln_fl1t40_c7';%'TFRw_S25t2_noBsln_fl2t40_c7';
-an_id = 'TFRw_D1t1_dbS25t05_fl2t40_c7';%
+% an_id = 'TFRw_D1t1_dbS25t05_fl2t40_c7';%
+an_id = 'TFRmth_S1t2_zS1t0_f2t40_log';%'TFRmth_S1t2_dbS1t0_f2t40';
 
 if contains(an_id,'_S')
     psd_win_lim = [0.5 1.5];
