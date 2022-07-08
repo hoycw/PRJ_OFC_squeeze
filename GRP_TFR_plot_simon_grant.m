@@ -44,8 +44,10 @@ beta_cf = [-1 -1 -1 -1; 10 17 13 12]; % PFC03, PFC04, PFC05, PFC01
 
 
 % Plotting parameters
+plot_psd  = 0;
+font_size = 18;
 save_fig  = 1;
-fig_ftype = 'png';
+fig_ftype = 'fig';
 fig_vis   = 'on';
 
 %% Prep stuff
@@ -249,10 +251,12 @@ freq_tick_ix = nan(size(freq_ticks));
 for f = 1:numel(freq_ticks)
     [~,freq_tick_ix(f)] = min(abs(freq_vec-freq_ticks(f)));
 end
-time_ticks = plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2);
+time_ticks = [0:0.5:2];%plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2);
 time_tick_ix = nan(size(time_ticks));
+time_tick_lab = cell(size(time_ticks));
 for t = 1:numel(time_ticks)
     [~,time_tick_ix(t)] = min(abs(time_vec-time_ticks(t)));
+    time_tick_lab{t} = ['' num2str(time_ticks(t))];
 end
 if ~any(time_ticks==0); error('cant plot event with no tick at 0'); end
 
@@ -302,7 +306,7 @@ for s = 1:length(SBJs)
 %         ylim([min(freq_vec) max(freq_vec)]);
         xlabel('Time (s)');
         ylabel('Frequency (Hz)');
-        set(gca,'FontSize',16);
+        set(gca,'FontSize',font_size);
         
         %% Plot PSD
         subplot(2,3,ch_ix*3-1); hold on;
@@ -329,7 +333,7 @@ for s = 1:length(SBJs)
         ylabel('Power (norm)');
 %         legend([lfp_line pfc_line],{'LFP',sbj_pfc_roi{s}},'Location','best');
         title(['PSD (' num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2)) 's)']);
-        set(gca,'FontSize',16);
+        set(gca,'FontSize',font_size);
         
         %% Plot theta and beta
         subplot(2,3,ch_ix*3); hold on;
@@ -352,7 +356,7 @@ for s = 1:length(SBJs)
         legend([t_line.mainLine b_line.mainLine],{...
             ['theta (' num2str(theta_lim(s,ch_ix,1)) '-' num2str(theta_lim(s,ch_ix,2)) ' Hz)'], ...
             ['beta (' num2str(beta_lim(s,ch_ix,1)) '-' num2str(beta_lim(s,ch_ix,2)) ' Hz)']},'Location','best');
-        set(gca,'FontSize',16);
+        set(gca,'FontSize',font_size);
         
     end
     
@@ -379,10 +383,13 @@ for ch_ix = 1:2
 end
 
 %% Plot TFRs for the GROUP
-fig_name = ['GRP_TFR_theta_beta_' an_id];
+if plot_psd
+    fig_name = ['GRP_TFR_theta_beta_' an_id '_withPSD'];
+else
+    fig_name = ['GRP_TFR_theta_beta_' an_id '_noPSD'];
+end
 figure('Name',fig_name,'units','normalized',...
     'outerposition',[0 0 1 1],'Visible',fig_vis);
-
 for ch_ix = 1:2
     if ch_ix==1
         ch_lab = 'Basal Ganglia';
@@ -393,7 +400,11 @@ for ch_ix = 1:2
     end
     
     % Plot TFR
-    subplot(2,4,ch_ix*4-3); hold on;
+    if plot_psd
+        subplot(2,4,ch_ix*4-3); hold on;
+    else
+        subplot(2,3,ch_ix*3-2); hold on;
+    end
     % Get color lims per condition
     vals = tfr_grp(ch_ix,:,:);
     if symmetric_clim
@@ -417,25 +428,31 @@ for ch_ix = 1:2
     % title(['LFP- ' an_id], 'interpreter', 'none');
     set(gca,'XLim',[1 numel(time_vec)]);
     set(gca,'XTick', time_tick_ix);
-    set(gca,'XTickLabels', time_ticks);
+    set(gca,'XTickLabels', time_tick_lab);
     set(gca,'YLim',[1 numel(freq_vec)]);
     set(gca,'YTick',freq_tick_ix);
     set(gca,'YTickLabels',freq_ticks);
     xlabel('Time (s)');
     ylabel('Frequency (Hz)');
-    set(gca,'FontSize',16);
+    set(gca,'FontSize',font_size);
     
     % Plot PSD
-    subplot(2,4,ch_ix*4-2); hold on;
-    plot(freq_vec,squeeze(nanmean(psd(:,ch_ix,:),1)),'Color',ch_color);
-%     line(xlim,[0 0],'Color','k','LineStyle','--');
-    xlabel('Frequency (Hz)');
-    ylabel('Power (z)');
-    title([ch_lab ' Reactive Power (' num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2)) 's)']);
-    set(gca,'FontSize',16);
+    if plot_psd
+        subplot(2,4,ch_ix*4-2); hold on;
+        plot(freq_vec,squeeze(nanmean(psd(:,ch_ix,:),1)),'Color',ch_color);
+        %     line(xlim,[0 0],'Color','k','LineStyle','--');
+        xlabel('Frequency (Hz)');
+        ylabel('Power (z)');
+        title([ch_lab ' Reactive Power (' num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2)) 's)']);
+        set(gca,'FontSize',font_size);
+    end
     
     % Plot theta and beta
-    subplot(2,4,ch_ix*4-1); hold on;
+    if plot_psd
+        subplot(2,4,ch_ix*4-1); hold on;
+    else
+        subplot(2,3,ch_ix*3-1); hold on;
+    end
     
     t_line = shadedErrorBar(time_vec, squeeze(theta_grp_avg(ch_ix,:)), ...
         squeeze(theta_grp_sem(ch_ix,:)),'lineprops',{'Color','r'});
@@ -448,17 +465,21 @@ for ch_ix = 1:2
     % Axes and parameters
     title([ch_lab ' Power'], 'interpreter', 'none');
     set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
-    set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
+    set(gca,'XTick', time_ticks);%plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
     set(gca,'YLim',ylims);
     xlabel('Time (s)');
     ylabel('Power (z)');
     legend([t_line.mainLine b_line.mainLine],{...
         ['theta (' num2str(mean(theta_lim(:,ch_ix,1))) '-' num2str(mean(theta_lim(:,ch_ix,2))) ' Hz)'],...
         ['beta (' num2str(mean(beta_lim(:,ch_ix,1))) '-' num2str(mean(beta_lim(:,ch_ix,2))) ' Hz)']},'Location','best');
-    set(gca,'FontSize',16);
+    set(gca,'FontSize',font_size);
     
     % Plot LMEs
-    subplot(2,4,ch_ix*4); hold on;
+    if plot_psd
+        subplot(2,4,ch_ix*4); hold on;
+    else
+        subplot(2,3,ch_ix*3); hold on;
+    end
     t_line = plot(lme_time_vec, squeeze(theta_coef(ch_ix,:)),'Color','r','LineWidth',2);
     b_line = plot(lme_time_vec, squeeze(beta_coef(ch_ix,:)),'Color','b','LineWidth',2);
     ylims = ylim;
@@ -468,14 +489,14 @@ for ch_ix = 1:2
     % Axes and parameters
     title([ch_lab ' Main Effects'], 'interpreter', 'none');
     set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
-    set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
+    set(gca,'XTick', time_ticks);%plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
     set(gca,'YLim',ylims);
     xlabel('Time (s)');
     ylabel('Beta Coefficient');
     legend([t_line b_line],{...
         ['theta ~ previous subjective value'],...
         ['beta ~ subjective value']},'Location','best');
-    set(gca,'FontSize',16);
+    set(gca,'FontSize',font_size);
 end
 
 % Save Figure

@@ -13,7 +13,8 @@ man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 
 
 % Analysis parameters:
 norm_bhv_reg = 0;
-an_id = 'TFRmth_S1t2_zS1t0_f2t40_log';%'TFRw_S1t2_zS1t0_f2t40_c7';%'TFRw_D1t1_dbS25t05_fl2t40_c7';%
+an_id = 'TFRmth_S1t2_zS1t0_f2t40';%'TFRw_S1t2_zS1t0_f2t40_c7';%'TFRw_D1t1_dbS25t05_fl2t40_c7';%
+% an_id = 'TFRmth_D1t1_zS1t0_f2t40';
 use_simon_tfr = 0;
 toss_same_trials = 1;
 if contains(an_id,'_S')
@@ -23,6 +24,9 @@ if contains(an_id,'_S')
         % Simon params: [10,17,13,12]
         theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
         betalo_cf = [-1 -1 -1 -1; 10 17 13 12]; % PFC03, PFC04, PFC05, PFC01
+    elseif strcmp(an_id,'TFRmth_S1t2_zS1t0_f2t40')  % equivalent to Simon
+        theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
+        betalo_cf  = [-1 -1 -1 -1; 10 17 13 12];
     elseif strcmp(an_id,'TFRw_S25t2_dbS25t05_fl2t40_c7')
         theta_cf = [2.5 3.5 3.5 6; 5 4 3.5 3]; % BG (row1) then PFC (row2)
         betalo_cf  = [-1 -1 -1 -1; -1 -1 -1 -1];
@@ -37,11 +41,15 @@ if contains(an_id,'_S')
         %     betalo_cf = ones([2 numel(SBJs)])*-1;
     end
 elseif contains(an_id,'_D')
-    an_lim = [-0.25 0.25];
+    an_lim = [-0.5 0];
+    betahi_cf = ones([2 numel(SBJs)])*-1;
     if strcmp(an_id,'TFRw_D1t1_dbS25t05_fl2t40_c7')
         theta_cf = [3.5 3 4.5 6; 3 3 4.5 3]; % BG (row1) then PFC (row2)
         betalo_cf  = [13 20 17 18; -1 -1 -1 -1];
         betahi_cf = ones([2 numel(SBJs)])*-1;
+    elseif strcmp(an_id,'TFRmth_D1t1_zS1t0_f2t40')  % equivalent to Simon
+        theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
+        betalo_cf  = [-1 -1 -1 -1; -1 -1 -1 -1];%10 17 13 12];
     else
         % As of GRP_TFR_peak_find on 0.25-1.5 from 7/5/22
         %   Use -1 for canonical bands
@@ -49,12 +57,11 @@ elseif contains(an_id,'_D')
         %     betalo_cf  = [17 22 14 14; 13 17 11 15];
         %     betahi_cf  = % no SBJ-specific peaks;
         betalo_cf = [20 17 11 24; -1 -1 -1 -1];
-        betahi_cf = ones([2 numel(SBJs)])*-1;
     end
 end
 
 % Simon originals:
-theta_bw  = 4;
+theta_bw  = 3;
 betalo_bw = 4;
 betahi_bw = 4;
 theta_canon  = [4 7];
@@ -335,13 +342,13 @@ lme = fitlme(table_As,'PFC_theta~ SV_As*PFC_roi + (1|sbj_n_A)') % PFC_roi p = 0.
 
 % ================ BG ================
 % Current trial Subjective Value
-% lme = fitlme(table_A,'BG_theta~ SV_A*BG_roi + (1|sbj_n_A)')     % BG_roi p = 0.03
-% lme = fitlme(table_A,'BG_betalo~ SV_A*BG_roi + (1|sbj_n_A)')    % BG_roi p = 0.0004; D -0.25:0.25 SV p - 0.03
+lme = fitlme(table_A,'BG_theta~ SV_A*BG_roi + (1|sbj_n_A)')     % BG_roi p = 0.03
+lme = fitlme(table_A,'BG_betalo~ SV_A*BG_roi + (1|sbj_n_A)')    % BG_roi p = 0.0004; D -0.25:0.25 SV p - 0.03
 % lme = fitlme(table_A,'BG_betahi~ SV_A*BG_roi + (1|sbj_n_A)')
 
 % Previous trial Subjective Value
-% lme = fitlme(table_As,'BG_theta~ SV_As*BG_roi + (1|sbj_n_A)')   % BG_roi p = 0.04
-% lme = fitlme(table_As,'BG_betalo~ SV_As*BG_roi + (1|sbj_n_A)')  % BG_roi p = 0.0009; D -0.25:0.25 SV_As p = 0.01
+lme = fitlme(table_As,'BG_theta~ SV_As*BG_roi + (1|sbj_n_A)')   % BG_roi p = 0.04
+lme = fitlme(table_As,'BG_betalo~ SV_As*BG_roi + (1|sbj_n_A)')  % BG_roi p = 0.0009; D -0.25:0.25 SV_As p = 0.01
 % lme = fitlme(table_As,'BG_betahi~ SV_As*BG_roi + (1|sbj_n_A)')
 
 %% LME Modelling %%

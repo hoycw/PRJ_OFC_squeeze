@@ -14,7 +14,7 @@ ft_defaults
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 % sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 
-an_ids = {'TFRmth_S1t2_zS25t05_f2t40'};%'TFRw_S25t2_dbS25t05_fl2t40_c7','TFRw_D1t1_dbS25t05_fl2t40_c7'};
+an_ids = {'TFRmth_S1t2_zbtS1t0_f2t40','TFRmth_S1t2_dbS1t0_f2t40','TFRmth_S1t2_zS1t0_f2t40','TFRmth_S1t2_zS25t05_f2t40'};%'TFRw_S25t2_dbS25t05_fl2t40_c7','TFRw_D1t1_dbS25t05_fl2t40_c7'};
 %'TFRw_S25t2_noBsln_fl1t40_c7','TFRw_S25t2_zbtS25t05_fl1t40_c7'};%'TFRw_S25t2_noBsln_fl2t40_c7'};%
 
 %% Time Frequency analysis
@@ -91,7 +91,7 @@ for s = 1:4
         % SAVE data
         tfr_fname = [sbj_dir SBJs{s} '_' an_ids{an_ix} '.mat'];
         fprintf('Saving %s\n',tfr_fname);
-        save(tfr_fname,'-v7.3','tfr');
+        save(tfr_fname,'-v7.3','tfr','tfr_raw');
     end
     
 end

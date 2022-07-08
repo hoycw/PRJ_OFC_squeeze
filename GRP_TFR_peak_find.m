@@ -13,15 +13,15 @@ sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 sbj_bg_roi   = {'GPi','STN','GPi','STN'};
 
 % an_id = 'TFRw_S25t2_dbS25t05_fl2t40_c7';%'TFRw_S25t2_noBsln_fl1t40_c7';%'TFRw_S25t2_noBsln_fl2t40_c7';
-% an_id = 'TFRw_D1t1_dbS25t05_fl2t40_c7';%
-an_id = 'TFRmth_S1t2_zS1t0_f2t40_log';%'TFRmth_S1t2_dbS1t0_f2t40';
+an_id = 'TFRmth_D1t1_zS1t0_f2t40';%'TFRw_D1t1_dbS25t05_fl2t40_c7';%
+% an_id = 'TFRmth_S1t2_zS1t0_f2t40';%'TFRmth_S1t2_dbS1t0_f2t40';
 
 if contains(an_id,'_S')
     psd_win_lim = [0.5 1.5];
     peak_sign = 1;
 %     an_lim = [0.5 1];
 elseif contains(an_id,'_D')
-    psd_win_lim = [-0.5 0];
+    psd_win_lim = [-0.25 0.25];
     peak_sign = -1;
 %     an_lim = [-0.5 0];
 end
@@ -53,7 +53,8 @@ elseif contains(an_id,'_D')
 else
     error('couldnt pick plt_id based on an_id');
 end
-fig_dir   = [prj_dir 'results/TFR/' an_id '/pk_find/'];
+win_lim_str = [num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2))];
+fig_dir   = [prj_dir 'results/TFR/' an_id '/pk_find' win_lim_str '/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 
 an_vars_cmd = ['run ' prj_dir '/scripts/an_vars/' an_id '_vars.m'];
