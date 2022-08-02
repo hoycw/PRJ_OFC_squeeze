@@ -13,8 +13,11 @@ sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 sbj_bg_roi   = {'GPi','STN','GPi','STN'};
 
 % an_id = 'TFRw_S25t2_dbS25t05_fl2t40_c7';%'TFRw_S25t2_noBsln_fl1t40_c7';%'TFRw_S25t2_noBsln_fl2t40_c7';
-an_id = 'TFRmth_D1t1_zS1t0_f2t40';%'TFRw_D1t1_dbS25t05_fl2t40_c7';%
+% an_id = 'TFRmth_D1t1_zS1t0_f2t40';%'TFRw_D1t1_dbS25t05_fl2t40_c7';%
 % an_id = 'TFRmth_S1t2_zS1t0_f2t40';%'TFRmth_S1t2_dbS1t0_f2t40';
+an_id = 'TFRmth_S1t2_zS8t9_f2t40';%'TFRmth_S2t2_zS1t0_f2t40','TFRmth_S2t2_zS5t0_f2t40','TFRmth_S2t2_zS25t0_f2t40','TFRmth_S2t2_zS25t05_f2t40',...
+%           'TFRmth_D1t2_zS5t0_f2t40','TFRmth_D1t2_zS25t0_f2t40','TFRmth_D1t2_zS25t05_f2t40'};
+% plt_lim = [-1 2];
 
 if contains(an_id,'_S')
     psd_win_lim = [0.5 1.5];
@@ -61,6 +64,7 @@ an_vars_cmd = ['run ' prj_dir '/scripts/an_vars/' an_id '_vars.m'];
 eval(an_vars_cmd);
 plt_vars_cmd = ['run ' prj_dir 'scripts/plt_vars/' plt_id '_vars.m'];
 eval(plt_vars_cmd);
+if exist('plt_lim','var'); plt.plt_lim = plt_lim; end
 
 %% Load TFR data
 theta_pk = nan([length(SBJs) 2]);

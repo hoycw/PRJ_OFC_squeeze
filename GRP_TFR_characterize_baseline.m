@@ -4,9 +4,8 @@ clear all
 close all
 % clc
 
-prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
-addpath([prj_dir 'scripts/']);
-addpath([prj_dir 'scripts/utils/']);
+addpath(['/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/']);
+addpath(['/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/utils/']);
 addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 
@@ -14,8 +13,9 @@ ft_defaults
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 % sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 
-an_ids = {'TFRmth_S1t2_dbS1t0_f2t40','TFRmth_S1t2_zS1t0_f2t40','TFRmth_S1t2_zS25t05_f2t40'};%'TFRw_S25t2_dbS25t05_fl2t40_c7','TFRw_D1t1_dbS25t05_fl2t40_c7'};
+% an_ids = {'TFRmth_S1t2_dbS1t0_f2t40','TFRmth_S1t2_zbtS1t0_f2t40','TFRmth_S1t2_zS1t0_f2t40','TFRmth_S1t2_zS25t05_f2t40'};%'TFRw_S25t2_dbS25t05_fl2t40_c7','TFRw_D1t1_dbS25t05_fl2t40_c7'};
 %'TFRw_S25t2_noBsln_fl1t40_c7','TFRw_S25t2_zbtS25t05_fl1t40_c7'};%'TFRw_S25t2_noBsln_fl2t40_c7'};%
+an_ids = {'TFRmth_S1t2_dbS1t0_f2t40','TFRmth_S1t2_zS1t0_f2t40','TFRmth_S1t2_zS1t0_f2t40_log','TFRmth_S1t2_zbtS1t0_f2t40'};%'TFRw_S25t2_dbS25t05_fl2t40_c7','TFRw_D1t1_dbS25t05_fl2t40_c7'};
 
 if contains(an_ids{1},'_S')
     an_lim = [0.5 1.5];
@@ -25,88 +25,51 @@ end
 
 freq_names = {'theta','beta low'};
 freq_bands = [4 7; 12 20];
+ch_lab     = {'GPi','STN','GPi','STN'; 'FPC', 'OFC', 'OFC', 'FPC'};
 mrkr_sz = 25;
+save_fig = 1;
+fig_ftype = 'png';
 
-%!!! add checks for same TFR method and same time lock event
+an_ids_str = strjoin(an_ids,'-');
+prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
+
+% Check for same TFR method and same time lock event
+if ~all(contains(an_ids,'_S')) && ~all(contains(an_ids,'_D'))
+    error('all TFRs should be locked to the same event!');
+end
+tfr_method = cell(size(an_ids));
+for an_ix = 1:numel(an_ids)
+    uscore = strfind(an_ids{an_ix},'_');
+    tfr_method{an_ix} = an_ids{an_ix}(1:uscore(1)-1);
+end
+if ~all(strcmp(tfr_method{1},tfr_method))
+    error('all TFRs should use same TFR method!');
+end
 
 %% Time Frequency analysis
 an_vars = cell(size(an_ids));
 tfr_raw = cell([numel(SBJs) numel(an_ids)]);
-tfr_trim = cell([numel(SBJs) numel(an_ids)]);
-tfr_bsln = cell([numel(SBJs) numel(an_ids)]);
+% tfr_bsln = cell([numel(SBJs) numel(an_ids)]);
 tfr = cell([numel(SBJs) numel(an_ids)]);
 for s = 1:4
     %% Load data
     sbj_dir = [prj_dir 'data/' SBJs{s} '/'];
-    tfr_fname = [sbj_dir SBJs{s} '_stim_preproc.mat']; % This is [-3 10] to cover all possible times
-    fprintf('Loading %s\n',tfr_fname);
-    load(tfr_fname,'sbj_data');
     
-    %% Time-frequency representation
+    % Load Time-frequency representation
     for an_ix = 1:length(an_ids)
         an_vars_cmd = ['run ' prj_dir 'scripts/an_vars/' an_ids{an_ix} '_vars.m'];
         eval(an_vars_cmd);
         an_vars{an_ix} = an;
         
-%         % Trim to analysis time
-%         if strcmp(an.event_type,'S')
-%             [trial_lim_s_pad] = fn_get_filter_padding(cfg_tfr,an.trial_lim_s,an.bsln_lim);
-%             cfgs = []; cfgs.latency = trial_lim_s_pad;
-%             trim = ft_selectdata(cfgs,sbj_data.ts);
-%         else
-%             % That function doesn't work with variable length trials
-%             trim = sbj_data.ts;
-%         end
-        
-        % Extract time-frequency representation
-        tfr_raw{s,an_ix} = ft_freqanalysis(cfg_tfr, sbj_data.ts);%trim);
-        
-        % Trim back down to original trial_lim_s to exclude NaNs
-        cfg_trim = [];
-        if strcmp(an.event_type,'S')
-            cfg_trim.latency = an.trial_lim_s;
-        elseif strcmp(an.event_type,'D') && strcmp(an.bsln_evnt,'S')
-            cfg_trim.latency = [an.bsln_lim(1) max(sbj_data.bhv.rt)+an.trial_lim_s(2)];
-        else
-            error('mismatched event without S-locked baseline!');
-        end
-        tfr_trim{s,an_ix} = ft_selectdata(cfg_trim,tfr_raw{s,an_ix});
-        
-        % Extract raw baseline
-        cfg_bsln = [];
-        cfg_bsln.latency = an.bsln_lim;
-        tfr_bsln{s,an_ix} = ft_selectdata(cfg_bsln,tfr_raw{s,an_ix});
-        
-        % Baseline correction
-        switch an.bsln_type
-            case {'zscore','zboot', 'demean', 'my_relchange'}
-                tfr{s,an_ix} = fn_bsln_ft_tfr(tfr_trim{s,an_ix},an.bsln_lim,an.bsln_type,an.bsln_boots);
-            case {'relchange','db'}
-                cfgbsln = [];
-                cfgbsln.baseline     = an.bsln_lim;
-                cfgbsln.baselinetype = an.bsln_type;
-                cfgbsln.parameter    = 'powspctrm';
-                tfr{s,an_ix} = ft_freqbaseline(cfgbsln,tfr_trim{s,an_ix});
-            case 'none'
-                warning('\tSkipping baseline correction!');
-                tfr{s,an_ix} = tfr_trim{s,an_ix};
-            otherwise
-                error(['No baseline implemented for bsln_type: ' an.bsln_type]);
-        end
-        
-        % Re-align to decision and re-trim
-        if ~strcmp(an.event_type,an.bsln_evnt)
-            if strcmp(an.event_type,'D') && strcmp(an.bsln_evnt,'S')
-                [tfr{s,an_ix}] = fn_realign_tfr_s2r(tfr{s,an_ix},sbj_data.bhv.rt,an.trial_lim_s);
-            else
-                error('unknown combination of analysis and baseline events');
-            end
-        end
+        tfr_fname = [sbj_dir SBJs{s} '_' an_ids{an_ix} '.mat'];
+        fprintf('Loading %s\n',tfr_fname);
+        tmp = load(tfr_fname);
+        tfr_raw{s,an_ix}  = tmp.tfr_raw;
+        tfr{s,an_ix} = tmp.tfr;
     end
 end
 
 %% Plot baseline values over time
-an_ids_str = strjoin(an_ids,'-');
 % [n_rc,~] = fn_num_subplots(numel(an_ids));
 
 ch_ix = 2;
@@ -200,8 +163,11 @@ for s = 2:4
     end
 end
 
-%% Compare proportion of increases and decreases between raw and baseline-corrected trials
+%% Plot power distributions at baseline, trial, and change
 % histogram of trl - bsln for raw and all an_ids
+fig_dir   = [prj_dir 'results/TFR/bsln_properties/' an_ids_str '/bsln_trl_change/'];
+if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
+ch_ix = 2;
 n_bins = 50;
 for s = 1:4
     trl_colors = jet(size(tfr_raw{s,1}.powspctrm,1));
@@ -240,11 +206,120 @@ for s = 1:4
 %             xlim([-max(abs(change)) max(abs(change))]);
             legend([bsln_hist trl_hist ch_hist],{'Baseline','Trial','Change'},'Location','best');
             if an_ix==1
-                title([freq_names{band_ix} ': Raw'],'Interpreter','none');
+                title([ch_lab{ch_ix,s} ' ' freq_names{band_ix} ': Raw'],'Interpreter','none');
             else
-                title([freq_names{band_ix} ': ' an_ids{an_ix-1}],'Interpreter','none');
+                title([an_ids{an_ix-1}],'Interpreter','none');
             end
             set(gca,'FontSize',16);
         end
+    end
+    
+    % Save figure
+    if save_fig
+        fig_fname = [fig_dir fig_name '.' fig_ftype];
+        fprintf('Saving %s\n',fig_fname);
+        saveas(gcf,fig_fname);
+    end
+end
+
+%% Plot power distributions in baseline period
+% histogram of trl - bsln for raw and all an_ids
+fig_dir   = [prj_dir 'results/TFR/bsln_properties/' an_ids_str '/bsln/'];
+if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
+ch_ix = 2;
+n_bins = 50;
+for s = 1:4
+    trl_colors = jet(size(tfr_raw{s,1}.powspctrm,1));
+    fig_name = [SBJs{s} '_TFR_bsln_hist_' an_ids_str];
+    figure('Name',fig_name,'units','norm','OuterPosition',[0 0 1 1]);
+    for band_ix = 1:size(freq_bands,1)
+        for an_ix = 1:numel(an_ids)+1
+            % Extract power values
+            cfg = [];
+            cfg.avgoverrpt  = 'no';
+            cfg.avgoverfreq = 'yes';
+            cfg.avgovertime = 'yes';
+            cfg.frequency   = freq_bands(band_ix,:);
+            if an_ix==1
+                cfg.latency     = an_vars{1}.bsln_lim;
+                bsln = ft_selectdata(cfg,tfr_raw{s,1});
+            else
+                cfg.latency     = an_vars{an_ix-1}.bsln_lim;
+                bsln = ft_selectdata(cfg,tfr{s,an_ix-1});
+            end
+            
+            % Plot histogram of differences
+            subplot(size(freq_bands,1),numel(an_ids)+1,band_ix*(numel(an_ids)+1)-an_ix+1);
+            hold on;
+            bsln_hist = histogram(bsln.powspctrm(:,ch_ix),n_bins,'FaceColor','b');
+            line([mean(bsln.powspctrm(:,ch_ix)) mean(bsln.powspctrm(:,ch_ix))],ylim,'Color','r','LineWidth',2);
+            
+            xlabel('Baseline Power');%'Trial - Baseline Power');
+%             xlim([-max(abs(change)) max(abs(change))]);
+            if an_ix==1
+                title([ch_lab{ch_ix,s} ' ' freq_names{band_ix} ': Raw'],'Interpreter','none');
+            else
+                title([an_ids{an_ix-1}],'Interpreter','none');
+            end
+            set(gca,'FontSize',16);
+        end
+    end
+    
+    % Save figure
+    if save_fig
+        fig_fname = [fig_dir fig_name '.' fig_ftype];
+        fprintf('Saving %s\n',fig_fname);
+        saveas(gcf,fig_fname);
+    end
+end
+
+%% Plot power distributions in trial analysis period
+% histogram of trl - bsln for raw and all an_ids
+fig_dir   = [prj_dir 'results/TFR/bsln_properties/' an_ids_str '/trl/'];
+if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
+ch_ix = 2;
+n_bins = 50;
+for s = 1:4
+    trl_colors = jet(size(tfr_raw{s,1}.powspctrm,1));
+    fig_name = [SBJs{s} '_TFR_trl_hist_' an_ids_str];
+    figure('Name',fig_name,'units','norm','OuterPosition',[0 0 1 1]);
+    for band_ix = 1:size(freq_bands,1)
+        for an_ix = 1:numel(an_ids)+1
+            % Extract power values
+            cfg = [];
+            cfg.avgoverrpt  = 'no';
+            cfg.avgoverfreq = 'yes';
+            cfg.avgovertime = 'yes';
+            cfg.frequency   = freq_bands(band_ix,:);
+            if an_ix==1
+                cfg.latency     = an_lim;
+                trl = ft_selectdata(cfg,tfr_raw{s,1});
+            else
+                cfg.latency     = an_lim;
+                trl = ft_selectdata(cfg,tfr{s,an_ix-1});
+            end
+            
+            % Plot histogram of differences
+            subplot(size(freq_bands,1),numel(an_ids)+1,band_ix*(numel(an_ids)+1)-an_ix+1);
+            hold on;
+            trl_hist  = histogram(trl.powspctrm(:,ch_ix),n_bins,'FaceColor','g');
+            line([mean(trl.powspctrm(:,ch_ix)) mean(trl.powspctrm(:,ch_ix))],ylim,'Color','r','LineWidth',2);
+            
+            xlabel('Analysis Power');%'Trial - Baseline Power');
+%             xlim([-max(abs(change)) max(abs(change))]);
+            if an_ix==1
+                title([ch_lab{ch_ix,s} ' ' freq_names{band_ix} ': Raw'],'Interpreter','none');
+            else
+                title([an_ids{an_ix-1}],'Interpreter','none');
+            end
+            set(gca,'FontSize',16);
+        end
+    end
+    
+    % Save figure
+    if save_fig
+        fig_fname = [fig_dir fig_name '.' fig_ftype];
+        fprintf('Saving %s\n',fig_fname);
+        saveas(gcf,fig_fname);
     end
 end
