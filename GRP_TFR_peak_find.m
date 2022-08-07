@@ -15,7 +15,7 @@ sbj_bg_roi   = {'GPi','STN','GPi','STN'};
 % an_id = 'TFRw_S25t2_dbS25t05_fl2t40_c7';%'TFRw_S25t2_noBsln_fl1t40_c7';%'TFRw_S25t2_noBsln_fl2t40_c7';
 % an_id = 'TFRmth_D1t1_zS1t0_f2t40';%'TFRw_D1t1_dbS25t05_fl2t40_c7';%
 % an_id = 'TFRmth_S1t2_zS1t0_f2t40';%'TFRmth_S1t2_dbS1t0_f2t40';
-an_id = 'TFRmth_S1t2_zS8t9_f2t40';%'TFRmth_S2t2_zS1t0_f2t40','TFRmth_S2t2_zS5t0_f2t40','TFRmth_S2t2_zS25t0_f2t40','TFRmth_S2t2_zS25t05_f2t40',...
+an_id = 'TFRmth_S1t2_zS8t0_f2t40_log';%'TFRmth_S2t2_zS1t0_f2t40','TFRmth_S2t2_zS5t0_f2t40','TFRmth_S2t2_zS25t0_f2t40','TFRmth_S2t2_zS25t05_f2t40',...
 %           'TFRmth_D1t2_zS5t0_f2t40','TFRmth_D1t2_zS25t0_f2t40','TFRmth_D1t2_zS25t05_f2t40'};
 % plt_lim = [-1 2];
 

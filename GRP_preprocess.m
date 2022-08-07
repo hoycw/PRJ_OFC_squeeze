@@ -300,6 +300,20 @@ for s=1:4
     bhv.p_accept = (exp(par(1)*(bhv.stake-(par(2)*(bhv.effort).^2))) ./...
         (exp(par(1)) + exp(par(1)*(bhv.stake-(par(2)*(bhv.effort).^2)))));
     
+    % Creat previous trial predictors (respecting tossed trials)
+    bhv.SV_prv       = nan(size(bhv.trl));
+    bhv.EFFs_prv     = nan(size(bhv.trl));
+    bhv.p_accept_prv = nan(size(bhv.trl));
+    firsttrl_ix = find(bhv.run_trl==1);
+    for t_ix = 1:length(bhv.trl)
+        prv_ix = find(bhv.trl==bhv.trl(t_ix)-1);
+        if ~isempty(prv_ix) && ~any(t_ix==firsttrl_ix)  % only for previous trial and not first trial of the run
+            bhv.SV_prv(t_ix)       = bhv.SV(prv_ix);
+            bhv.EFFs_prv(t_ix)     = bhv.EFFs(prv_ix);
+            bhv.p_accept_prv(t_ix) = bhv.p_accept(prv_ix);
+        end
+    end
+    
     if plot_it
         figure;
         subplot(3,1,1);
