@@ -206,9 +206,13 @@ for s=1:4
         end
         
         % Create previous trial regressors
+        run_rt_prv{r_ix} = rt{r_ix};
+        run_rt_prv{r_ix}(end) = [];                     % remove last trial
+        run_rt_prv{r_ix} = [nan; run_rt_prv{r_ix}];             % add nan to start, shifting by 1
+        
         run_effort_prv{r_ix} = run_effort{r_ix};
-        run_effort_prv{r_ix}(end) = [];                     % remove last trial
-        run_effort_prv{r_ix} = [nan; run_effort_prv{r_ix}]; % add nan to start, shifting by 1
+        run_effort_prv{r_ix}(end) = [];
+        run_effort_prv{r_ix} = [nan; run_effort_prv{r_ix}];
         
         run_stake_prv{r_ix} = run_stake{r_ix};
         run_stake_prv{r_ix}(end) = [];
@@ -217,6 +221,10 @@ for s=1:4
         run_decision_prv{r_ix} = run_decision{r_ix};
         run_decision_prv{r_ix}(end) = [];
         run_decision_prv{r_ix} = [nan; run_decision_prv{r_ix}];
+        
+        run_trl_prv{r_ix} = run_all_trl_ix{r_ix};
+        run_trl_prv{r_ix}(end) = [];
+        run_trl_prv{r_ix} = [nan; run_trl_prv{r_ix}];
         
         clear syncR1 syncR2 result signal nrl_resamp nrl_trim orig_time_ax power
 %         close all
@@ -227,10 +235,12 @@ for s=1:4
     bhv = struct;
     bhv.key          = [key{1}; key{2}];
     bhv.rt           = [rt{1}; rt{2}];
+    bhv.rt_prv       = [run_rt_prv{1}; run_rt_prv{2}];
     bhv.blk          = [run_blk_ix{1}; run_blk_ix{2}];
     bhv.blk_trl      = [run_trl_ix{1}; run_trl_ix{2}];
     bhv.run_trl      = [run_all_trl_ix{1}; run_all_trl_ix{2}];
     bhv.trl          = [run_all_trl_ix{1}; run_all_trl_ix{2}+run_all_trl_ix{1}(end)];
+    bhv.trl_prv      = [run_trl_prv{1}; run_trl_prv{2}+run_all_trl_ix{1}(end)];
     bhv.run          = [ones(size(run_blk_ix{1})); ones(size(run_blk_ix{2}))*2];
     bhv.effort       = [run_effort{1}; run_effort{2}];
     bhv.stake        = [run_stake{1}; run_stake{2}];
@@ -300,17 +310,25 @@ for s=1:4
     bhv.p_accept = (exp(par(1)*(bhv.stake-(par(2)*(bhv.effort).^2))) ./...
         (exp(par(1)) + exp(par(1)*(bhv.stake-(par(2)*(bhv.effort).^2)))));
     
+    % Add salience regressors
+    bhv.absSV = abs(bhv.SV);
+    bhv.dec_diff = abs(bhv.p_accept-0.5);
+    
     % Creat previous trial predictors (respecting tossed trials)
     bhv.SV_prv       = nan(size(bhv.trl));
+    bhv.absSV_prv    = nan(size(bhv.trl));
     bhv.EFFs_prv     = nan(size(bhv.trl));
     bhv.p_accept_prv = nan(size(bhv.trl));
+    bhv.dec_diff_prv  = nan(size(bhv.trl));
     firsttrl_ix = find(bhv.run_trl==1);
     for t_ix = 1:length(bhv.trl)
         prv_ix = find(bhv.trl==bhv.trl(t_ix)-1);
         if ~isempty(prv_ix) && ~any(t_ix==firsttrl_ix)  % only for previous trial and not first trial of the run
             bhv.SV_prv(t_ix)       = bhv.SV(prv_ix);
+            bhv.absSV_prv(t_ix)    = bhv.absSV(prv_ix);
             bhv.EFFs_prv(t_ix)     = bhv.EFFs(prv_ix);
             bhv.p_accept_prv(t_ix) = bhv.p_accept(prv_ix);
+            bhv.dec_diff_prv(t_ix) = bhv.dec_diff(prv_ix);
         end
     end
     

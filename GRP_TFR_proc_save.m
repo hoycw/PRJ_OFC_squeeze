@@ -17,7 +17,7 @@ SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 % an_ids = {'TFRmth_S1t2_zbtS1t0_f2t40','TFRmth_S1t2_dbS1t0_f2t40','TFRmth_S1t2_zS1t0_f2t40','TFRmth_S1t2_zS25t05_f2t40'};%'TFRw_S25t2_dbS25t05_fl2t40_c7','TFRw_D1t1_dbS25t05_fl2t40_c7'};
 % an_ids = {'TFRmth_S2t2_zS1t0_f2t40','TFRmth_S2t2_zS5t0_f2t40','TFRmth_S2t2_zS25t0_f2t40','TFRmth_S2t2_zS25t05_f2t40',...
 %           'TFRmth_D1t2_zS5t0_f2t40','TFRmth_D1t2_zS25t0_f2t40','TFRmth_D1t2_zS25t05_f2t40'};
-an_ids = {'TFRmth_S1t2_zS8t0_f2t40'};%,'TFRmth_S1t2_zS8t0_f2t40_log'};
+an_ids = {'TFRmth_D1t1_zS8t0_f2t40'};%,'TFRmth_D1t1_zS8t0_f2t40_log'};
 %'TFRw_S25t2_noBsln_fl1t40_c7','TFRw_S25t2_zbtS25t05_fl1t40_c7'};%'TFRw_S25t2_noBsln_fl2t40_c7'};%
 
 %% Time Frequency analysis
@@ -95,6 +95,8 @@ for s = 1:4
         tfr_fname = [sbj_dir SBJs{s} '_' an_ids{an_ix} '.mat'];
         fprintf('Saving %s\n',tfr_fname);
         save(tfr_fname,'-v7.3','tfr','tfr_raw');
+        
+        clear an an_vars_cmd
     end
     
 end

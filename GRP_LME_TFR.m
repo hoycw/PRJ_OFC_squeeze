@@ -15,10 +15,10 @@ man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 
 
 % Analysis parameters:
 norm_bhv_pred = 'zscore';%'none';%
-norm_nrl_pred = 'zscore';%'none';
+norm_nrl_pred = 'zscore';%'none';%
 log_outlier_thresh = 7;
-an_id = 'TFRmth_S1t2_zS8t0_f2t40_log';%'TFRw_S1t2_zS1t0_f2t40_c7';%'TFRw_D1t1_dbS25t05_fl2t40_c7';%
-% an_id = 'TFRmth_D1t1_zS1t0_f2t40';
+an_id = 'TFRmth_S1t2_zS8t0_f2t40_log';%'TFRmth_S1t2_zS1t0_f2t40_log';%
+% an_id = 'TFRmth_D1t1_zS8t0_f2t40';
 use_simon_tfr = 0;
 toss_same_trials = 1;
 if contains(an_id,'_S')
@@ -31,7 +31,7 @@ if contains(an_id,'_S')
     elseif strcmp(an_id,'TFRmth_S1t2_zS1t0_f2t40')  % equivalent to Simon
         theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
         betalo_cf  = [-1 -1 -1 -1; 10 17 13 12];
-    elseif strcmp(an_id,'TFRmth_S1t2_zS8t0_f2t40_log')
+    elseif contains(an_id,'TFRmth_S1t2_zS8t0_f2t40')
         theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
         betalo_cf  = [-1 -1 -1 -1; 11 19 12 12];
     elseif strcmp(an_id,'TFRw_S25t2_dbS25t05_fl2t40_c7')
@@ -57,6 +57,9 @@ elseif contains(an_id,'_D')
     elseif strcmp(an_id,'TFRmth_D1t1_zS1t0_f2t40')  % equivalent to Simon
         theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
         betalo_cf  = [-1 -1 -1 -1; -1 -1 -1 -1];%10 17 13 12];
+    elseif contains(an_id,'TFRmth_D1t1_zS8t0_f2t40')
+        theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
+        betalo_cf  = [-1 -1 -1 -1; 11 19 12 12];
     else
         % As of GRP_TFR_peak_find on 0.25-1.5 from 7/5/22
         %   Use -1 for canonical bands
@@ -241,37 +244,46 @@ for s = 1:length(SBJs)
 end
 
 %% Convert into table format suitable for LME modelling
-% Initialise variables (A = current trial, As = previous trial)
-sbj_n_A = [];
-PFC_roi = [];
-BG_roi  = [];
-trl_n_A = [];
-PFC_theta = [];
-PFC_betalo  = [];
-PFC_betahi  = [];
-BG_theta  = [];
-BG_betalo   = [];
-BG_betahi   = [];
+% Initialise variables (cur = current trial, prv = previous trial)
+sbj_n      = [];
+PFC_roi    = [];
+BG_roi     = [];
+trl_n_cur  = [];
+PFC_theta  = [];
+PFC_betalo = [];
+PFC_betahi = [];
+BG_theta   = [];
+BG_betalo  = [];
+BG_betahi  = [];
 
-% StakeA=[];
-reward_A   = [];
-effort_A   = [];
-EFF_A      = [];
-decision_A = [];
-SV_A       = [];
-SV_md_A    = [];
+rt_cur       = [];
+logrt_cur    = [];
+reward_cur   = [];
+effort_cur   = [];
+effortS_cur  = [];
+decision_cur = [];
+SV_cur       = [];
+absSV_cur    = [];
+pAccept_cur  = [];
+dec_diff_cur = [];
 
-reward_As   = [];
-effort_As   = [];
-effortO_As  = [];
-decision_As = [];
-SV_As       = [];
+trl_n_prv    = [];
+rt_prv       = [];
+logrt_prv    = [];
+reward_prv   = [];
+effort_prv   = [];
+effortS_prv  = [];
+decision_prv = [];
+SV_prv       = [];
+absSV_prv    = [];
+pAccept_prv  = [];
+dec_diff_prv = [];
 
 for s = 1:length(SBJs)
     % Concatenate SBJ, beta, theta values
     trl_n = size(bhvs{s}.stake,1);
-    trl_n_A = [trl_n_A; [1:trl_n]'];
-    sbj_n_A = [sbj_n_A; num2str(ones(trl_n,1).*s)];
+    trl_n_cur = [trl_n_cur; bhvs{s}.trl];
+    sbj_n = [sbj_n; num2str(ones(trl_n,1).*s)];
     if strcmp(sbj_pfc_roi{s},'OFC'); pfc_roi_ix = 1; else; pfc_roi_ix = 2; end
     PFC_roi = [PFC_roi; num2str(ones(trl_n,1).*pfc_roi_ix)];
     if strcmp(sbj_bg_roi{s},'STN'); bg_roi_ix = 1; else; bg_roi_ix = 2; end
@@ -284,61 +296,61 @@ for s = 1:length(SBJs)
     BG_betalo  = [BG_betalo; fn_normalize_predictor(betalo_pow{s,1},norm_nrl_pred)];
     BG_betahi  = [BG_betahi; fn_normalize_predictor(betahi_pow{s,1},norm_nrl_pred)];
     
-    % Extract the behavioral variables %
-    reward_A   = [reward_A; fn_normalize_predictor(bhvs{s}.stake,norm_bhv_pred)];
-    effort_A   = [effort_A; fn_normalize_predictor(bhvs{s}.effort,norm_bhv_pred)];
-    EFF_A      = [EFF_A; fn_normalize_predictor(bhvs{s}.EFFs,norm_bhv_pred)];
-    decision_A = [decision_A; fn_normalize_predictor(bhvs{s}.decision,norm_bhv_pred)];
-    SV_A       = [SV_A; fn_normalize_predictor(bhvs{s}.SV,norm_bhv_pred)];
-%     SV_md_A    = [SV_md_A; abs(bhvs{s}.SV-median(bhvs{s}.SV))]; % maybe conflict? distance from indecision point? difficulty?
+    % Add behavioral variables
+    rt_cur       = [rt_cur; fn_normalize_predictor(bhvs{s}.rt,norm_bhv_pred)];
+    logrt_cur    = [logrt_cur; fn_normalize_predictor(log(bhvs{s}.rt),norm_bhv_pred)];
+    reward_cur   = [reward_cur; fn_normalize_predictor(bhvs{s}.stake,norm_bhv_pred)];
+    effort_cur   = [effort_cur; fn_normalize_predictor(bhvs{s}.effort,norm_bhv_pred)];
+    effortS_cur  = [effortS_cur; fn_normalize_predictor(bhvs{s}.EFFs,norm_bhv_pred)];
+    decision_cur = [decision_cur; fn_normalize_predictor(bhvs{s}.decision,norm_bhv_pred)];
+    SV_cur       = [SV_cur; fn_normalize_predictor(bhvs{s}.SV,norm_bhv_pred)];
+    absSV_cur    = [absSV_cur; fn_normalize_predictor(bhvs{s}.absSV,norm_bhv_pred)];
+    pAccept_cur  = [pAccept_cur; fn_normalize_predictor(bhvs{s}.p_accept,norm_bhv_pred)];
+    dec_diff_cur = [dec_diff_cur; fn_normalize_predictor(bhvs{s}.dec_diff,norm_bhv_pred)]; % abs(p_accept - 0.5)
     
-    % Reward
-    rew_prv = fn_normalize_predictor(bhvs{s}.stake_prv,norm_bhv_pred);
-    reward_As = [reward_As; rew_prv];
-    
-    % Effort
-    effort_prv = fn_normalize_predictor(bhvs{s}.effort_prv,norm_bhv_pred);
-    effort_As = [effort_As; effort_prv];
-    
-    % Obj. Effort
-    effortO_prv = fn_normalize_predictor(bhvs{s}.EFFs_prv,norm_bhv_pred);
-    effortO_As = [effortO_As; effortO_prv];
-    
-    % decision_A
-    dec_prv = fn_normalize_predictor(bhvs{s}.decision_prv,norm_bhv_pred);
-    decision_As = [decision_As; dec_prv];
-    
-    % Subj Val.
-    SV_prv = fn_normalize_predictor(bhvs{s}.SV_prv,norm_bhv_pred);
-    SV_As = [SV_As; SV_prv];
+    % Add previous trial variables
+    trl_n_prv    = [trl_n_prv; bhvs{s}.trl_prv];
+    rt_prv       = [rt_prv; fn_normalize_predictor(bhvs{s}.rt_prv,norm_bhv_pred)];
+    logrt_prv    = [logrt_prv; fn_normalize_predictor(log(bhvs{s}.rt_prv),norm_bhv_pred)];
+    reward_prv   = [reward_prv; fn_normalize_predictor(bhvs{s}.stake_prv,norm_bhv_pred)];
+    effort_prv   = [effort_prv; fn_normalize_predictor(bhvs{s}.effort_prv,norm_bhv_pred)];
+    effortS_prv  = [effortS_prv; fn_normalize_predictor(bhvs{s}.EFFs_prv,norm_bhv_pred)];
+    decision_prv = [decision_prv; fn_normalize_predictor(bhvs{s}.decision_prv,norm_bhv_pred)];
+    SV_prv       = [SV_prv; fn_normalize_predictor(bhvs{s}.SV_prv,norm_bhv_pred)];
+    absSV_prv    = [absSV_prv; fn_normalize_predictor(bhvs{s}.absSV_prv,norm_bhv_pred)];
+    pAccept_prv  = [pAccept_prv; fn_normalize_predictor(bhvs{s}.p_accept_prv,norm_bhv_pred)];
+    dec_diff_prv = [dec_diff_prv; fn_normalize_predictor(bhvs{s}.dec_diff_prv,norm_bhv_pred)];
 end
 
-table_A  = table(trl_n_A, sbj_n_A, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC_betahi, BG_theta, BG_betalo, BG_betahi,...
-                 reward_A, effort_A, decision_A, SV_A, EFF_A);
-table_As = table(trl_n_A, sbj_n_A, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC_betahi, BG_theta, BG_betalo, BG_betahi,...
-                 reward_As, effort_As, decision_As, SV_As, effortO_As);
-
-table_As_only = table(reward_As, effort_As, decision_As, SV_As, effortO_As);
-table_As(isnan(table_As.SV_As),:) = [];
+table_cur  = table(trl_n_cur, sbj_n, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC_betahi, BG_theta, BG_betalo, BG_betahi,...
+                 rt_cur, logrt_cur, reward_cur, effort_cur, effortS_cur, decision_cur, SV_cur, absSV_cur, pAccept_cur, dec_diff_cur);
+table_prv = table(trl_n_prv, sbj_n, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC_betahi, BG_theta, BG_betalo, BG_betahi,...
+                 rt_prv, logrt_prv, reward_prv, effort_prv, effortS_prv, decision_prv, SV_prv, absSV_prv, pAccept_prv, dec_diff_prv);
+table_prv(isnan(table_prv.SV_prv),:) = [];
+prv_fields = table_prv.Properties.VariableNames;
+for f = 1:length(prv_fields)
+    if any(isnan(table_prv.(prv_fields{f}))); error(['NaN is table_prv.' prv_fields{f}]); end
+end
+% table_prv_only = table(reward_prv, effort_prv, decision_prv, SV_prv, effortS_prv, rt_prv, logrt_prv);
 
 % Toss theta outlier
 if contains(an_id,'log')
-    if any(abs(table_As.PFC_theta)>log_outlier_thresh)
-        toss_ix = find(abs(table_As.PFC_theta)>log_outlier_thresh);
+    if any(abs(table_prv.PFC_theta)>log_outlier_thresh)
+        toss_ix = find(abs(table_prv.PFC_theta)>log_outlier_thresh);
         fprintf(2,'\tTossing trials for PFC theta:');
-        disp(table_As.PFC_theta(toss_ix));
+        disp(table_prv.PFC_theta(toss_ix));
         fprintf('\n');
-        table_As(toss_ix,:) = [];
-        toss_ix = find(abs(table_A.PFC_theta)>log_outlier_thresh);
-        table_A(toss_ix,:)  = [];
+        table_prv(toss_ix,:) = [];
+        toss_ix = find(abs(table_cur.PFC_theta)>log_outlier_thresh);
+        table_cur(toss_ix,:)  = [];
     else
         fprintf('No bad trials for PFC theta with threshold %f\n',log_outlier_thresh);
     end
 end
 
-% DatTable2tmp = table_As;
-% DatTable2tmp.sbj_n_A    = [];
-% DatTable2tmp.trl_n_A    = [];
+% DatTable2tmp = table_prv;
+% DatTable2tmp.sbj_n    = [];
+% DatTable2tmp.trl_n_cur    = [];
 % DatTable2tmp.PFC_roi    = [];
 % DatTable2tmp.BG_roi     = [];
 % DatTable2tmp.PFC_theta  = [];
@@ -348,42 +360,41 @@ end
 % DatTable2tmp.BG_betalo  = [];
 % DatTable2tmp.BG_betahi  = [];
 % 
-% DatTable3 = [table_A, DatTable2tmp];
-% table_all = [table_A, table_As_only];
+% DatTable3 = [table_cur, DatTable2tmp];
+% table_all = [table_cur, table_prv_only];
 % % These are different by trials 1 and 2 for each patient, unclear why (they
 % % look identical...)
 
 %% Write tables for R
-% cur_table_fname = [prj_dir 'data/GRP/GRP_' an_id norm_bhv_str norm_nrl_str '_full_table.csv'];
-% fprintf('\tSaving %s...\n',cur_table_fname);
-% writetable(table_A,cur_table_fname);
-% prv_table_fname = [prj_dir 'data/GRP/GRP_' an_id norm_bhv_str norm_nrl_str '_full_table_prv.csv'];
-% fprintf('\tSaving %s...\n',prv_table_fname);
-% if contains(an_id,'log')
-%     writetable(table_As_noPFCout,prv_table_fname);
-% else
-%     writetable(table_As,prv_table_fname);
-% end
+% current trial table
+table_cur_fname = [prj_dir 'data/GRP/GRP_' an_id norm_bhv_str norm_nrl_str '_full_table_cur.csv'];
+fprintf('\tSaving %s...\n',table_cur_fname);
+writetable(table_cur,table_cur_fname);
+
+% previous trial table
+table_prv_fname = [prj_dir 'data/GRP/GRP_' an_id norm_bhv_str norm_nrl_str '_full_table_prv.csv'];
+fprintf('\tSaving %s...\n',table_prv_fname);
+writetable(table_prv,table_prv_fname);
 
 %% LME Model Selection
 % ================ PFC ================
 % Current trial Subjective Value
-% lme0 = fitlme(table_A,'PFC_betalo~ 1 + (1|sbj_n_A)');
-% lme1 = fitlme(table_A,'PFC_betalo~ SV_A + (1|sbj_n_A)');
-% lme2 = fitlme(table_A,'PFC_betalo~ SV_A + (1+SV_A|sbj_n_A)');
-% lme3 = fitlme(table_A,'PFC_betalo~ SV_A + PFC_roi + (1|sbj_n_A)');
-% lme4 = fitlme(table_A,'PFC_betalo~ SV_A*PFC_roi + (1|sbj_n_A)');
+% lme0 = fitlme(table_cur,'PFC_betalo~ 1 + (1|sbj_n)');
+% lme1 = fitlme(table_cur,'PFC_betalo~ SV_cur + (1|sbj_n)');
+% lme2 = fitlme(table_cur,'PFC_betalo~ SV_cur + (1+SV_cur|sbj_n)');
+% lme3 = fitlme(table_cur,'PFC_betalo~ SV_cur + PFC_roi + (1|sbj_n)');
+% lme4 = fitlme(table_cur,'PFC_betalo~ SV_cur*PFC_roi + (1|sbj_n)');
 % pfc_beta_sbj_slope = compare(lme1,lme2,'NSim',1000);
 % pfc_beta_roi_fix   = compare(lme1,lme3,'NSim',1000);
 % pfc_beta_roi_int   = compare(lme3,lme4,'NSim',1000);
 % pfc_beta_sv_fix    = compare(lme0,lme1,'NSim',1000)
 
 % Previous trial Subjective Value
-% lme0 = fitlme(table_As,'PFC_theta~ 1 + (1|sbj_n_A)');
-% lme1 = fitlme(table_As,'PFC_theta~ SV_As + (1|sbj_n_A)');
-% lme2 = fitlme(table_As,'PFC_theta~ SV_As + (1+SV_As|sbj_n_A)');
-% lme3 = fitlme(table_As,'PFC_theta~ SV_As + PFC_roi + (1|sbj_n_A)');
-% lme4 = fitlme(table_As,'PFC_theta~ SV_As*PFC_roi + (1|sbj_n_A)');
+% lme0 = fitlme(table_prv,'PFC_theta~ 1 + (1|sbj_n)');
+% lme1 = fitlme(table_prv,'PFC_theta~ SV_prv + (1|sbj_n)');
+% lme2 = fitlme(table_prv,'PFC_theta~ SV_prv + (1+SV_prv|sbj_n)');
+% lme3 = fitlme(table_prv,'PFC_theta~ SV_prv + PFC_roi + (1|sbj_n)');
+% lme4 = fitlme(table_prv,'PFC_theta~ SV_prv*PFC_roi + (1|sbj_n)');
 % pfc_theta_sbj_slope = compare(lme1,lme2,'NSim',1000);
 % pfc_theta_roi_fix   = compare(lme1,lme3,'NSim',1000);
 % pfc_theta_roi_int   = compare(lme3,lme4,'NSim',1000);
@@ -391,29 +402,29 @@ end
 
 % ================ BG ================
 % Current trial Subjective Value
-% lme0 = fitlme(table_A,'BG_betalo~ BG_roi + (1|sbj_n_A)');%,'StartMethod','random');
-% lme1 = fitlme(table_A,'BG_betalo~ SV_A + (1|sbj_n_A)');%,'StartMethod','random');
-% lme2 = fitlme(table_A,'BG_betalo~ SV_A + (1+SV_A|sbj_n_A)');%,'StartMethod','random');
-% lme3 = fitlme(table_A,'BG_betalo~ SV_A + BG_roi + (1|sbj_n_A)');%,'StartMethod','random');
-% lme4 = fitlme(table_A,'BG_betalo~ SV_A*BG_roi + (1|sbj_n_A)');%,'StartMethod','random');
+% lme0 = fitlme(table_cur,'BG_betalo~ BG_roi + (1|sbj_n)');%,'StartMethod','random');
+% lme1 = fitlme(table_cur,'BG_betalo~ SV_cur + (1|sbj_n)');%,'StartMethod','random');
+% lme2 = fitlme(table_cur,'BG_betalo~ SV_cur + (1+SV_cur|sbj_n)');%,'StartMethod','random');
+% lme3 = fitlme(table_cur,'BG_betalo~ SV_cur + BG_roi + (1|sbj_n)');%,'StartMethod','random');
+% lme4 = fitlme(table_cur,'BG_betalo~ SV_cur*BG_roi + (1|sbj_n)');%,'StartMethod','random');
 % bg_beta_sbj_slope = compare(lme1,lme2,'NSim',1000);
 % bg_beta_roi_fix   = compare(lme1,lme3,'NSim',1000);
 % bg_beta_roi_int   = compare(lme3,lme4,'NSim',1000);
 % bg_beta_sv_fix    = compare(lme0,lme3,'NSim',1000)
 % roi_fix_pvals = nan([100 1]);
 % for m = 1:100
-%     lme1 = fitlme(table_A,'BG_betalo~ SV_A + (1|sbj_n_A)','StartMethod','random');
-%     lme3 = fitlme(table_A,'BG_betalo~ SV_A + BG_roi + (1|sbj_n_A)','StartMethod','random');
+%     lme1 = fitlme(table_cur,'BG_betalo~ SV_cur + (1|sbj_n)','StartMethod','random');
+%     lme3 = fitlme(table_cur,'BG_betalo~ SV_cur + BG_roi + (1|sbj_n)','StartMethod','random');
 %     roi_fix   = compare(lme1,lme3,'NSim',1000);
 %     roi_fix_pvals(m) = roi_fix.pValue(2);
 % end
 
 % Previous trial Subjective Value
-% lme0 = fitlme(table_As,'BG_theta~ BG_roi + (1|sbj_n_A)');%,'StartMethod','random');
-% lme1 = fitlme(table_As,'BG_theta~ SV_As + (1|sbj_n_A)');%,'StartMethod','random');
-% lme2 = fitlme(table_As,'BG_theta~ SV_As + (1+SV_As|sbj_n_A)');%,'StartMethod','random');
-% lme3 = fitlme(table_As,'BG_theta~ SV_As + BG_roi + (1|sbj_n_A)');%,'StartMethod','random');
-% lme4 = fitlme(table_As,'BG_theta~ SV_As*BG_roi + (1|sbj_n_A)');%,'StartMethod','random');
+% lme0 = fitlme(table_prv,'BG_theta~ BG_roi + (1|sbj_n)');%,'StartMethod','random');
+% lme1 = fitlme(table_prv,'BG_theta~ SV_prv + (1|sbj_n)');%,'StartMethod','random');
+% lme2 = fitlme(table_prv,'BG_theta~ SV_prv + (1+SV_prv|sbj_n)');%,'StartMethod','random');
+% lme3 = fitlme(table_prv,'BG_theta~ SV_prv + BG_roi + (1|sbj_n)');%,'StartMethod','random');
+% lme4 = fitlme(table_prv,'BG_theta~ SV_prv*BG_roi + (1|sbj_n)');%,'StartMethod','random');
 % bg_theta_sbj_slope = compare(lme1,lme2,'NSim',1000);
 % bg_theta_roi_fix   = compare(lme1,lme3,'NSim',1000);
 % bg_theta_roi_int   = compare(lme3,lme4,'NSim',1000);
@@ -421,59 +432,84 @@ end
 
 %% Test best models:
 % PFC beta low and subejctive value:
-lme0 = fitlme(table_A,'PFC_betalo~ 1 + (1|sbj_n_A)');
-lme1 = fitlme(table_A,'PFC_betalo~ SV_A + (1|sbj_n_A)');
-pfc_betalo_sv = compare(lme0,lme1,'NSim',1000)
+lme0 = fitlme(table_cur,'PFC_betalo~ 1 + (1|sbj_n)');
+lme1 = fitlme(table_cur,'PFC_betalo~ SV_cur + (1|sbj_n)');
+pfc_betalo_sv = compare(lme0,lme1)%,'NSim',1000)
 
 % PFC theta and previous subjective value:
-lme0 = fitlme(table_As,'PFC_theta~ 1 + (1|sbj_n_A)');%,'StartMethod','random');
-lme1 = fitlme(table_As,'PFC_theta~ SV_As + (1|sbj_n_A)');%,'StartMethod','random');
-pfc_theta_sv_prv = compare(lme0,lme1,'NSim',1000)
+lme0 = fitlme(table_prv,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
+lme1 = fitlme(table_prv,'PFC_theta~ SV_prv + (1|sbj_n)');%,'StartMethod','random');
+pfc_theta_sv_prv = compare(lme0,lme1)%,'NSim',1000)
 
 % BG beta low and subejctive value:
-lme0 = fitlme(table_A,'BG_betalo~ BG_roi + (1|sbj_n_A)');
-lme1 = fitlme(table_A,'BG_betalo~ SV_A + BG_roi + (1|sbj_n_A)');
-bg_betalo_sv = compare(lme0,lme1,'NSim',1000)
+lme0 = fitlme(table_cur,'BG_betalo~ BG_roi + (1|sbj_n)');
+lme1 = fitlme(table_cur,'BG_betalo~ SV_cur + BG_roi + (1|sbj_n)');
+bg_betalo_sv = compare(lme0,lme1)%,'NSim',1000)
 
 % BG theta and previous subjective value:
-lme0 = fitlme(table_As,'BG_theta~ BG_roi + (1|sbj_n_A)');
-lme1 = fitlme(table_As,'BG_theta~ SV_As + BG_roi + (1|sbj_n_A)');
-bg_theta_sv_prv = compare(lme0,lme1,'NSim',1000)
+lme0 = fitlme(table_prv,'BG_theta~ BG_roi + (1|sbj_n)');
+lme1 = fitlme(table_prv,'BG_theta~ SV_prv + BG_roi + (1|sbj_n)');
+bg_theta_sv_prv = compare(lme0,lme1)%,'NSim',1000)
 
 %% Test alternative bands
 % PFC subjective value and other bands:
-lme0 = fitlme(table_A,'PFC_theta~ 1 + (1|sbj_n_A)');
-lme1 = fitlme(table_A,'PFC_theta~ SV_A + (1|sbj_n_A)');
+lme0 = fitlme(table_cur,'PFC_theta~ 1 + (1|sbj_n)');
+lme1 = fitlme(table_cur,'PFC_theta~ SV_cur + (1|sbj_n)');
 pfc_theta_sv = compare(lme0,lme1)%,'NSim',1000)
-lme0 = fitlme(table_A,'PFC_betahi~ 1 + (1|sbj_n_A)');
-lme1 = fitlme(table_A,'PFC_betahi~ SV_A + (1|sbj_n_A)');
-pfc_betahi_sv = compare(lme0,lme1,'NSim',1000)
+lme0 = fitlme(table_cur,'PFC_betahi~ 1 + (1|sbj_n)');
+lme1 = fitlme(table_cur,'PFC_betahi~ SV_cur + (1|sbj_n)');
+pfc_betahi_sv = compare(lme0,lme1)%,'NSim',1000)
 
 % PFC previous SV and other bands:
-lme0 = fitlme(table_As,'PFC_betalo~ 1 + (1|sbj_n_A)');%,'StartMethod','random');
-lme1 = fitlme(table_As,'PFC_betalo~ SV_As + (1|sbj_n_A)');%,'StartMethod','random');
-pfc_betalo_sv_prv = compare(lme0,lme1,'NSim',1000)
-lme0 = fitlme(table_As,'PFC_betahi~ 1 + (1|sbj_n_A)');%,'StartMethod','random');
-lme1 = fitlme(table_As,'PFC_betahi~ SV_As + (1|sbj_n_A)');%,'StartMethod','random');
-pfc_betahi_sv_prv = compare(lme0,lme1,'NSim',1000)
+lme0 = fitlme(table_prv,'PFC_betalo~ 1 + (1|sbj_n)');%,'StartMethod','random');
+lme1 = fitlme(table_prv,'PFC_betalo~ SV_prv + (1|sbj_n)');%,'StartMethod','random');
+pfc_betalo_sv_prv = compare(lme0,lme1)%,'NSim',1000)
+lme0 = fitlme(table_prv,'PFC_betahi~ 1 + (1|sbj_n)');%,'StartMethod','random');
+lme1 = fitlme(table_prv,'PFC_betahi~ SV_prv + (1|sbj_n)');%,'StartMethod','random');
+pfc_betahi_sv_prv = compare(lme0,lme1)%,'NSim',1000)
 
 % BG subjective value and other bands:
-lme0 = fitlme(table_A,'BG_theta~ 1 + (1|sbj_n_A)');
-lme1 = fitlme(table_A,'BG_theta~ SV_A + (1|sbj_n_A)');
-bg_theta_sv = compare(lme0,lme1,'NSim',1000)
-lme0 = fitlme(table_A,'BG_betahi~ 1 + (1|sbj_n_A)');
-lme1 = fitlme(table_A,'BG_betahi~ SV_A + (1|sbj_n_A)');
+lme0 = fitlme(table_cur,'BG_theta~ 1 + (1|sbj_n)');
+lme1 = fitlme(table_cur,'BG_theta~ SV_cur + (1|sbj_n)');
+bg_theta_sv = compare(lme0,lme1)%,'NSim',1000)
+lme0 = fitlme(table_cur,'BG_betahi~ 1 + (1|sbj_n)');
+lme1 = fitlme(table_cur,'BG_betahi~ SV_cur + (1|sbj_n)');
 bg_betahi_sv = compare(lme0,lme1)%,'NSim',1000)
 
 % BG previous SV and other bands:
-lme0 = fitlme(table_As,'BG_betalo~ 1 + (1|sbj_n_A)');%,'StartMethod','random');
-lme1 = fitlme(table_As,'BG_betalo~ SV_As + (1|sbj_n_A)');%,'StartMethod','random');
-bg_betalo_sv_prv = compare(lme0,lme1,'NSim',1000)
-lme0 = fitlme(table_As,'BG_betahi~ 1 + (1|sbj_n_A)');%,'StartMethod','random');
-lme1 = fitlme(table_As,'BG_betahi~ SV_As + (1|sbj_n_A)');%,'StartMethod','random');
+lme0 = fitlme(table_prv,'BG_betalo~ 1 + (1|sbj_n)');%,'StartMethod','random');
+lme1 = fitlme(table_prv,'BG_betalo~ SV_prv + (1|sbj_n)');%,'StartMethod','random');
+bg_betalo_sv_prv = compare(lme0,lme1)%,'NSim',1000)
+lme0 = fitlme(table_prv,'BG_betahi~ 1 + (1|sbj_n)');%,'StartMethod','random');
+lme1 = fitlme(table_prv,'BG_betahi~ SV_prv + (1|sbj_n)');%,'StartMethod','random');
 bg_betahi_sv_prv = compare(lme0,lme1)%,'NSim',1000)
 
 %% Reward vs. Effort models:
+% PFC beta low and reward:
+lme0 = fitlme(table_cur,'PFC_betalo~ 1 + (1|sbj_n)');
+lme1 = fitlme(table_cur,'PFC_betalo~ reward_cur + (1|sbj_n)');
+pfc_betalo_rew = compare(lme0,lme1)%,'NSim',1000)
+
+% PFC theta and previous reward:
+lme0 = fitlme(table_prv,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
+lme1 = fitlme(table_prv,'PFC_theta~ reward_prv + (1|sbj_n)');%,'StartMethod','random');
+lme2 = fitlme(table_prv,'PFC_theta~ SV_prv + (1|sbj_n)');%,'StartMethod','random');
+pfc_theta_rew_prv = compare(lme0,lme1)%,'NSim',1000)
+lme0 = fitlme(table_prv,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
+lme1 = fitlme(table_prv,'PFC_theta~ effort_prv + (1|sbj_n)');%,'StartMethod','random');
+% lme2 = fitlme(table_prv,'PFC_theta~ effortS_prv + (1|sbj_n)');%,'StartMethod','random');
+% pfc_theta_eff_vs_effS_prv = compare(lme1,lme2)%,'NSim',1000)
+pfc_theta_eff_prv = compare(lme0,lme1)%,'NSim',1000)
+
+% BG beta low and subejctive value:
+lme0 = fitlme(table_cur,'BG_betalo~ BG_roi + (1|sbj_n)');
+lme1 = fitlme(table_cur,'BG_betalo~ rew_cur + BG_roi + (1|sbj_n)');
+bg_betalo_sv = compare(lme0,lme1)%,'NSim',1000)
+
+% BG theta and previous subjective value:
+lme0 = fitlme(table_prv,'BG_theta~ BG_roi + (1|sbj_n)');
+lme1 = fitlme(table_prv,'BG_theta~ SV_prv + BG_roi + (1|sbj_n)');
+bg_theta_sv_prv = compare(lme0,lme1)%,'NSim',1000)
 
 
 %% LME Modelling %%
