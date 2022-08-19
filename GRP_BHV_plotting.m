@@ -16,6 +16,9 @@ SBJs         = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 sbj_bg_roi   = {'GPi','STN','GPi','STN'};
 
+save_fig  = 1;
+fig_ftype = 'png';
+
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 addpath([prj_dir 'scripts/']);
 addpath([prj_dir 'scripts/utils/']);
@@ -71,7 +74,8 @@ for s = 1:length(SBJs)
 end
 
 %% Plot effort vs. EFF
-figure('Name','GRP_effort_EFFs');%,'units','norm','OuterPosition',[0 0 0.5 0.6]);
+fig_name = 'GRP_effort_vs_EFFs';
+figure('Name',fig_name);%,'units','norm','OuterPosition',[0 0 0.5 0.6]);
 hold on;
 for s = 1:length(SBJs)
     [~,eff_sort_idx] = sort(bhvs{s}.effort);
@@ -83,6 +87,14 @@ for s = 1:length(SBJs)
     set(gca,'FontSize',16);
 end
 legend(SBJs,'Location','best');
+
+if save_fig
+    fig_dir   = [prj_dir 'results/bhv/'];
+    if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
 
 %% Characterize behavior
 scat_sz = 40;
@@ -134,9 +146,18 @@ for s = 1:length(SBJs)
     set(gca,'FontSize',16);
 end
 
+if save_fig
+    fig_dir   = [prj_dir 'results/bhv/'];
+    if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
 %% Split decision by input variables
 for s=1:4
-    figure;
+    fig_name = [SBJs{s} '_bhv_model_hist_split_dec'];
+    figure('Name',fig_name);
     subplot(2,2,1); hold on;
     histogram(bhvs{s}.SV(bhvs{s}.decision==0),'FaceColor','r','FaceAlpha',0.3);
     histogram(bhvs{s}.SV(bhvs{s}.decision==1),'FaceColor','b','FaceAlpha',0.3);
@@ -165,71 +186,35 @@ for s=1:4
     xlabel('EFFs');
     legend('Reject','Accept');
     set(gca,'FontSize',16);
+    
+    if save_fig
+        fig_dir   = [prj_dir 'results/bhv/'];
+        if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
+        fig_fname = [fig_dir fig_name '.' fig_ftype];
+        fprintf('Saving %s\n',fig_fname);
+        saveas(gcf,fig_fname);
+    end
 end
 
-%% RT modeling
-% Load group model tables
-if ~strcmp(norm_bhv_pred,'none'); norm_bhv_str = ['_bhv' norm_bhv_pred]; else; norm_bhv_str = ''; end
-if ~strcmp(norm_nrl_pred,'none'); norm_nrl_str = ['_nrl' norm_nrl_pred]; else; norm_nrl_str = ''; end
-
-table_cur_fname = [prj_dir 'data/GRP/GRP_' an_id norm_bhv_str norm_nrl_str '_full_table.csv'];
-fprintf('\tLoading %s...\n',table_cur_fname);
-table_cur = readtable(table_cur_fname);
-
-% previous trial table
-table_prv_fname = [prj_dir 'data/GRP/GRP_' an_id norm_bhv_str norm_nrl_str '_full_table_prv.csv'];
-fprintf('\tSaving %s...\n',table_prv_fname);
-table_prv = readtable(table_prv_fname);
-
-% Reward model
-lme0 = fitlme(table_cur,'rt_A~ 1 + (1|sbj_n_A)');
-lme1 = fitlme(table_cur,'rt_A~ reward_A + (1|sbj_n_A)');
-rt_rew = compare(lme0,lme1)%,'NSim',1000)
-
-% Effort model
-lme0 = fitlme(table_cur,'rt_A~ 1 + (1|sbj_n_A)');
-lme1 = fitlme(table_cur,'rt_A~ effort_A + (1|sbj_n_A)');
-lme2 = fitlme(table_cur,'rt_A~ EFF_A + (1|sbj_n_A)');
-rt_effort_EFF = compare(lme1,lme2)%,'NSim',1000)
-rt_effort = compare(lme0,lme1)%,'NSim',1000)
-
-% Subjective Value model
-lme0 = fitlme(table_cur,'rt_A~ 1 + (1|sbj_n_A)');
-lme1 = fitlme(table_cur,'rt_A~ SV_A + (1|sbj_n_A)');
-rt_sv = compare(lme0,lme1)%,'NSim',1000)
-
-% Salience model
-lme0 = fitlme(table_cur,'rt_A~ 1 + (1|sbj_n_A)');
-lme1 = fitlme(table_cur,'rt_A~ absSV_A + (1|sbj_n_A)');
-rt_abssv = compare(lme0,lme1)%,'NSim',1000)
-
-% Decision model
-lme0 = fitlme(table_cur,'rt_A~ 1 + (1|sbj_n_A)');
-lme1 = fitlme(table_cur,'rt_A~ decision_A + (1|sbj_n_A)');
-rt_dec = compare(lme0,lme1)%,'NSim',1000)
-
-
-
-
 %% Plot a regression line %
-SVtmp = bhvs{s}.SV;
-
-figure; scatter(SVtmp,ProbAccept,'.')
-
-sigparam=sigm_fit(SVtmp,ProbAccept,1)
-
-[p,S,mu]  = polyfit(SVtmp,ProbAccept,12)
-PotValues=[-10:0.1:10];
-Pout=polyval(p,PotValues);
-
-figure; plot(PotValues,Pout)
-
-% Test behavioral modelling.
-figure;
-subplot(2,1,1);
-scatter(bhvs{s}.stake, bhvs{s}.SV);
-title('Reward')
-subplot(2,1,2);
-scatter(bhvs{s}.effort, bhvs{s}.SV);
-title('Effort');
-
+% SVtmp = bhvs{s}.SV;
+% 
+% figure; scatter(SVtmp,ProbAccept,'.')
+% 
+% sigparam=sigm_fit(SVtmp,ProbAccept,1)
+% 
+% [p,S,mu]  = polyfit(SVtmp,ProbAccept,12)
+% PotValues=[-10:0.1:10];
+% Pout=polyval(p,PotValues);
+% 
+% figure; plot(PotValues,Pout)
+% 
+% % Test behavioral modelling.
+% figure;
+% subplot(2,1,1);
+% scatter(bhvs{s}.stake, bhvs{s}.SV);
+% title('Reward')
+% subplot(2,1,2);
+% scatter(bhvs{s}.effort, bhvs{s}.SV);
+% title('Effort');
+% 
