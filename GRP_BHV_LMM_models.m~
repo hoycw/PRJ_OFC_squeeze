@@ -288,34 +288,25 @@ lme0 = fitlme(table_all,'effortS_cur~ 1 + (1|sbj_n)');
 lme1 = fitlme(table_all,'effortS_cur~ SV_prv + (1|sbj_n)');
 effortS_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 
-% Why? check autocorrelation of effortS
-lme0 = fitlme(table_all,'effort_cur~ 1 + (1|sbj_n)');
-lme1 = fitlme(table_all,'effort_cur~ effortS_prv + (1|sbj_n)');
-effort_effort_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-lme0 = fitlme(table_all,'effortS_cur~ 1 + (1|sbj_n)');
-lme1 = fitlme(table_all,'effortS_cur~ effortS_prv + (1|sbj_n)');
-effortS_effortS_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-%   Hmmmm, seems effortS_prv predicts current trial effort (and effortS)...
-
 %% Plot a regression line %
-% SVtmp = bhvs{s}.SV;
-% 
-% figure; scatter(SVtmp,ProbAccept,'.')
-% 
-% sigparam=sigm_fit(SVtmp,ProbAccept,1)
-% 
-% [p,S,mu]  = polyfit(SVtmp,ProbAccept,12)
-% PotValues=[-10:0.1:10];
-% Pout=polyval(p,PotValues);
-% 
-% figure; plot(PotValues,Pout)
-% 
-% % Test behavioral modelling.
-% figure;
-% subplot(2,1,1);
-% scatter(bhvs{s}.stake, bhvs{s}.SV);
-% title('Reward')
-% subplot(2,1,2);
-% scatter(bhvs{s}.effort, bhvs{s}.SV);
-% title('Effort');
+SVtmp = bhvs{s}.SV;
+
+figure; scatter(SVtmp,ProbAccept,'.')
+
+sigparam=sigm_fit(SVtmp,ProbAccept,1)
+
+[p,S,mu]  = polyfit(SVtmp,ProbAccept,12)
+PotValues=[-10:0.1:10];
+Pout=polyval(p,PotValues);
+
+figure; plot(PotValues,Pout)
+
+% Test behavioral modelling.
+figure;
+subplot(2,1,1);
+scatter(bhvs{s}.stake, bhvs{s}.SV);
+title('Reward')
+subplot(2,1,2);
+scatter(bhvs{s}.effort, bhvs{s}.SV);
+title('Effort');
 

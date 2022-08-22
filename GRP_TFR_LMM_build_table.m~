@@ -248,7 +248,8 @@ for s = 1:length(SBJs)
     end
 end
 
-%% Concatenate variables (cur = current trial, prv = previous trial)
+%% Convert into table format suitable for LME modelling
+% Initialise variables (cur = current trial, prv = previous trial)
 sbj_n      = [];
 PFC_roi    = [];
 BG_roi     = [];
@@ -326,7 +327,6 @@ for s = 1:length(SBJs)
     dec_diff_prv = [dec_diff_prv; fn_normalize_predictor(bhvs{s}.dec_diff_prv,norm_bhv_pred)];
 end
 
-%% Convert into table format suitable for LME modelling
 table_cur  = table(trl_n_cur, sbj_n, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC_betahi, BG_theta, BG_betalo, BG_betahi,...
                  rt_cur, logrt_cur, reward_cur, effort_cur, effortS_cur, decision_cur, SV_cur, absSV_cur, pAccept_cur, dec_diff_cur);
 table_prv = table(trl_n_prv, sbj_n, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC_betahi, BG_theta, BG_betalo, BG_betahi,...
@@ -337,12 +337,11 @@ prv_fields = table_prv.Properties.VariableNames;
 for f = 1:length(prv_fields)
     if any(isnan(table_prv.(prv_fields{f}))); error(['NaN is table_prv.' prv_fields{f}]); end
 end
+% table_prv_only = table(reward_prv, effort_prv, decision_prv, SV_prv, effortS_prv, rt_prv, logrt_prv);
 
 table_cur_match = table_cur;
 table_cur_match(prv_nan_idx,:) = [];
-table_cur_match.sbj_n      = [];
-table_cur_match.rt_cur     = [];
-table_cur_match.logrt_cur  = [];
+table_cur_match.sbj_n    = [];
 table_cur_match.PFC_roi    = [];
 table_cur_match.BG_roi     = [];
 table_cur_match.PFC_theta  = [];
@@ -363,8 +362,8 @@ if contains(an_id,'log')
         table_prv(toss_ix,:) = [];
         toss_ix = find(abs(table_cur.PFC_theta)>log_outlier_thresh);
         table_cur(toss_ix,:)  = [];
-        toss_ix = find(abs(table_all.PFC_theta)>log_outlier_thresh);
-        table_all(toss_ix,:)  = [];
+        toss_ix = find(abs(table_cur_match.PFC_theta)>log_outlier_thresh);
+        table_cur_match(toss_ix,:)  = [];
     else
         fprintf('No bad trials for PFC theta with threshold %f\n',log_outlier_thresh);
     end
@@ -385,9 +384,4 @@ writetable(table_cur,table_cur_fname);
 table_prv_fname = [prj_dir 'data/GRP/GRP_' an_id out_thresh_str norm_bhv_str norm_nrl_str '_full_table_prv.csv'];
 fprintf('\tSaving %s...\n',table_prv_fname);
 writetable(table_prv,table_prv_fname);
-
-% combined table
-table_all_fname = [prj_dir 'data/GRP/GRP_' an_id out_thresh_str norm_bhv_str norm_nrl_str '_full_table_all.csv'];
-fprintf('\tSaving %s...\n',table_all_fname);
-writetable(table_all,table_all_fname);
 

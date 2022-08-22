@@ -8,6 +8,7 @@ clear all
 an_id = 'TFRmth_S1t2_zS8t0_f2t40_log';
 norm_bhv_pred = 'zscore';%'none';%
 norm_nrl_pred = 'zscore';%'none';%
+log_outlier_thresh = 7;
 
 SBJs         = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
@@ -35,13 +36,14 @@ end
 %% Load group model tables
 if ~strcmp(norm_bhv_pred,'none'); norm_bhv_str = ['_bhv' norm_bhv_pred]; else; norm_bhv_str = ''; end
 if ~strcmp(norm_nrl_pred,'none'); norm_nrl_str = ['_nrl' norm_nrl_pred]; else; norm_nrl_str = ''; end
+if contains(an_id,'log'); out_thresh_str = ['out' num2str(log_outlier_thresh)]; else; out_thresh_str = ''; end
 
-table_cur_fname = [prj_dir 'data/GRP/GRP_' an_id norm_bhv_str norm_nrl_str '_full_table_cur.csv'];
+table_cur_fname = [prj_dir 'data/GRP/GRP_' an_id out_thresh_str norm_bhv_str norm_nrl_str '_full_table_cur.csv'];
 fprintf('\tLoading %s...\n',table_cur_fname);
 table_cur = readtable(table_cur_fname);
 
 % previous trial table
-table_prv_fname = [prj_dir 'data/GRP/GRP_' an_id norm_bhv_str norm_nrl_str '_full_table_prv.csv'];
+table_prv_fname = [prj_dir 'data/GRP/GRP_' an_id out_thresh_str norm_bhv_str norm_nrl_str '_full_table_prv.csv'];
 fprintf('\tLoading %s...\n',table_prv_fname);
 table_prv = readtable(table_prv_fname);
 
@@ -49,7 +51,8 @@ table_prv = readtable(table_prv_fname);
 lme0 = fitlme(table_prv,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
 lme1 = fitlme(table_prv,'PFC_theta~ SV_prv + (1|sbj_n)');%,'StartMethod','random');
 pfc_theta_sv_prv = compare(lme0,lme1)%,'NSim',1000)
-% lme1.plotResiduals;
+% plotResiduals(lme1);
+% plotResiduals(lme1,'fitted');
 % lme1.plotPartialDependence();
 
 %% Test Initial models:

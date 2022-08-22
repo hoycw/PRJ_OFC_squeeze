@@ -108,18 +108,10 @@ for s = 1:length(SBJs)
     set(gca,'FontSize',16);
     colorbar;
     caxis([-1 1]);
-    title('Behavioral Predictor Correlations');
     for p1 = 1:length(pred)
         for p2 = 1:length(pred)
             if pred_all_sig(p1,p2); scatter(p1,p2,scat_sz,'k','*'); end
         end
-    end
-    if save_fig
-        fig_dir   = [prj_dir 'results/bhv/pred_corr/'];
-        if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
-        fig_fname = [fig_dir fig_name '.' fig_ftype];
-        fprintf('Saving %s\n',fig_fname);
-        saveas(gcf,fig_fname);
     end
     
     % Plot current vs. previous correlations
@@ -137,18 +129,11 @@ for s = 1:length(SBJs)
     set(gca,'TickLabelInterpreter','none');
     set(gca,'FontSize',16);
     colorbar;
-    title('Behavioral Predictor Correlations: Current vs. Previous');
 %     caxis([-1 1]);
     for p1 = 1:length(pred)
         for p2 = 1+length(pred):length(pred_all)
             if pred_all_sig(p1,p2); scatter(p1,p2-length(pred_all),scat_sz,'k','*'); end
         end
-    end
-    
-    if save_fig
-        fig_fname = [fig_dir fig_name '.' fig_ftype];
-        fprintf('Saving %s\n',fig_fname);
-        saveas(gcf,fig_fname);
     end
 end
 
@@ -196,7 +181,6 @@ for s = 1:length(SBJs)
     xlabel('Reward'); ylabel('SV');
     title('Reward vs. Subjective Value');
     set(gca,'FontSize',16);
-    legend(SBJs,'Location','northwest');
     
     subplot(2,2,2); hold on;
 %     scatter(bhvs{s}.effort,bhvs{s}.SV,scat_sz,sbj_colors(s,:));
