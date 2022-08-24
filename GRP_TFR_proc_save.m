@@ -17,7 +17,7 @@ SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 % an_ids = {'TFRmth_S1t2_zbtS1t0_f2t40','TFRmth_S1t2_dbS1t0_f2t40','TFRmth_S1t2_zS1t0_f2t40','TFRmth_S1t2_zS25t05_f2t40'};%'TFRw_S25t2_dbS25t05_fl2t40_c7','TFRw_D1t1_dbS25t05_fl2t40_c7'};
 % an_ids = {'TFRmth_S2t2_zS1t0_f2t40','TFRmth_S2t2_zS5t0_f2t40','TFRmth_S2t2_zS25t0_f2t40','TFRmth_S2t2_zS25t05_f2t40',...
 %           'TFRmth_D1t2_zS5t0_f2t40','TFRmth_D1t2_zS25t0_f2t40','TFRmth_D1t2_zS25t05_f2t40'};
-an_ids = {'TFRmth_D1t1_zS8t0_f2t40'};%,'TFRmth_D1t1_zS8t0_f2t40_log'};
+an_ids = {'TFRmth_S1t2_dbS8t0_f2t40'};%,'TFRmth_D1t1_zS8t0_f2t40_log'};
 %'TFRw_S25t2_noBsln_fl1t40_c7','TFRw_S25t2_zbtS25t05_fl1t40_c7'};%'TFRw_S25t2_noBsln_fl2t40_c7'};%
 
 %% Time Frequency analysis
@@ -81,6 +81,20 @@ for s = 1:4
             otherwise
                 error(['No baseline implemented for bsln_type: ' an.bsln_type]);
         end
+        
+        % Post-baselin Log transform (shift, tranform, shift back)
+        %   NOPE, unclear how to group these values to do the log transofmr
+        %   (within frequency? per TFR point across trials?), so applying
+        %   at LMM stage instead of here
+%         if isfield(an,'postlog_yn') && an.postlog_yn
+%             shift_val = min(tfr.powspctrm) + 0.001;
+%             tfr.powspctrm = tfr.powspctrm + shift_val;
+%             cfgl = [];
+%             cfgl.parameter = 'powspctrm';
+%             cfgl.operation = 'log10';
+%             tfr = ft_math(cfgl,tfr);
+%             tfr.powspctrm = tfr.powspcrtm - shift_val;
+%         end
         
         % Re-align to decision and re-trim
         if ~strcmp(an.event_type,an.bsln_evnt)

@@ -380,15 +380,15 @@ if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 
 % PFC Beta and Reward vs. Effort models:
 % PFC beta low and reward:
-lme0 = fitlme(table_cur,'PFC_betalo~ 1 + (1|sbj_n)');
-lme1 = fitlme(table_cur,'PFC_betalo~ reward_cur + (1|sbj_n)');
+lme0 = fitlme(table_cur(~out_idx_cur.PFC_betalo,:),'PFC_betalo~ 1 + (1|sbj_n)');
+lme1 = fitlme(table_cur(~out_idx_cur.PFC_betalo,:),'PFC_betalo~ reward_cur + (1|sbj_n)');
 pfc_betalo_rew = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 
 % PFC beta low and effort:
-lme0 = fitlme(table_cur,'PFC_betalo~ 1 + (1|sbj_n)');
-lme1 = fitlme(table_cur,'PFC_betalo~ effort_cur + (1|sbj_n)');
-lme2 = fitlme(table_cur,'PFC_betalo~ effortS_cur + (1|sbj_n)');
-lme3 = fitlme(table_cur,'PFC_betalo~ SV_cur + (1|sbj_n)');
+lme0 = fitlme(table_cur(~out_idx_cur.PFC_betalo,:),'PFC_betalo~ 1 + (1|sbj_n)');
+lme1 = fitlme(table_cur(~out_idx_cur.PFC_betalo,:),'PFC_betalo~ effort_cur + (1|sbj_n)');
+lme2 = fitlme(table_cur(~out_idx_cur.PFC_betalo,:),'PFC_betalo~ effortS_cur + (1|sbj_n)');
+lme3 = fitlme(table_cur(~out_idx_cur.PFC_betalo,:),'PFC_betalo~ SV_cur + (1|sbj_n)');
 pfc_betalo_eff = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 pfc_betalo_effS = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
 % pfc_betalo_effS_vs_SV = compare(lme3,lme2,'NSim',1000)

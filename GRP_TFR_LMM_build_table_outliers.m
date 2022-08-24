@@ -15,9 +15,9 @@ man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 
 
 % Analysis parameters:
 norm_bhv_pred = 'zscore';%'none';%
-norm_nrl_pred = 'zscore';%'none';%
-log_outlier_thresh = 7;
-an_id = 'TFRmth_S1t2_zS8t0_f2t40_log';%'TFRmth_S1t2_zS1t0_f2t40_log';%
+norm_nrl_pred = 'logz';%'none';%
+outlier_thresh = 4;
+an_id = 'TFRmth_S1t2_zS8t0_f2t40';%'TFRmth_S1t2_zS1t0_f2t40_log';%
 % an_id = 'TFRmth_D1t1_zS8t0_f2t40';
 use_simon_tfr = 0;
 toss_same_trials = 1;
@@ -80,11 +80,7 @@ if ~strcmp(norm_nrl_pred,'none')
 else
     norm_nrl_str = '';
 end
-if contains(an_id,'log')
-    out_thresh_str = ['out' num2str(log_outlier_thresh)];
-else
-    out_thresh_str = '';
-end
+out_thresh_str = ['_out' num2str(outlier_thresh)];
 
 % Simon originals:
 theta_bw  = 3;
@@ -248,8 +244,7 @@ for s = 1:length(SBJs)
     end
 end
 
-%% Convert into table format suitable for LME modelling
-% Initialise variables (cur = current trial, prv = previous trial)
+%% Concatenate variables (cur = current trial, prv = previous trial)
 sbj_n      = [];
 PFC_roi    = [];
 BG_roi     = [];
@@ -327,21 +322,46 @@ for s = 1:length(SBJs)
     dec_diff_prv = [dec_diff_prv; fn_normalize_predictor(bhvs{s}.dec_diff_prv,norm_bhv_pred)];
 end
 
+%% Convert into table format suitable for LME modelling
 table_cur  = table(trl_n_cur, sbj_n, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC_betahi, BG_theta, BG_betalo, BG_betahi,...
                  rt_cur, logrt_cur, reward_cur, effort_cur, effortS_cur, decision_cur, SV_cur, absSV_cur, pAccept_cur, dec_diff_cur);
 table_prv = table(trl_n_prv, sbj_n, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC_betahi, BG_theta, BG_betalo, BG_betahi,...
                  rt_cur, logrt_cur, rt_prv, logrt_prv, reward_prv, effort_prv, effortS_prv, decision_prv, SV_prv, absSV_prv, pAccept_prv, dec_diff_prv);
+
+%% Toss outliers
+pow_vars = {'PFC_theta','PFC_betalo','PFC_betahi','BG_theta','BG_betalo','BG_betahi'};
+outlier_ix = struct;
+for f = 1:length(pow_vars)
+    if any(abs(table_cur.(pow_vars{f}))>outlier_thresh)
+        outlier_ix.(pow_vars{f}) = find(abs(table_cur.(pow_vars{f}))>outlier_thresh)';
+        fprintf(2,'\t%d outliers for %s:\t',length(outlier_ix.(pow_vars{f})),pow_vars{f});
+        fprintf(2,'%.2f, ',table_cur.(pow_vars{f})(outlier_ix.(pow_vars{f})));
+        fprintf('\n');
+    else
+        fprintf('No bad trials for %s with threshold %d\n',pow_vars{f},outlier_thresh);
+    end
+end
+% Toss all outliers
+tmp = struct2cell(outlier_ix);
+all_outliers = unique([tmp{:}]);
+fprintf(2,'Total bad trials: %d\n',length(all_outliers));
+% table_cur(outlier_ix,:)  = [];
+% table_prv(outlier_ix,:) = [];
+
+%% Toss NaNs from previous table
 prv_nan_idx = isnan(table_prv.SV_prv);
 table_prv(prv_nan_idx,:) = [];
 prv_fields = table_prv.Properties.VariableNames;
 for f = 1:length(prv_fields)
     if any(isnan(table_prv.(prv_fields{f}))); error(['NaN is table_prv.' prv_fields{f}]); end
 end
-% table_prv_only = table(reward_prv, effort_prv, decision_prv, SV_prv, effortS_prv, rt_prv, logrt_prv);
 
+%% Create table with all variables
 table_cur_match = table_cur;
 table_cur_match(prv_nan_idx,:) = [];
-table_cur_match.sbj_n    = [];
+table_cur_match.sbj_n      = [];
+table_cur_match.rt_cur     = [];
+table_cur_match.logrt_cur  = [];
 table_cur_match.PFC_roi    = [];
 table_cur_match.BG_roi     = [];
 table_cur_match.PFC_theta  = [];
@@ -351,28 +371,6 @@ table_cur_match.BG_theta   = [];
 table_cur_match.BG_betalo  = [];
 table_cur_match.BG_betahi  = [];
 table_all = [table_cur_match, table_prv];
-
-% Toss theta outlier
-if contains(an_id,'log')
-    if any(abs(table_prv.PFC_theta)>log_outlier_thresh)
-        toss_ix = find(abs(table_prv.PFC_theta)>log_outlier_thresh);
-        fprintf(2,'\tTossing trials for PFC theta:');
-        disp(table_prv.PFC_theta(toss_ix));
-        fprintf('\n');
-        table_prv(toss_ix,:) = [];
-        toss_ix = find(abs(table_cur.PFC_theta)>log_outlier_thresh);
-        table_cur(toss_ix,:)  = [];
-        toss_ix = find(abs(table_cur_match.PFC_theta)>log_outlier_thresh);
-        table_cur_match(toss_ix,:)  = [];
-    else
-        fprintf('No bad trials for PFC theta with threshold %f\n',log_outlier_thresh);
-    end
-end
-
-% DatTable3 = [table_cur, DatTable2tmp];
-% table_all = [table_cur, table_prv_only];
-% % These are different by trials 1 and 2 for each patient, unclear why (they
-% % look identical...)
 
 %% Write tables for R
 % current trial table
@@ -384,4 +382,9 @@ writetable(table_cur,table_cur_fname);
 table_prv_fname = [prj_dir 'data/GRP/GRP_' an_id out_thresh_str norm_bhv_str norm_nrl_str '_full_table_prv.csv'];
 fprintf('\tSaving %s...\n',table_prv_fname);
 writetable(table_prv,table_prv_fname);
+
+% combined table
+table_all_fname = [prj_dir 'data/GRP/GRP_' an_id out_thresh_str norm_bhv_str norm_nrl_str '_full_table_all.csv'];
+fprintf('\tSaving %s...\n',table_all_fname);
+writetable(table_all,table_all_fname);
 

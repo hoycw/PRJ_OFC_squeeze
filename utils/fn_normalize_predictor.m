@@ -11,6 +11,14 @@ if size(pred,2)>1 || numel(size(pred))>2
 end
 
 switch norm_method
+    case 'logz' % log transform then z-score
+        if any(pred(:)<0)
+            shift_val = -min(pred) + 0.001;
+            log_pred = log(pred + shift_val) - shift_val;
+        else
+            log_pred = log(pred);
+        end
+        predictor = (log_pred-nanmean(log_pred))./nanstd(log_pred);
     case 'zscore'
         predictor = (pred-nanmean(pred))./nanstd(pred);
     case 'demean'
