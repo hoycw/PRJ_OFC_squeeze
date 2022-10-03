@@ -64,6 +64,10 @@ for ch = 1:size(tfr.powspctrm,2)
                     bslnd_tfr.powspctrm(t,ch,f,:) = trials-nanmean(trl_bsln);
                 case 'my_relchange'
                     bslnd_tfr.powspctrm(t,ch,f,:) = (trials-nanmean(trl_bsln))/nanmean(trl_bsln);
+                case 'mad'
+                    % data ? bsln_median / median absolute deviation
+                    %   mad treats NaNs as missing values and removes them.
+                    bslnd_tfr.powspctrm(t,ch,f,:) = (trials-nanmedian(trl_bsln))/mad(squeeze(trl_bsln),1);
                 otherwise
                     error(['Unknown bsln_type: ' bsln_type])
             end

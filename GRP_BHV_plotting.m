@@ -57,6 +57,7 @@ end
 % Mean Reward and Effort
 efforts = unique(bhvs{1}.effort);
 stakes  = unique(bhvs{1}.stake);
+p_acc_mn = nan([length(stakes) length(efforts) length(SBJs)]);
 for s = 1:length(SBJs)
     if length(unique(bhvs{s}.effort))~=5 || length(unique(bhvs{s}.stake))~=5
         error([SBJs{s} ' is missing conditions for stake or effort!']);
@@ -65,12 +66,60 @@ for s = 1:length(SBJs)
     bhvs{s}.SV_stake_se  = nan([5 1]);
     bhvs{s}.SV_effort_mn = nan([5 1]);
     bhvs{s}.SV_effort_se = nan([5 1]);
-    for i = 1:5
-        bhvs{s}.SV_effort_mn(i) = mean(bhvs{s}.SV(bhvs{s}.effort==efforts(i)));
-        bhvs{s}.SV_effort_se(i) = std(bhvs{s}.SV(bhvs{s}.effort==efforts(i)))./sqrt(sum(bhvs{s}.effort==efforts(i)));
-        bhvs{s}.SV_stake_mn(i) = mean(bhvs{s}.SV(bhvs{s}.stake==stakes(i)));
-        bhvs{s}.SV_stake_se(i) = std(bhvs{s}.SV(bhvs{s}.stake==stakes(i)))./sqrt(sum(bhvs{s}.stake==stakes(i)));
+    for stk_i = 1:5
+        bhvs{s}.SV_effort_mn(stk_i) = mean(bhvs{s}.SV(bhvs{s}.effort==efforts(stk_i)));
+        bhvs{s}.SV_effort_se(stk_i) = std(bhvs{s}.SV(bhvs{s}.effort==efforts(stk_i)))./sqrt(sum(bhvs{s}.effort==efforts(stk_i)));
+        bhvs{s}.SV_stake_mn(stk_i) = mean(bhvs{s}.SV(bhvs{s}.stake==stakes(stk_i)));
+        bhvs{s}.SV_stake_se(stk_i) = std(bhvs{s}.SV(bhvs{s}.stake==stakes(stk_i)))./sqrt(sum(bhvs{s}.stake==stakes(stk_i)));
+        for eff_i = 1:5
+            p_acc_mn(stk_i,eff_i,s) = mean(bhvs{s}.p_accept(bhvs{s}.effort==efforts(eff_i) & bhvs{s}.stake==stakes(stk_i)));
+        end
     end
+end
+
+p_acc_mn_grp = mean(p_acc_mn,3);
+
+%% 3-D plot of acceptance as function of reward and effort
+% Subject level
+for s = 1:length(SBJs)
+    fig_name = [SBJs{s} '_p_acc_bar3'];
+    figure('Name',fig_name);
+    bar3(squeeze(p_acc_mn(:,:,s)));
+    ylabel('Reward');
+    yticklabels(stakes);
+    xlabel('Effort (% Max Force)');
+    xticklabels(efforts*100);
+    zlabel('% Accept');
+    title([SBJs{s} ' Decision Landscape']);
+    set(gca,'FontSize',16);
+    view([135 30]);
+    
+    if save_fig
+        fig_dir   = [prj_dir 'results/bhv/p_accept_bar3/'];
+        if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
+        fig_fname = [fig_dir fig_name '.' fig_ftype];
+        fprintf('Saving %s\n',fig_fname);
+        saveas(gcf,fig_fname);
+    end
+end
+
+% Group level
+fig_name = ['GRP_p_acc_bar3'];
+figure('Name',fig_name);
+bar3(p_acc_mn_grp);
+ylabel('Reward');
+yticklabels(stakes);
+xlabel('Effort (% Max)');
+xticklabels(efforts*100);
+zlabel('% Accept');
+title('Group Decision Landscape');
+set(gca,'FontSize',16);
+view([135 30]);
+
+if save_fig
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
 end
 
 %% Plot correlation between behavioral predictors

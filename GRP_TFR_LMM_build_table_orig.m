@@ -17,8 +17,8 @@ man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 
 norm_bhv_pred = 'zscore';%'none';%
 norm_nrl_pred = 'zscore';%'none';%
 log_outlier_thresh = 7;
-an_id = 'TFRmth_S1t2_dbS8t0_f2t40';%'TFRmth_S1t2_zS1t0_f2t40_log';%
-% an_id = 'TFRmth_D1t1_zS8t0_f2t40';
+% an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS1t0_f2t40_log';%
+an_id = 'TFRmth_D1t1_madS8t0_f2t40';
 use_simon_tfr = 0;
 toss_same_trials = 1;
 if contains(an_id,'_S')
@@ -31,7 +31,7 @@ if contains(an_id,'_S')
     elseif strcmp(an_id,'TFRmth_S1t2_zS1t0_f2t40')  % equivalent to Simon
         theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
         betalo_cf  = [-1 -1 -1 -1; 10 17 13 12];
-    elseif contains(an_id,'TFRmth_S1t2_zS8t0_f2t40')
+    elseif contains(an_id,{'TFRmth_S1t2_zS8t0_f2t40','TFRmth_S1t2_madS8t0_f2t40'})
         theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
         betalo_cf  = [-1 -1 -1 -1; 11 19 12 12];
     elseif strcmp(an_id,'TFRw_S25t2_dbS25t05_fl2t40_c7')
@@ -57,7 +57,7 @@ elseif contains(an_id,'_D')
     elseif strcmp(an_id,'TFRmth_D1t1_zS1t0_f2t40')  % equivalent to Simon
         theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
         betalo_cf  = [-1 -1 -1 -1; -1 -1 -1 -1];%10 17 13 12];
-    elseif contains(an_id,'TFRmth_D1t1_zS8t0_f2t40')
+    elseif contains(an_id,{'TFRmth_D1t1_zS8t0_f2t40','TFRmth_D1t1_madS8t0_f2t40'})
         theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
         betalo_cf  = [-1 -1 -1 -1; 11 19 12 12];
     else

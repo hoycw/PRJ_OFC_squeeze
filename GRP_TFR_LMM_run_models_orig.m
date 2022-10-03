@@ -5,7 +5,7 @@ close all
 clear all
 
 %%
-an_id = 'TFRmth_S1t2_zS8t0_f2t40_log';
+an_id = 'TFRmth_D1t1_madS8t0_f2t40';
 norm_bhv_pred = 'zscore';%'none';%
 norm_nrl_pred = 'zscore';%'none';%
 log_outlier_thresh = 7;
@@ -535,6 +535,14 @@ end
 lme0 = fitlme(table_prv,'BG_theta~ BG_roi + (1|sbj_n)');
 lme1 = fitlme(table_prv,'BG_theta~ SV_prv + BG_roi + (1|sbj_n)');
 bg_theta_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+
+% BG theta and previous subjective value:
+lme0 = fitlme(table_prv,'BG_theta~ BG_roi + (1|sbj_n)');
+lme1 = fitlme(table_prv,'BG_theta~ reward_prv + BG_roi + (1|sbj_n)');
+bg_theta_rew_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+% lme0 = fitlme(table_prv,'BG_theta~ 1 + (1|sbj_n)');
+% lme1 = fitlme(table_prv,'BG_theta~ reward_prv + (1|sbj_n)');
+% bg_theta_rew_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 
 
 %% ========================================================================
