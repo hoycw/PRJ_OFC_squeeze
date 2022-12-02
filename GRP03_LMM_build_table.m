@@ -358,7 +358,9 @@ end
 
 %% Create table with all variables
 table_cur_match = table_cur;
+% remove NaNs from previous trial
 table_cur_match(prv_nan_idx,:) = [];
+% remove duplicate fields
 table_cur_match.sbj_n      = [];
 table_cur_match.rt_cur     = [];
 table_cur_match.logrt_cur  = [];
@@ -370,6 +372,7 @@ table_cur_match.PFC_betahi = [];
 table_cur_match.BG_theta   = [];
 table_cur_match.BG_betalo  = [];
 table_cur_match.BG_betahi  = [];
+% combine
 table_all = [table_cur_match, table_prv];
 
 %% Write tables for R

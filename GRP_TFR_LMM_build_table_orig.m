@@ -1,4 +1,8 @@
 %% Mixed modelling on the Processed data %%
+% This was the version with only outliers tossed from PFC theta
+%   around the time of the lab meeting on Aug 23, 2022 I adedd
+%   band-specific outliers, but need to decide how to toss those trials
+% this will be deleted in the next commit!
 addpath('/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/');
 addpath('/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/utils/');
 addpath('/Users/colinhoy/Code/Apps/fieldtrip/');

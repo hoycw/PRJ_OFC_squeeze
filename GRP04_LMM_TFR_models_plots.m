@@ -1,4 +1,5 @@
 %% Mixed modelling on the Processed data %%
+!!! make sure outliers are consistently tossed!!!
 addpath('/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/');
 addpath('/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/utils/');
 close all
@@ -304,6 +305,21 @@ if save_fig
     saveas(gcf,fig_fname);
 end
 
+%% PFC theta and current reward following low reward
+% prv_low_idx = table_all.reward_prv<median(table_all.reward_prv);
+% cur_low_idx = table_all.reward_cur<median(table_all.reward_cur);
+% lme0 = fitlme(table_all(prv_low_idx,:),'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
+% lme1 = fitlme(table_all(prv_low_idx,:),'PFC_theta~ reward_cur + (1|sbj_n)');%,'StartMethod','random');
+% pfc_theta_rew_comb = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+% figure; hold on;
+% bins = -3:0.2:3;
+% histogram(table_all.PFC_theta(prv_low_idx & cur_low_idx),bins,'FaceColor','b');
+% histogram(table_all.PFC_theta(prv_low_idx & ~cur_low_idx),bins,'FaceColor','r');
+% line([mean(table_all.PFC_theta(prv_low_idx & cur_low_idx)) mean(table_all.PFC_theta(prv_low_idx & cur_low_idx))],...
+%     ylim,'Color','b','Linewidth',3);
+% line([mean(table_all.PFC_theta(prv_low_idx & ~cur_low_idx)) mean(table_all.PFC_theta(prv_low_idx & ~cur_low_idx))],...
+%     ylim,'Color','r','Linewidth',3);
+
 %% PFC Theta Salience models
 % PFC theta salience:
 lme0 = fitlme(table_cur,'PFC_theta~ 1 + (1|sbj_n)');
@@ -380,15 +396,15 @@ if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 
 % PFC Beta and Reward vs. Effort models:
 % PFC beta low and reward:
-lme0 = fitlme(table_cur(~out_idx_cur.PFC_betalo,:),'PFC_betalo~ 1 + (1|sbj_n)');
-lme1 = fitlme(table_cur(~out_idx_cur.PFC_betalo,:),'PFC_betalo~ reward_cur + (1|sbj_n)');
+lme0 = fitlme(table_cur,'PFC_betalo~ 1 + (1|sbj_n)');
+lme1 = fitlme(table_cur,'PFC_betalo~ reward_cur + (1|sbj_n)');
 pfc_betalo_rew = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 
 % PFC beta low and effort:
-lme0 = fitlme(table_cur(~out_idx_cur.PFC_betalo,:),'PFC_betalo~ 1 + (1|sbj_n)');
-lme1 = fitlme(table_cur(~out_idx_cur.PFC_betalo,:),'PFC_betalo~ effort_cur + (1|sbj_n)');
-lme2 = fitlme(table_cur(~out_idx_cur.PFC_betalo,:),'PFC_betalo~ effortS_cur + (1|sbj_n)');
-lme3 = fitlme(table_cur(~out_idx_cur.PFC_betalo,:),'PFC_betalo~ SV_cur + (1|sbj_n)');
+lme0 = fitlme(table_cur,'PFC_betalo~ 1 + (1|sbj_n)');
+lme1 = fitlme(table_cur,'PFC_betalo~ effort_cur + (1|sbj_n)');
+lme2 = fitlme(table_cur,'PFC_betalo~ effortS_cur + (1|sbj_n)');
+lme3 = fitlme(table_cur,'PFC_betalo~ SV_cur + (1|sbj_n)');
 pfc_betalo_eff = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 pfc_betalo_effS = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
 % pfc_betalo_effS_vs_SV = compare(lme3,lme2,'NSim',1000)
@@ -460,6 +476,7 @@ pfc_betalo_effS_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
 %% ========================================================================
 %   BASAL GANGLIA MODELS
 %  ========================================================================
+
 % BG beta low and subjective value:
 lme0 = fitlme(table_cur,'BG_betalo~ BG_roi + (1|sbj_n)');
 lme1 = fitlme(table_cur,'BG_betalo~ rew_cur + BG_roi + (1|sbj_n)');
@@ -469,6 +486,96 @@ bg_betalo_sv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 lme0 = fitlme(table_prv,'BG_theta~ BG_roi + (1|sbj_n)');
 lme1 = fitlme(table_prv,'BG_theta~ SV_prv + BG_roi + (1|sbj_n)');
 bg_theta_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+
+%% BG modeling section from _orig:
+% fig_dir   = [prj_dir 'results/TFR/' an_id '/LMM_BG_betalo/'];
+% if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
+% 
+% % BG beta low and subjective value:
+% lme0 = fitlme(table_cur,'BG_betalo~ BG_roi + (1|sbj_n)');
+% lme1 = fitlme(table_cur,'BG_betalo~ SV_cur + BG_roi + (1|sbj_n)');
+% bg_betalo_sv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+% 
+% % BG beta low and effort:
+% lme0 = fitlme(table_cur,'BG_betalo~ BG_roi + (1|sbj_n)');
+% lme1 = fitlme(table_cur,'BG_betalo~ effort_cur + BG_roi + (1|sbj_n)');
+% lme2 = fitlme(table_cur,'BG_betalo~ effortS_cur + BG_roi + (1|sbj_n)');
+% bg_betalo_eff = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+% bg_betalo_effS = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
+% 
+% % Plot betalo ~ previous reward as scatter plot
+% x_fudge = 0.2;
+% scat_sz = 20;
+% fig_name = 'GRP_TFR_LMM_results_LFP_betalo_effortS_scatter';
+% figure('Name',fig_name); hold on;
+% xvals = min(table_cur.effortS_cur)-x_fudge:0.01:max(table_cur.effortS_cur)+x_fudge;
+% for s = 1:length(SBJs)
+%     scatter(table_cur.effortS_cur(table_cur.sbj_n==s),table_cur.BG_betalo(table_cur.sbj_n==s),...
+%         scat_sz,'k');%sbj_colors(s,:));
+%     mdl = fitlm(table_cur.effortS_cur(table_cur.sbj_n==s),table_cur.BG_betalo(table_cur.sbj_n==s));
+%     yvals = mdl.Coefficients.Estimate(1) + xvals*mdl.Coefficients.Estimate(2);
+%     line(xvals,yvals,'Color',sbj_colors(s,:),'LineWidth',3,'LineStyle',':');
+% end
+% yvals = lme2.Coefficients.Estimate(1) + xvals*lme2.Coefficients.Estimate(2);
+% line(xvals,yvals,'Color','k','LineWidth',5);
+% xlabel('Subj. Effort (z)');
+% ylabel('Basal Ganglia low beta (z)');
+% title(['LMM coefficient = ' num2str(lme2.Coefficients.Estimate(2)) '; p = ' num2str(bg_betalo_effS.pValue(2),'%.03f')]);
+% set(gca,'FontSize',16);
+% 
+% if save_fig
+%     fig_fname = [fig_dir fig_name '.' fig_ftype];
+%     fprintf('Saving %s\n',fig_fname);
+%     saveas(gcf,fig_fname);
+% end
+% 
+% %% BG previous trial models
+% % BG beta low and subjective value:
+% lme0 = fitlme(table_prv,'BG_betalo~ BG_roi + (1|sbj_n)');
+% lme1 = fitlme(table_prv,'BG_betalo~ SV_prv + BG_roi + (1|sbj_n)');
+% bg_betalo_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+% 
+% % BG beta low and effort:
+% lme0 = fitlme(table_prv,'BG_betalo~ BG_roi + (1|sbj_n)');
+% lme1 = fitlme(table_prv,'BG_betalo~ effort_prv + BG_roi + (1|sbj_n)');
+% lme2 = fitlme(table_prv,'BG_betalo~ effortS_prv + BG_roi + (1|sbj_n)');
+% bg_betalo_eff_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+% bg_betalo_effS_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
+% 
+% % Plot betalo ~ previous reward as scatter plot
+% x_fudge = 0.2;
+% scat_sz = 20;
+% fig_name = 'GRP_TFR_LMM_results_LFP_betalo_effortS_scatter';
+% figure('Name',fig_name); hold on;
+% xvals = min(table_prv.effortS_prv)-x_fudge:0.01:max(table_prv.effortS_prv)+x_fudge;
+% for s = 1:length(SBJs)
+%     scatter(table_prv.effortS_prv(table_prv.sbj_n==s),table_prv.BG_betalo(table_prv.sbj_n==s),...
+%         scat_sz,'k');%sbj_colors(s,:));
+%     mdl = fitlm(table_prv.effortS_prv(table_prv.sbj_n==s),table_prv.BG_betalo(table_prv.sbj_n==s));
+%     yvals = mdl.Coefficients.Estimate(1) + xvals*mdl.Coefficients.Estimate(2);
+%     line(xvals,yvals,'Color',sbj_colors(s,:),'LineWidth',3,'LineStyle',':');
+% end
+% yvals = lme2.Coefficients.Estimate(1) + xvals*lme2.Coefficients.Estimate(2);
+% line(xvals,yvals,'Color','k','LineWidth',5);
+% xlabel('Subj. Effort (z)');
+% ylabel('Basal Ganglia low beta (z)');
+% title(['LMM coefficient = ' num2str(lme2.Coefficients.Estimate(2)) '; p = ' num2str(bg_betalo_effS.pValue(2),'%.03f')]);
+% set(gca,'FontSize',16);
+% 
+% if save_fig
+%     fig_fname = [fig_dir fig_name '.' fig_ftype];
+%     fprintf('Saving %s\n',fig_fname);
+%     saveas(gcf,fig_fname);
+% end
+
+% % BG theta and previous subjective value:
+% lme0 = fitlme(table_prv,'BG_theta~ BG_roi + (1|sbj_n)');
+% lme1 = fitlme(table_prv,'BG_theta~ reward_prv + BG_roi + (1|sbj_n)');
+% bg_theta_rew_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+% % lme0 = fitlme(table_prv,'BG_theta~ 1 + (1|sbj_n)');
+% % lme1 = fitlme(table_prv,'BG_theta~ reward_prv + (1|sbj_n)');
+% % bg_theta_rew_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+
 
 %% ========================================================================
 %   ALTERNATIVE MODELS

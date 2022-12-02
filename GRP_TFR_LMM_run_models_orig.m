@@ -1,4 +1,6 @@
 %% Mixed modelling on the Processed data %%
+% This version had more BG models but not the outlier rejection and different figure directories
+%   I merged the BG modeling code into the main script (now GRP04_LMM_run_models) so this will be deleted
 addpath('/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/');
 addpath('/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/utils/');
 close all
