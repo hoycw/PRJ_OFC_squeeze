@@ -84,7 +84,7 @@ p_acc_mn_grp = mean(p_acc_mn,3);
 for s = 1:length(SBJs)
     fig_name = [SBJs{s} '_p_acc_bar3'];
     figure('Name',fig_name);
-    bar3(squeeze(p_acc_mn(:,:,s)));
+    bars = bar3(squeeze(p_acc_mn(:,:,s)));
     ylabel('Reward');
     yticklabels(stakes);
     xlabel('Effort (% Max Force)');
@@ -93,6 +93,13 @@ for s = 1:length(SBJs)
     title([SBJs{s} ' Decision Landscape']);
     set(gca,'FontSize',16);
     view([135 30]);
+    
+    % Shade bar according to z-axis
+    idxrep = repmat(1:size(p_acc_mn,1),6,1);  %magic 6
+    for col_ix = 1:size(p_acc_mn,2)
+        Z = repmat(p_acc_mn(idxrep(:),col_ix),1,4);   %magic 4
+        set(bars(col_ix), 'CData',Z);
+    end
     
     if save_fig
         fig_dir   = [prj_dir 'results/bhv/p_accept_bar3/'];
@@ -106,7 +113,7 @@ end
 % Group level
 fig_name = ['GRP_p_acc_bar3'];
 figure('Name',fig_name);
-bar3(p_acc_mn_grp);
+bars = bar3(p_acc_mn_grp);
 ylabel('Reward');
 yticklabels(stakes);
 xlabel('Effort (% Max)');
@@ -115,6 +122,13 @@ zlabel('% Accept');
 title('Group Decision Landscape');
 set(gca,'FontSize',16);
 view([135 30]);
+
+% Shade bar according to z-axis
+idxrep = repmat(1:size(p_acc_mn_grp,1),6,1);  %magic 6
+for col_ix = 1:size(p_acc_mn_grp,2)
+  Z = repmat(p_acc_mn_grp(idxrep(:),col_ix),1,4);   %magic 4
+  set(bars(col_ix), 'CData',Z);
+end
 
 if save_fig
     fig_fname = [fig_dir fig_name '.' fig_ftype];

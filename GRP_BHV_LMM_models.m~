@@ -144,7 +144,7 @@ subplot(2,2,1); hold on;
 for s = 1:length(SBJs)
 %     scatter(table_cur.reward_cur(table_cur.sbj_n==s),table_cur.logrt_cur(table_cur.sbj_n==s),...
 %         scat_sz,sbj_colors(s,:));
-    errorbar(zscore(stakes),zscore(bhvs{s}.lrt_stake_mn),bhvs{s}.lrt_stake_se,'Color',sbj_colors(s,:));
+    errorbar(zscore(stakes,bhvs{s}.lrt_stake_mn,bhvs{s}.lrt_stake_se,'Color',sbj_colors(s,:));
 end
 xvals = min(table_cur.reward_cur):0.01:max(table_cur.reward_cur);
 yvals = lme1.Coefficients.Estimate(1) + xvals*lme1.Coefficients.Estimate(2);

@@ -1,4 +1,5 @@
 %% Colin preprocessing script
+% This version plots FPC and OFC separately! this was changed for Aug 23 2022 lab meeting, so this older version is for posterity
 % Based on /Analysis/Group/Preprocess/Squeeze_preprocess_all_data_stimulus_locked.m
 clear all
 close all
