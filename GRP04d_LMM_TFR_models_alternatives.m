@@ -106,6 +106,8 @@ fprintf(2,'Total bad trials in table_prv: %d\n',length(all_outliers_prv));
 %% ========================================================================
 %   ALTERNATIVE MODELS
 %  ========================================================================
+% fig_dir   = [prj_dir 'results/TFR/LMM/' table_name '/alternatives/'];
+
 %   Test Initial models:
 % PFC beta low and subjective value:
 lme0 = fitlme(good_tbl_all.PFC_betalo,'PFC_betalo~ 1 + (1|sbj_n)');

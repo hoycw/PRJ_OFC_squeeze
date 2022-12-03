@@ -5,7 +5,7 @@ close all
 clear all
 
 %%
-an_id = 'TFRmth_S1t2_zS8t0_f2t40';
+an_id = 'TFRmth_S1t2_zS8t0_f2t40';%'TFRmth_S1t2_madS8t0_f2t40';%
 norm_bhv_pred = 'zscore';%'none';%
 norm_nrl_pred = 'logz';%'none';%
 outlier_thresh = 4;
@@ -253,40 +253,40 @@ if save_fig
     saveas(gcf,fig_fname);
 end
 
-%% Plot theta ~ previous reward as line plot
+% Plot theta ~ previous reward as line plot
 % Mean Reward and Effort
-stakes  = unique(bhvs{1}.stake);
-stakes_norm = fn_normalize_predictor(stakes,norm_bhv_pred);
-for s = 1:length(SBJs)
-    if length(unique(bhvs{s}.effort))~=5 || length(unique(bhvs{s}.stake))~=5
-        error([SBJs{s} ' is missing conditions for stake or effort!']);
-    end
-    PFC_theta_stake_mn.(SBJs{s})  = nan([5 1]);
-    PFC_theta_stake_se.(SBJs{s})  = nan([5 1]);
-    for i = 1:5
-        trl_idx = good_tbl_prv.PFC_theta.sbj_n==s & good_tbl_prv.PFC_theta.reward_prv==stakes_norm(i);
-        PFC_theta_stake_mn.(SBJs{s})(i) = mean(good_tbl_prv.PFC_theta.PFC_theta(trl_idx));
-        PFC_theta_stake_se.(SBJs{s})(i) = std(good_tbl_prv.PFC_theta.PFC_theta(trl_idx))./sqrt(sum(trl_idx));
-    end
-end
-fig_name = 'GRP_TFR_LMM_results_PFC_theta_reward_prv_line';
-figure('Name',fig_name); hold on;
-xvals = min(good_tbl_prv.PFC_theta.reward_prv)-x_fudge:0.01:max(good_tbl_prv.PFC_theta.reward_prv)+x_fudge;
-for s = 1:length(SBJs)
-    errorbar(zscore(stakes),PFC_theta_stake_mn.(SBJs{s}),PFC_theta_stake_se.(SBJs{s}),'Color',sbj_colors(s,:));
-end
-yvals = lme1.Coefficients.Estimate(1) + xvals*lme1.Coefficients.Estimate(2);
-line(xvals,yvals,'Color','k','LineWidth',5);
-xlabel('Previous Reward (z)');
-ylabel('PFC theta (z)');
-title(['LMM beta = ' num2str(lme1.Coefficients.Estimate(2)) '; p = ' num2str(pfc_theta_rew_prv.pValue(2),'%.03f')]);
-set(gca,'FontSize',16);
-
-if save_fig
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
+% stakes  = unique(bhvs{1}.stake);
+% stakes_norm = fn_normalize_predictor(stakes,norm_bhv_pred);
+% for s = 1:length(SBJs)
+%     if length(unique(bhvs{s}.effort))~=5 || length(unique(bhvs{s}.stake))~=5
+%         error([SBJs{s} ' is missing conditions for stake or effort!']);
+%     end
+%     PFC_theta_stake_mn.(SBJs{s})  = nan([5 1]);
+%     PFC_theta_stake_se.(SBJs{s})  = nan([5 1]);
+%     for i = 1:5
+%         trl_idx = good_tbl_prv.PFC_theta.sbj_n==s & good_tbl_prv.PFC_theta.reward_prv==stakes_norm(i);
+%         PFC_theta_stake_mn.(SBJs{s})(i) = mean(good_tbl_prv.PFC_theta.PFC_theta(trl_idx));
+%         PFC_theta_stake_se.(SBJs{s})(i) = std(good_tbl_prv.PFC_theta.PFC_theta(trl_idx))./sqrt(sum(trl_idx));
+%     end
+% end
+% fig_name = 'GRP_TFR_LMM_results_PFC_theta_reward_prv_line';
+% figure('Name',fig_name); hold on;
+% xvals = min(good_tbl_prv.PFC_theta.reward_prv)-x_fudge:0.01:max(good_tbl_prv.PFC_theta.reward_prv)+x_fudge;
+% for s = 1:length(SBJs)
+%     errorbar(zscore(stakes),PFC_theta_stake_mn.(SBJs{s}),PFC_theta_stake_se.(SBJs{s}),'Color',sbj_colors(s,:));
+% end
+% yvals = lme1.Coefficients.Estimate(1) + xvals*lme1.Coefficients.Estimate(2);
+% line(xvals,yvals,'Color','k','LineWidth',5);
+% xlabel('Previous Reward (z)');
+% ylabel('PFC theta (z)');
+% title(['LMM beta = ' num2str(lme1.Coefficients.Estimate(2)) '; p = ' num2str(pfc_theta_rew_prv.pValue(2),'%.03f')]);
+% set(gca,'FontSize',16);
+% 
+% if save_fig
+%     fig_fname = [fig_dir fig_name '.' fig_ftype];
+%     fprintf('Saving %s\n',fig_fname);
+%     saveas(gcf,fig_fname);
+% end
 
 % Plot median splits of PFC theta as function of current/previous reward
 fig_name = 'GRP_TFR_LMM_results_PFC_theta_reward_splits';
@@ -373,7 +373,7 @@ end
 %     ylim,'Color','b','Linewidth',3);
 % line([mean(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx)) mean(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx))],...
 %     ylim,'Color','r','Linewidth',3);
-
+% 
 %% PFC Theta Salience models
 % PFC theta salience:
 lme0 = fitlme(good_tbl_all.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');

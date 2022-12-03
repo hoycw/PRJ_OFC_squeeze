@@ -8,7 +8,7 @@ clear all
 an_id = 'TFRmth_S1t2_zS8t0_f2t40';
 norm_bhv_pred = 'zscore';%'none';%
 norm_nrl_pred = 'logz';%'none';%
-outlier_thresh = 4;
+outlier_thresh = 20;
 
 save_fig = 1;
 fig_ftype = 'png';
@@ -106,7 +106,7 @@ fprintf(2,'Total bad trials in table_prv: %d\n',length(all_outliers_prv));
 %% ========================================================================
 %   PFC BETA MODELS
 %  ========================================================================
-fig_dir   = [prj_dir 'results/TFR/' an_id '/LMM_PFC_betalo/'];
+fig_dir   = [prj_dir 'results/TFR/LMM/' table_name '/PFC_betalo/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 
 % PFC Beta and Reward vs. Effort models:
@@ -126,7 +126,7 @@ pfc_betalo_effS = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
 %   effortS is better model than effort
 %   effort and effort S are better models than SV
 
-% Plot theta ~ previosu reward as scatter plot
+% Plot BG betalo ~ previous reward as scatter plot
 x_fudge = 0.2;
 scat_sz = 20;
 fig_name = 'GRP_TFR_LMM_results_PFC_betalo_effortS_scatter';
@@ -141,7 +141,7 @@ for s = 1:length(SBJs)
 end
 yvals = lme2.Coefficients.Estimate(1) + xvals*lme2.Coefficients.Estimate(2);
 line(xvals,yvals,'Color','k','LineWidth',5);
-xlabel('Previous Subj. Effort (z)');
+xlabel('Subj. Effort (z)');
 ylabel('PFC low beta (z)');
 title(['LMM beta = ' num2str(lme2.Coefficients.Estimate(2)) '; p = ' num2str(pfc_betalo_effS.pValue(2),'%.03f')]);
 set(gca,'FontSize',16);
