@@ -5,10 +5,11 @@ close all
 clear all
 
 %%
-an_id = 'TFRmth_S1t2_zS8t0_f2t40';%'TFRmth_S1t2_madS8t0_f2t40';%
+an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
 norm_bhv_pred = 'zscore';%'none';%
-norm_nrl_pred = 'logz';%'none';%
+norm_nrl_pred = 'zscore';%'none';%
 outlier_thresh = 4;
+n_quantiles = 5;
 
 save_fig = 1;
 fig_ftype = 'png';
@@ -17,14 +18,20 @@ SBJs         = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 sbj_bg_roi   = {'GPi','STN','GPi','STN'};
 
-prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
-addpath([prj_dir 'scripts/']);
-addpath([prj_dir 'scripts/utils/']);
 
 sbj_colors = [27, 158, 119;         % teal
               217, 95, 2;           % burnt orange
               117, 112, 179;        % purple
               231, 41, 138]./256;   % magenta
+
+prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
+if ~strcmp(norm_bhv_pred,'none'); norm_bhv_str = ['_bhv' norm_bhv_pred]; else; norm_bhv_str = ''; end
+if ~strcmp(norm_nrl_pred,'none'); norm_nrl_str = ['_nrl' norm_nrl_pred]; else; norm_nrl_str = ''; end
+out_thresh_str = ['_out' num2str(outlier_thresh)];
+
+table_name = [an_id norm_bhv_str norm_nrl_str];
+fig_dir   = [prj_dir 'results/TFR/LMM/' table_name out_thresh_str '/PFC_theta/'];
+if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 
 %% Load data
 bhvs       = cell(size(SBJs));
@@ -37,41 +44,20 @@ for s = 1:length(SBJs)
 end
 
 %% Load group model table
-if ~strcmp(norm_bhv_pred,'none'); norm_bhv_str = ['_bhv' norm_bhv_pred]; else; norm_bhv_str = ''; end
-if ~strcmp(norm_nrl_pred,'none'); norm_nrl_str = ['_nrl' norm_nrl_pred]; else; norm_nrl_str = ''; end
-% out_thresh_str = ['out' num2str(outlier_thresh)];
-table_name = [an_id norm_bhv_str norm_nrl_str];
-
-% combined trial table
 table_all_fname = [prj_dir 'data/GRP/GRP_' table_name '_full_table_all.csv'];
 fprintf('\tLoading %s...\n',table_all_fname);
 table_all = readtable(table_all_fname);
 
-%% Create current and previous trial tables
-% Toss NaNs from previous table
-table_prv = table_all;
-prv_nan_idx = isnan(table_prv.SV_prv);
-table_prv(prv_nan_idx,:) = [];
-prv_fields = table_prv.Properties.VariableNames;
-for f = 1:length(prv_fields)
-    if any(isnan(table_prv.(prv_fields{f}))); error(['NaN is table_prv.' prv_fields{f}]); end
-end
-
 %% Toss outliers
 pow_vars = {'PFC_theta','PFC_betalo','PFC_betahi','BG_theta','BG_betalo','BG_betahi'};
-out_idx_prv = struct;
 out_idx_all = struct;
-out_ix_prv = [];
 out_ix_all = [];
-good_tbl_prv = struct;
 good_tbl_all = struct;
 for f = 1:length(pow_vars)
     % Identify outliers
-    out_idx_prv.(pow_vars{f}) = abs(table_prv.(pow_vars{f}))>outlier_thresh;
     out_idx_all.(pow_vars{f}) = abs(table_all.(pow_vars{f}))>outlier_thresh;
     
     % Toss outlier trials for each ROI and frequency band
-    good_tbl_prv.(pow_vars{f}) = table_prv(~out_idx_prv.(pow_vars{f}),:);
     good_tbl_all.(pow_vars{f}) = table_all(~out_idx_all.(pow_vars{f}),:);
     
     % Report results
@@ -86,22 +72,21 @@ for f = 1:length(pow_vars)
     end
     fprintf('\tgood vs. all trials for %s in table_all = %d / %d\n',...
         pow_vars{f},size(good_tbl_all.(pow_vars{f}),1),size(table_all,1));
-    
-    if any(out_idx_prv.(pow_vars{f}))
-        out_ix_prv = [out_ix_prv; find(out_idx_prv.(pow_vars{f}))];
-        fprintf(2,'\t%d outliers for %s in table_prv:\t',sum(out_idx_prv.(pow_vars{f})),pow_vars{f});
-        fprintf(2,'%.2f, ',table_prv.(pow_vars{f})(out_idx_prv.(pow_vars{f})));
-        fprintf('\n');
-    else
-        fprintf('No bad trials for %s with threshold %d\n',pow_vars{f},outlier_thresh);
-    end
-    fprintf('\tgood vs. all trials for %s in table_prv = %d / %d\n',...
-        pow_vars{f},size(good_tbl_prv.(pow_vars{f}),1),size(table_prv,1));
 end
 all_outliers_all = unique(out_ix_all);
 fprintf(2,'Total bad trials in table_all: %d\n',length(all_outliers_all));
-all_outliers_prv = unique(out_ix_prv);
-fprintf(2,'Total bad trials in table_prv: %d\n',length(all_outliers_prv));
+
+%% Create current and previous trial tables
+% Toss NaNs from previous table
+good_tbl_prv = good_tbl_all;
+for p = 1:length(pow_vars)
+    prv_nan_idx = isnan(good_tbl_prv.(pow_vars{p}).SV_prv);
+    good_tbl_prv.(pow_vars{p})(prv_nan_idx,:) = [];
+    prv_fields = good_tbl_prv.(pow_vars{p}).Properties.VariableNames;
+    for f = 1:length(prv_fields)
+        if any(isnan(good_tbl_prv.(pow_vars{p}).(prv_fields{f}))); error(['NaN is table_prv.' prv_fields{f}]); end
+    end
+end
 
 %% ========================================================================
 %   PFC THETA
@@ -135,8 +120,6 @@ title(['LMM beta = ' num2str(lme1.Coefficients.Estimate(2)) '; p = ' num2str(pfc
 set(gca,'FontSize',16);
 
 if save_fig
-    fig_dir   = [prj_dir 'results/TFR/LMM/' table_name '/PFC_theta/'];
-    if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
     fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
@@ -254,39 +237,51 @@ if save_fig
 end
 
 % Plot theta ~ previous reward as line plot
-% Mean Reward and Effort
-% stakes  = unique(bhvs{1}.stake);
-% stakes_norm = fn_normalize_predictor(stakes,norm_bhv_pred);
-% for s = 1:length(SBJs)
-%     if length(unique(bhvs{s}.effort))~=5 || length(unique(bhvs{s}.stake))~=5
-%         error([SBJs{s} ' is missing conditions for stake or effort!']);
-%     end
-%     PFC_theta_stake_mn.(SBJs{s})  = nan([5 1]);
-%     PFC_theta_stake_se.(SBJs{s})  = nan([5 1]);
-%     for i = 1:5
-%         trl_idx = good_tbl_prv.PFC_theta.sbj_n==s & good_tbl_prv.PFC_theta.reward_prv==stakes_norm(i);
-%         PFC_theta_stake_mn.(SBJs{s})(i) = mean(good_tbl_prv.PFC_theta.PFC_theta(trl_idx));
-%         PFC_theta_stake_se.(SBJs{s})(i) = std(good_tbl_prv.PFC_theta.PFC_theta(trl_idx))./sqrt(sum(trl_idx));
-%     end
-% end
-% fig_name = 'GRP_TFR_LMM_results_PFC_theta_reward_prv_line';
-% figure('Name',fig_name); hold on;
-% xvals = min(good_tbl_prv.PFC_theta.reward_prv)-x_fudge:0.01:max(good_tbl_prv.PFC_theta.reward_prv)+x_fudge;
-% for s = 1:length(SBJs)
-%     errorbar(zscore(stakes),PFC_theta_stake_mn.(SBJs{s}),PFC_theta_stake_se.(SBJs{s}),'Color',sbj_colors(s,:));
-% end
-% yvals = lme1.Coefficients.Estimate(1) + xvals*lme1.Coefficients.Estimate(2);
-% line(xvals,yvals,'Color','k','LineWidth',5);
-% xlabel('Previous Reward (z)');
-% ylabel('PFC theta (z)');
-% title(['LMM beta = ' num2str(lme1.Coefficients.Estimate(2)) '; p = ' num2str(pfc_theta_rew_prv.pValue(2),'%.03f')]);
-% set(gca,'FontSize',16);
-% 
-% if save_fig
-%     fig_fname = [fig_dir fig_name '.' fig_ftype];
-%     fprintf('Saving %s\n',fig_fname);
-%     saveas(gcf,fig_fname);
-% end
+for s = 1:length(SBJs)
+    % Get bin edges
+    qs = quantile(good_tbl_prv.PFC_theta.reward_prv(good_tbl_prv.PFC_theta.sbj_n==s),n_quantiles);
+    rew_prv_edges = nan([n_quantiles-1 1]);
+    for i = 1:n_quantiles-1
+        rew_prv_edges(i) = mean(qs(i:i+1));
+    end
+    % Average within bins
+    rew_prv_mn.(SBJs{s})            = nan([n_quantiles 1]);
+    PFC_theta_rew_prv_mn.(SBJs{s})  = nan([n_quantiles 1]);
+    PFC_theta_rew_prv_se.(SBJs{s})  = nan([n_quantiles 1]);
+    for i = 1:n_quantiles
+        if i==1                 % first quantile
+            trl_idx = good_tbl_prv.PFC_theta.sbj_n==s & good_tbl_prv.PFC_theta.reward_prv<rew_prv_edges(i);
+        elseif i==n_quantiles   % last quantile
+            trl_idx = good_tbl_prv.PFC_theta.sbj_n==s & good_tbl_prv.PFC_theta.reward_prv>=rew_prv_edges(i-1);
+        else                    % middle quantiles
+            trl_idx = good_tbl_prv.PFC_theta.sbj_n==s & good_tbl_prv.PFC_theta.reward_prv<rew_prv_edges(i) &...
+                good_tbl_prv.PFC_theta.reward_prv>=rew_prv_edges(i-1);
+        end
+        rew_prv_mn.(SBJs{s})(i) = mean(good_tbl_prv.PFC_theta.reward_prv(trl_idx));
+        PFC_theta_rew_prv_mn.(SBJs{s})(i) = mean(good_tbl_prv.PFC_theta.PFC_theta(trl_idx));
+        PFC_theta_rew_prv_se.(SBJs{s})(i) = std(good_tbl_prv.PFC_theta.PFC_theta(trl_idx))./sqrt(sum(trl_idx));
+    end
+end
+fig_name = 'GRP_TFR_LMM_results_PFC_theta_reward_prv_line';
+figure('Name',fig_name); hold on;
+xvals = min(good_tbl_prv.PFC_theta.reward_prv)-x_fudge:0.01:max(good_tbl_prv.PFC_theta.reward_prv)+x_fudge;
+for s = 1:length(SBJs)
+    errorbar(rew_prv_mn.(SBJs{s}),PFC_theta_rew_prv_mn.(SBJs{s}),PFC_theta_rew_prv_se.(SBJs{s}),...
+        'Color',sbj_colors(s,:),'LineWidth',1.5);
+end
+yvals = lme1.Coefficients.Estimate(1) + xvals*lme1.Coefficients.Estimate(2);
+line(xvals,yvals,'Color','k','LineWidth',4);
+xlabel('Previous Reward (z)');
+ylabel('PFC theta (z)');
+title(['LMM beta = ' num2str(lme1.Coefficients.Estimate(2)) '; p = ' num2str(pfc_theta_rew_prv.pValue(2),'%.03f')]);
+legend([SBJs 'Group'],'Location','best');
+set(gca,'FontSize',16);
+
+if save_fig
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
 
 % Plot median splits of PFC theta as function of current/previous reward
 fig_name = 'GRP_TFR_LMM_results_PFC_theta_reward_splits';

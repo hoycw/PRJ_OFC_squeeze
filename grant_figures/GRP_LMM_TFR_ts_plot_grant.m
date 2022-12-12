@@ -4,6 +4,8 @@ clear all
 close all
 % clc
 
+addpath(['/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/']);
+addpath(['/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/utils/']);
 addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 
@@ -13,9 +15,11 @@ sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 sbj_bg_roi   = {'GPi','STN','GPi','STN'};
 man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 148 149 150]};
 
-% an_id = 'TFRw_S25t2_dbS25t05_fl2t40_c7';%'TFRw_S25t2_noBsln_fl1t40_c7';%'TFRw_S25t2_noBsln_fl2t40_c7';
-an_id = 'simon_S';
-use_simon_tfr = 1;
+an_id = 'TFRmth_S1t2_zS8t0_f2t40';
+norm_bhv_pred = 'zscore';%'none';%
+norm_nrl_pred = 'logz';%'none';%
+outlier_thresh = 4;
+use_simon_tfr = 0;
 toss_same_trials = 1;
 
 if contains(an_id,'_S') || contains(an_id,'simon')
@@ -46,15 +50,12 @@ beta_cf = [-1 -1 -1 -1; 10 17 13 12]; % PFC03, PFC04, PFC05, PFC01
 % Plotting parameters
 plot_psd  = 0;
 font_size = 18;
-save_fig  = 0;
+save_fig  = 1;
 fig_ftype = 'fig';
 fig_vis   = 'on';
 
 %% Prep stuff
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
-addpath([prj_dir 'scripts/']);
-addpath([prj_dir 'scripts/utils/']);
-
 freq_ticks = 5:5:35;
 symmetric_clim = 1;
 if contains(an_id,'_S') || contains(an_id,'simon')
@@ -64,7 +65,13 @@ elseif contains(an_id,'_D')
 else
     error('couldnt pick plt_id based on an_id');
 end
-fig_dir   = [prj_dir 'results/TFR/' an_id '/grant_plot/'];
+if ~strcmp(norm_bhv_pred,'none'); norm_bhv_str = ['_bhv' norm_bhv_pred]; else; norm_bhv_str = ''; end
+if ~strcmp(norm_nrl_pred,'none'); norm_nrl_str = ['_nrl' norm_nrl_pred]; else; norm_nrl_str = ''; end
+out_thresh_str = ['_out' num2str(outlier_thresh)];
+win_lim_str = [num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2))];
+lmm_name = [an_id norm_bhv_str norm_nrl_str out_thresh_str];
+lmm_fname = [prj_dir 'data/GRP/GRP_' lmm_name '_LMM_ts.mat'];
+fig_dir   = [prj_dir 'results/TFR/LMM/' lmm_name '/grant_plot/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 
 % an_vars_cmd = ['run ' prj_dir '/scripts/an_vars/' an_id '_vars.m'];
@@ -117,58 +124,11 @@ for s = 1:length(SBJs)
     %% Load TFR
     sbj_dir = [prj_dir 'data/' SBJs{s} '/'];
     if contains(an_id,'simon')
-        % Load data files
-        proc_fname = strcat(DataStorage2,'/',FileDetails{s,1},'Stimulus_Locked.mat');
-        fprintf('Loading %s\n',proc_fname);
-        load(proc_fname);
-        tmp.tfr = AllData.TFbl;
-        bhvs{s} = AllData.exp;
-        
-        % Trim to plotting
-        cfgs = [];
-        cfgs.latency = plt.plt_lim;
-        cfgs.frequency = [min(tmp.tfr.freq) 40];
-        tmp.tfr = ft_selectdata(cfgs,tmp.tfr);
-        
-        % Remove bad trials
-        if toss_same_trials
-            load([sbj_dir SBJs{s} '_stim_preproc.mat'],'sbj_data');
-            % Combine bad behavioral and neural trials 
-            %   (empty and bad key are already tossed in Simon data)
-            simon_trl_idx = 1:150;
-            if strcmp(SBJs{s},'PFC04')
-                simon_trl_idx(72) = [];% from whrc neural variance
-            elseif strcmp(SBJs{s},'PFC05')
-                simon_trl_idx(76) = [];% from whrempty
-            elseif strcmp(SBJs{s},'PFC01')
-                simon_trl_idx(26) = [];% from whrtrl
-            end
-            all_bad_ix = unique([man_trl_rej_ix{s}'; sbj_data.bhv.empty_ix; sbj_data.bhv.bad_resp_ix; sbj_data.bhv.bad_rt_ix]);
-            simon_bad_ix = [];
-            for t = 1:length(all_bad_ix)
-                simon_bad_ix = [simon_bad_ix; find(simon_trl_idx==all_bad_ix(t))];
-            end
-            if isempty(simon_bad_ix)
-                fprintf('%s: All bad trials already tossed!\n',SBJs{s});
-            else
-                fprintf(2,'%s: Removing %d trials!\n',SBJs{s},length(simon_bad_ix));
-                % Remove from behavior
-                bhv_fields = fieldnames(bhvs{s});
-                for f = 1:length(bhv_fields)
-                    if length(bhvs{s}.(bhv_fields{f}))==length(simon_trl_idx) && ~contains(bhv_fields{f},'_ix')
-                        bhvs{s}.(bhv_fields{f})(simon_bad_ix) = [];
-                    end
-                end
-                % Remove from neural
-                tmp.tfr.powspctrm(simon_bad_ix,:,:,:) = [];
-            end
-        end
+        error('why use simon data?');
     else
-%         proc_fname = [sbj_dir SBJs{s} '_' an_id '.mat'];
-%         fprintf('Loading %s\n',proc_fname);
-%         tmp = load(proc_fname,'tfr');
-%         load([sbj_dir SBJs{s} '_stim_preproc.mat']);
-%         bhvs{s} = sbj_data.bhv;
+        proc_fname = [sbj_dir SBJs{s} '_' an_id '.mat'];
+        fprintf('Loading %s\n',proc_fname);
+        tmp = load(proc_fname,'tfr');
     end
     
     
@@ -214,14 +174,12 @@ for s = 1:length(SBJs)
 end
 
 %% Load LMEs
-lme_fname = [prj_dir 'data/GRP/GRP_' an_id '_LME_ts.mat'];
+lme_fname = [prj_dir 'data/GRP/GRP_' lmm_name '_LMM_ts.mat'];
 fprintf('Loading %s\n',lme_fname);
 load(lme_fname);
 lme_time_vec = plt_time_vec;
 lme_time_idx = nan(size(lme_time_vec));
 
-theta_coef_ix = find(strcmp(theta_lme{1,1}.CoefficientNames,'SV_As'));
-beta_coef_ix  = find(strcmp(beta_lme{1,1}.CoefficientNames,'SV_A'));
 theta_coef = nan([2 numel(lme_time_vec)]);
 theta_pval = nan([2 numel(lme_time_vec)]);
 theta_sig  = nan([2 numel(lme_time_vec)]);
@@ -229,14 +187,16 @@ beta_coef  = nan([2 numel(lme_time_vec)]);
 beta_pval  = nan([2 numel(lme_time_vec)]);
 beta_sig   = nan([2 numel(lme_time_vec)]);
 for ch_ix = 1:2
+    theta_coef_ix = find(strcmp(theta_lme{ch_ix,1}.CoefficientNames,'reward_prv'));
+    beta_coef_ix  = find(strcmp(beta_lme{ch_ix,1}.CoefficientNames,'effortS_cur'));
     for t_ix = 1:length(plt_time_vec)
         [~, lme_time_idx(t_ix)] = min(abs(time_vec-lme_time_vec(t_ix)));
         
         theta_coef(ch_ix,t_ix) = theta_lme{ch_ix,t_ix}.Coefficients.Estimate(theta_coef_ix);
-        theta_pval(ch_ix,t_ix) = theta_lme{ch_ix,t_ix}.Coefficients.pValue(theta_coef_ix);
+        theta_pval(ch_ix,t_ix) = theta_stat{ch_ix,t_ix}.pValue(2);
         
         beta_coef(ch_ix,t_ix) = beta_lme{ch_ix,t_ix}.Coefficients.Estimate(beta_coef_ix);
-        beta_pval(ch_ix,t_ix) = beta_lme{ch_ix,t_ix}.Coefficients.pValue(beta_coef_ix);
+        beta_pval(ch_ix,t_ix) = beta_stat{ch_ix,t_ix}.pValue(2);
     end
     
     % Correct for time points
@@ -262,7 +222,7 @@ if ~any(time_ticks==0); error('cant plot event with no tick at 0'); end
 
 for s = 1:length(SBJs)
     %% Plot TFRs for each SBJ
-    fig_name = [SBJs{s} '_TFR_theta_beta_' an_id];
+    fig_name = [SBJs{s} '_TFR_theta_beta_' lmm_name];
     figure('Name',fig_name,'units','normalized',...
         'outerposition',[0 0 1 1],'Visible',fig_vis);
     
@@ -384,9 +344,9 @@ end
 
 %% Plot TFRs for the GROUP
 if plot_psd
-    fig_name = ['GRP_TFR_theta_beta_' an_id '_withPSD'];
+    fig_name = ['GRP_TFR_theta_beta_' lmm_name '_withPSD'];
 else
-    fig_name = ['GRP_TFR_theta_beta_' an_id '_noPSD'];
+    fig_name = ['GRP_TFR_theta_beta_' lmm_name '_noPSD'];
 end
 figure('Name',fig_name,'units','normalized',...
     'outerposition',[0 0 1 1],'Visible',fig_vis);
@@ -426,7 +386,9 @@ for ch_ix = 1:2
     % Axes and parameters
     title([ch_lab ' TFR'], 'interpreter', 'none');
     % title(['LFP- ' an_id], 'interpreter', 'none');
-    set(gca,'XLim',[1 numel(time_vec)]);
+    [~,ix1] = min(abs(time_vec-plt.plt_lim(1)));
+    [~,ix2] = min(abs(time_vec-plt.plt_lim(2)));
+    set(gca,'XLim',[ix1 ix2]);
     set(gca,'XTick', time_tick_ix);
     set(gca,'XTickLabels', time_tick_lab);
     set(gca,'YLim',[1 numel(freq_vec)]);
@@ -470,8 +432,8 @@ for ch_ix = 1:2
     xlabel('Time (s)');
     ylabel('Power (z)');
     legend([t_line.mainLine b_line.mainLine],{...
-        ['theta (' num2str(mean(theta_lim(:,ch_ix,1))) '-' num2str(mean(theta_lim(:,ch_ix,2))) ' Hz)'],...
-        ['beta (' num2str(mean(beta_lim(:,ch_ix,1))) '-' num2str(mean(beta_lim(:,ch_ix,2))) ' Hz)']},'Location','best');
+        ['Theta (' num2str(mean(theta_lim(:,ch_ix,1))) '-' num2str(mean(theta_lim(:,ch_ix,2))) ' Hz)'],...
+        ['Beta (' num2str(mean(beta_lim(:,ch_ix,1))) '-' num2str(mean(beta_lim(:,ch_ix,2))) ' Hz)']},'Location','best');
     set(gca,'FontSize',font_size);
     
     % Plot LMEs
@@ -492,10 +454,10 @@ for ch_ix = 1:2
     set(gca,'XTick', time_ticks);%plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
     set(gca,'YLim',ylims);
     xlabel('Time (s)');
-    ylabel('Beta Coefficient');
+    ylabel('Model Coefficient');
     legend([t_line b_line],{...
-        ['theta ~ previous subjective value'],...
-        ['beta ~ subjective value']},'Location','best');
+        ['Theta ~ previous reward'],...
+        ['Beta ~ effort']},'Location','best');
     set(gca,'FontSize',font_size);
 end
 
@@ -506,135 +468,59 @@ if save_fig
     saveas(gcf,fig_fname);
 end
 
-%% Plot theta power
-% fig_name = ['GRP_theta_' an_id];
-% figure('Name',fig_name,'units','normalized',...
-%     'outerposition',[0 0 1 1],'Visible',fig_vis);
-% 
-% for ch_ix = 1:numel(tfr_grp{1}.label)
-%     for an_ix = 1:numel(an_ids)
-%         subplot(length(tfr_grp{an_ix}.label),length(an_ids),ch_ix*length(an_ids)-an_ix+1);
-%         % Get color lims per condition
-%         vals = tfr_grp{an_ix}.powspctrm(ch_ix,:,:);
-%         clim = [min(vals(:)) max(vals(:))];
-%         
-%         % Plot TFR
-%         imagesc(tfr_grp{an_ix}.time, tfr_grp{an_ix}.freq, squeeze(tfr_grp{an_ix}.powspctrm(ch_ix,:,:)));
-%         set(gca,'YDir','normal');
-%         caxis(clim);
-%         colorbar;
-%         
-%         % Plot Events
-%         line([0 0],ylim,...
-%             'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
-%             'LineStyle',plt.evnt_styles{1});
-%         
-%         % Axes and parameters
-%         title([tfr_grp{an_ix}.label{ch_ix} '- ' an_ids{an_ix}], 'interpreter', 'none');
-%         set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
-%         set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
-%         xlabel('Time (s)');
-%         ylabel('Frequency (Hz)');
-%         set(gca,'FontSize',16);
+%% Plot outliers
+% No longer relevant since I'm tossing only trials that are outliers for
+% time-averaged power (from main analyses)
+% pow_vars = {'PFC_theta','PFC_betalo','PFC_betahi','BG_theta','BG_betalo','BG_betahi'};
+% plot_pows = {'PFC_theta','PFC_betalo','BG_theta','BG_betalo'};
+% if size(outlier_ix,1)==2 && size(outlier_ix,2)==length(pow_vars) && length(size(outlier_ix))==3
+%     orig_outlier_ix = outlier_ix;
+%     outlier_ix = cell([length(pow_vars) length(plt_time_vec)]);
+%     for t_ix = 1:length(plt_time_vec)
+%         for f = 1:length(pow_vars)
+%             % Track outliers per channel and frequency band
+%             if contains(pow_vars{f},'PFC'), ch_ix = 2; else; ch_ix = 1; end
+%             outlier_ix{f,t_ix} = find(orig_outlier_ix{ch_ix,f,t_ix});
+%         end
 %     end
 % end
 % 
-% % Save Figure
-% if save_fig
-%     fig_fname = [fig_dir fig_name '.' fig_ftype];
-%     fprintf('Saving %s\n',fig_fname);
-%     saveas(gcf,fig_fname);
+% n_outliers = nan([length(pow_vars) length(plt_time_vec)]);
+% for t_ix = 1:length(plt_time_vec)
+%     for f = 1:length(pow_vars)
+%         n_outliers(f,t_ix) = length(outlier_ix{f,t_ix});
+%     end
 % end
 % 
-
-%% Time Frequency analysis on the dataset.
-%     cfg=[];
-%     cfg.trials          = 'all';
-%     cfg.keeptrials      = 'yes';
-%     cfg.output          = 'pow';
-%     cfg.method          = 'mtmconvol';
-%     cfg.taper           = 'hanning';
-%     cfg.foi             = 2:80;
-%     % data.sampleinfo(1,2)
-%     cfg.toi             = -3:0.02:3;
-%     cfg.pad             = 'maxperlen';
-%     % cfg.t_ftimwin    = ones(length(cfg.foi),1).*1;
-%     % Frequecy dependent wavelet length %
-%     cfg.t_ftimwin       = 4./cfg.foi;
-%     freqout             = ft_freqanalysis(cfg, data);
-%
-%     cfg.baseline     = [-1 0];
-%     cfg.baselinetype = 'zscore';    % 'absolute', 'relative' ratio, 'relchange' %, 'normchange', 'db', 'zscore'.
-%     cfg.parameter    = 'powspctrm';
-%     freqoutbl = ft_freqbaseline(cfg,freqout);
-
-
-%     databl=data;
-%     % Swap over
-%     databl.trial=databl.trialbl;
-%     databl=rmfield(databl,'trialbl');
-%
-%     cfg=[];
-%     cfg.trials          = 'all';
-%     cfg.keeptrials      = 'yes';
-%     cfg.output          = 'pow';
-%     cfg.method          = 'mtmconvol';
-%     cfg.taper           = 'hanning';
-%     cfg.foi             =2:80;
-%     % data.sampleinfo(1,2)
-%     cfg.toi             = -3:0.02:3;
-%     cfg.pad             ='maxperlen'
-%     % cfg.t_ftimwin    = ones(length(cfg.foi),1).*1;
-%     % Frequecy dependent wavelet length %
-%     cfg.t_ftimwin       =4 ./cfg.foi;
-%     freqoutblrp             = ft_freqanalysis(cfg, databl);
-    
-    % Manual baseline correction due to the non static baseline when event locking %
-    % Make copy
-%     time=freqoutblrp.time;
-%     st=-1;
-%     ed=0;
-%     [mns Ixst]=min(abs(time-st));
-%     [mne Ixed]=min(abs(time-ed));
-%     
-%     pwrbl=freqoutblrp.powspctrm;
-%     pwrblm=mean(pwrbl(:,:,:,Ixst:Ixed),4);
-%     pwrlbmr=repmat(pwrblm,1,1,1,size(freqout.powspctrm,4));
-    
-    % Baseline correction % Find the baseline %
-    % Note the time axis of the event locked data is different from the
-    % baseline data as I wanted to go back further for the stim locked data %.
-    
-%     pwr=freqout.powspctrm;
-%     pwr=((pwr-pwrlbmr)./pwrlbmr).*100;
-    
-%     freqoutbl=freqout;
-%     freqoutbl.powspctrm=pwr;
-    
-%     %% Plot TFR
-%     if plot_it
-%         %     cfg = [];
-%         %     figure;
-%         %     subplot(2,1,1);
-%         %     cfg.channel      = 'OFC';
-%         %     ft_singleplotTFR(cfg,freqout);
-%         %     xlim([-1.5 1.5]);
-%         %     subplot(2,1,2);
-%         %     cfg.channel      = 'LFP';
-%         %     ft_singleplotTFR(cfg,freqout);
-%         %     xlim([-1.5 1.5]);
-% %         
-% %         cfg = [];
-% %         figure;
-% %         subplot(2,1,1);
-% %         cfg.channel      = 'OFC';
-% %         ft_singleplotTFR(cfg,freqoutbl);
-% %         xlim([-0.5 2]);
-% %         ylim([ 2 35]);
-% %         subplot(2,1,2);
-% %         cfg.channel      = 'LFP';
-% %         ft_singleplotTFR(cfg,freqoutbl);
-% %         xlim([-0.5 2]);
-% %         ylim([ 2 35]);
+% figure;
+% lines = struct;
+% for f = 1:length(plot_pows)
+%     pow_ix = strcmp(pow_vars,plot_pows{f});
+%     if contains(pow_vars{pow_ix},'BG'); ch_ix = 1; else; ch_ix = 2; end
+%     if contains(pow_vars{pow_ix},'theta')
+%         line_color = 'r';
+%     elseif contains(pow_vars{pow_ix},'betalo')
+%         line_color = 'b';
+%     else
+%         error('only theat and betalo now');
 %     end
-%     
+%     subplot(1,2,ch_ix); hold on;
+%     lines.(pow_vars{pow_ix}) = plot(lme_time_vec,squeeze(n_outliers(pow_ix,:)),'Color',line_color);
+% end
+% subplot(1,2,1);
+% title(['BG Outlier counts'], 'interpreter', 'none');
+% set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
+% set(gca,'XTick', time_ticks);%plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
+% xlabel('Time (s)');
+% ylabel('# Outliers');
+% legend([lines.BG_theta lines.BG_betalo],{'BG theta','BG betalo'},'Location','best');
+% set(gca,'FontSize',font_size);
+% subplot(1,2,2);
+% title(['PFC Outlier counts'], 'interpreter', 'none');
+% set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
+% set(gca,'XTick', time_ticks);%plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
+% xlabel('Time (s)');
+% ylabel('# Outliers');
+% legend([lines.PFC_theta lines.PFC_betalo],{'PFC theta','PFC betalo'},'Location','best');
+% set(gca,'FontSize',font_size);
+

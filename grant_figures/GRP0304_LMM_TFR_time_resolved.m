@@ -14,14 +14,16 @@ man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 
 % sbj_colors = distinguishable_colors(length(SBJs));
 
 % Analysis parameters:
+an_id = 'TFRmth_S1t2_zS8t0_f2t40';%'TFRmth_S1t2_zS1t0_f2t40_log';%
 norm_bhv_pred = 'zscore';%'none';%
-norm_nrl_pred = 'zscore';%'none';%
-an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS1t0_f2t40_log';%
+norm_nrl_pred = 'logz';%'none';%
+outlier_thresh = 4;
 % an_id = 'TFRmth_D1t1_zS8t0_f2t40';
 use_simon_tfr = 0;
 toss_same_trials = 1;
 if contains(an_id,'_S')
     an_lim = [0.5 1.5];
+    plt_lim = [-0.2 2];
     betahi_cf = ones([2 numel(SBJs)])*-1;
     if use_simon_tfr
         % Simon params: [10,17,13,12]
@@ -69,16 +71,9 @@ elseif contains(an_id,'_D')
     end
 end
 
-if ~strcmp(norm_bhv_pred,'none')
-    norm_bhv_str = ['_bhv' norm_bhv_pred];
-else
-    norm_bhv_str = '';
-end
-if ~strcmp(norm_nrl_pred,'none')
-    norm_nrl_str = ['_nrl' norm_nrl_pred];
-else
-    norm_nrl_str = '';
-end
+if ~strcmp(norm_bhv_pred,'none'); norm_bhv_str = ['_bhv' norm_bhv_pred]; else; norm_bhv_str = ''; end
+if ~strcmp(norm_nrl_pred,'none'); norm_nrl_str = ['_nrl' norm_nrl_pred]; else; norm_nrl_str = ''; end
+out_thresh_str = ['_out' num2str(outlier_thresh)];
 
 % Simon originals:
 theta_bw  = 3;
@@ -206,12 +201,13 @@ for s = 1:length(SBJs)
         cfg = [];
         cfg.channel = tfr.label(ch_ix);
         cfg.avgoverfreq = 'yes';
-        cfg.avgovertime = 'yes';
+        cfg.avgovertime = 'no';
         cfg.avgoverrpt  = 'no';
-        cfg.latency     = an_lim;
+        cfg.latency     = plt_lim;
         cfg.frequency   = squeeze(theta_lim(s,ch_ix,:))';
         pow = ft_selectdata(cfg, tfr);
-        theta_pow{s,ch_ix} = pow.powspctrm;
+        plt_time_vec = pow.time;
+        theta_pow{s,ch_ix} = squeeze(pow.powspctrm);
         theta_cf(s,ch_ix) = pow.freq;
         if pow.freq-mean(theta_lim(s,ch_ix,:)) > 0.4
             fprintf(2,'\tWARNING: %s theta center freq is off: aim = %.02f, actual = %.02f; recomputing with 2-6 Hz...\n',...
@@ -225,7 +221,7 @@ for s = 1:length(SBJs)
         % Beta Low
         cfg.frequency = squeeze(betalo_lim(s,ch_ix,:))';
         pow = ft_selectdata(cfg, tfr);
-        betalo_pow{s,ch_ix} = pow.powspctrm;
+        betalo_pow{s,ch_ix} = squeeze(pow.powspctrm);
         if pow.freq-mean(betalo_lim(s,ch_ix,:)) > 0.4
             fprintf(2,'\tWARNING: %s beta low center freq is off: aim = %.02f, actual = %.02f\n',...
                 SBJs{s},mean(betalo_lim(s,ch_ix,:)),pow.freq);
@@ -234,7 +230,7 @@ for s = 1:length(SBJs)
         % Beta High
         cfg.frequency = squeeze(betahi_lim(s,ch_ix,:))';
         pow = ft_selectdata(cfg, tfr);
-        betahi_pow{s,ch_ix} = pow.powspctrm;
+        betahi_pow{s,ch_ix} = squeeze(pow.powspctrm);
         if pow.freq-mean(betahi_lim(s,ch_ix,:)) > 0.4
             fprintf(2,'\tWARNING: %s beta high center freq is off: aim = %.02f, actual = %.02f\n',...
                 SBJs{s},mean(betahi_lim(s,ch_ix,:)),pow.freq);
@@ -247,12 +243,6 @@ sbj_n      = [];
 PFC_roi    = [];
 BG_roi     = [];
 trl_n_cur  = [];
-PFC_theta  = [];
-PFC_betalo = [];
-PFC_betahi = [];
-BG_theta   = [];
-BG_betalo  = [];
-BG_betahi  = [];
 
 rt_cur       = [];
 logrt_cur    = [];
@@ -287,13 +277,6 @@ for s = 1:length(SBJs)
     if strcmp(sbj_bg_roi{s},'STN'); bg_roi_ix = 1; else; bg_roi_ix = 2; end
     BG_roi = [BG_roi; num2str(ones(trl_n,1).*bg_roi_ix)];
     
-    PFC_theta  = [PFC_theta; fn_normalize_predictor(theta_pow{s,2},norm_nrl_pred)];
-    PFC_betalo = [PFC_betalo; fn_normalize_predictor(betalo_pow{s,2},norm_nrl_pred)];
-    PFC_betahi = [PFC_betahi; fn_normalize_predictor(betahi_pow{s,2},norm_nrl_pred)];
-    BG_theta   = [BG_theta; fn_normalize_predictor(theta_pow{s,1},norm_nrl_pred)];
-    BG_betalo  = [BG_betalo; fn_normalize_predictor(betalo_pow{s,1},norm_nrl_pred)];
-    BG_betahi  = [BG_betahi; fn_normalize_predictor(betahi_pow{s,1},norm_nrl_pred)];
-    
     % Add behavioral variables
     rt_cur       = [rt_cur; fn_normalize_predictor(bhvs{s}.rt,norm_bhv_pred)];
     logrt_cur    = [logrt_cur; fn_normalize_predictor(log(bhvs{s}.rt),norm_bhv_pred)];
@@ -320,13 +303,138 @@ for s = 1:length(SBJs)
     dec_diff_prv = [dec_diff_prv; fn_normalize_predictor(bhvs{s}.dec_diff_prv,norm_bhv_pred)];
 end
 
-%% Convert into table format suitable for LME modelling
-table_all  = table(trl_n_cur, sbj_n, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC_betahi, BG_theta, BG_betalo, BG_betahi,...
-                 rt_cur, logrt_cur, reward_cur, effort_cur, effortS_cur, decision_cur, SV_cur, absSV_cur, pAccept_cur, dec_diff_cur,...
-                 rt_prv, logrt_prv, reward_prv, effort_prv, effortS_prv, decision_prv, SV_prv, absSV_prv, pAccept_prv, dec_diff_prv);
+%% Find outliers across all time points
+% Can't do this, I toss way too many trials!
+%   'TFRmth_S1t2_zS8t0_f2t40' for bhv z and nrl logz: 57, 82, 149, 64, 111, 175
+%   'TFRmth_S1t2_madS8t0_f2t40' for bhv z and nrl z: 55, 110, 180, 48, 121, 174
+% pow_vars = {'PFC_theta','PFC_betalo','PFC_betahi','BG_theta','BG_betalo','BG_betahi'};
+% outlier_ix = cell(size(pow_vars));
+% for t_ix = 1:numel(plt_time_vec)
+%     % Normalize and combine power data per frequency band and SBJ
+%     pow_data = struct;
+%     for f = 1:length(pow_vars)
+%         pow_data.(pow_vars{f}) = [];
+%     end
+%     for s = 1:length(SBJs)
+%         pow_data.PFC_theta  = [pow_data.PFC_theta; fn_normalize_predictor(theta_pow{s,2}(:,t_ix),norm_nrl_pred)];
+%         pow_data.PFC_betalo = [pow_data.PFC_betalo; fn_normalize_predictor(betalo_pow{s,2}(:,t_ix),norm_nrl_pred)];
+%         pow_data.PFC_betahi = [pow_data.PFC_betahi; fn_normalize_predictor(betahi_pow{s,2}(:,t_ix),norm_nrl_pred)];
+%         pow_data.BG_theta   = [pow_data.BG_theta; fn_normalize_predictor(theta_pow{s,1}(:,t_ix),norm_nrl_pred)];
+%         pow_data.BG_betalo  = [pow_data.BG_betalo; fn_normalize_predictor(betalo_pow{s,1}(:,t_ix),norm_nrl_pred)];
+%         pow_data.BG_betahi  = [pow_data.BG_betahi; fn_normalize_predictor(betahi_pow{s,1}(:,t_ix),norm_nrl_pred)];
+%     end
+%     
+%     % Identify outliers
+%     for f = 1:length(pow_vars)
+%         % Identify outliers
+%         out_idx = abs(pow_data.(pow_vars{f}))>outlier_thresh;
+%         
+%         % Track outliers per channel and frequency band
+%         outlier_ix{f} = [outlier_ix{f}; find(out_idx)];
+%     end
+% end
+% 
+% % Compile list of all trials to toss per frequency band:
+% outlier_ix_fband = cell(size(pow_vars));
+% for f = 1:length(pow_vars)
+%     outlier_ix_fband{f} = unique(outlier_ix{f});
+% end
 
-%% Write table for R
-table_all_fname = [prj_dir 'data/GRP/GRP_' an_id norm_bhv_str norm_nrl_str '_full_table_all.csv'];
-fprintf('\tSaving %s...\n',table_all_fname);
-writetable(table_all,table_all_fname);
+%% Find outliers tossed from time-averaged analysis
+% Load group model table
+table_name = [an_id norm_bhv_str norm_nrl_str];
+table_all_fname = [prj_dir 'data/GRP/GRP_' table_name '_full_table_all.csv'];
+fprintf('\tLoading %s...\n',table_all_fname);
+table_all_avg = readtable(table_all_fname);
+
+% Identify outliers
+pow_vars = {'PFC_theta','PFC_betalo','PFC_betahi','BG_theta','BG_betalo','BG_betahi'};
+out_idx_all = struct;
+for f = 1:length(pow_vars)
+    % Identify outliers
+    out_idx_all.(pow_vars{f}) = abs(table_all_avg.(pow_vars{f}))>outlier_thresh;
+    fprintf(2,'Bad trials in table_all for %s: %d\n',pow_vars{f},sum(out_idx_all.(pow_vars{f})));
+end
+
+%% Run model per time point
+fprintf('Running LMEs: (total = %d)\n\t',length(plt_time_vec));
+theta_lme = cell([2 numel(plt_time_vec)]);
+beta_lme  = cell([2 numel(plt_time_vec)]);
+theta_stat = cell([2 numel(plt_time_vec)]);
+beta_stat  = cell([2 numel(plt_time_vec)]);
+for t_ix = 1:numel(plt_time_vec)
+    %% Create time-specific neural table
+    PFC_theta  = [];
+    PFC_betalo = [];
+    PFC_betahi = [];
+    BG_theta   = [];
+    BG_betalo  = [];
+    BG_betahi  = [];
+    for s = 1:length(SBJs)
+        PFC_theta  = [PFC_theta; fn_normalize_predictor(theta_pow{s,2}(:,t_ix),norm_nrl_pred)];
+        PFC_betalo = [PFC_betalo; fn_normalize_predictor(betalo_pow{s,2}(:,t_ix),norm_nrl_pred)];
+        PFC_betahi = [PFC_betahi; fn_normalize_predictor(betahi_pow{s,2}(:,t_ix),norm_nrl_pred)];
+        BG_theta   = [BG_theta; fn_normalize_predictor(theta_pow{s,1}(:,t_ix),norm_nrl_pred)];
+        BG_betalo  = [BG_betalo; fn_normalize_predictor(betalo_pow{s,1}(:,t_ix),norm_nrl_pred)];
+        BG_betahi  = [BG_betahi; fn_normalize_predictor(betahi_pow{s,1}(:,t_ix),norm_nrl_pred)];
+    end
+    
+    %% Convert into table format suitable for LME modelling
+    table_all  = table(trl_n_cur, sbj_n, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC_betahi, BG_theta, BG_betalo, BG_betahi,...
+        rt_cur, logrt_cur, reward_cur, effort_cur, effortS_cur, decision_cur, SV_cur, absSV_cur, pAccept_cur, dec_diff_cur,...
+        rt_prv, logrt_prv, reward_prv, effort_prv, effortS_prv, decision_prv, SV_prv, absSV_prv, pAccept_prv, dec_diff_prv);
+    
+    %% Toss outliers
+    good_tbl_all = struct;
+    for f = 1:length(pow_vars)
+        % Toss outlier trials determined from time-averaged model
+        good_tbl_all.(pow_vars{f}) = table_all(~out_idx_all.(pow_vars{f}),:);
+    end
+    
+    %% Create previous trial table (Toss NaNs)
+    good_tbl_prv = good_tbl_all;
+    for p = 1:length(pow_vars)
+        prv_nan_idx = isnan(good_tbl_prv.(pow_vars{p}).SV_prv);
+        good_tbl_prv.(pow_vars{p})(prv_nan_idx,:) = [];
+        prv_fields = good_tbl_prv.(pow_vars{p}).Properties.VariableNames;
+        for f = 1:length(prv_fields)
+            if any(isnan(good_tbl_prv.(pow_vars{p}).(prv_fields{f}))); error(['NaN is table_prv.' prv_fields{f}]); end
+        end
+    end
+    
+    %% Run LME models
+    fprintf('%.02f..',plt_time_vec(t_ix));
+    % PFC theta and previous reward:
+    lme0 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
+    lme1 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_prv + (1|sbj_n)');%,'StartMethod','random');
+    theta_stat{2,t_ix} = compare(lme0,lme1,'CheckNesting',true);%,'NSim',1000)
+    theta_lme{2,t_ix} = lme1;
+    
+    % PFC beta low and effort:
+    lme0 = fitlme(good_tbl_all.PFC_betalo,'PFC_betalo~ 1 + (1|sbj_n)');
+    lme1 = fitlme(good_tbl_all.PFC_betalo,'PFC_betalo~ effortS_cur + (1|sbj_n)');
+    beta_stat{2,t_ix} = compare(lme0,lme1,'CheckNesting',true);%,'NSim',1000)
+    beta_lme{2,t_ix}  = lme1;
+    
+    % BG theta and previous reward:
+    lme0 = fitlme(good_tbl_prv.BG_theta,'BG_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
+    lme1 = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_prv + (1|sbj_n)');%,'StartMethod','random');
+    theta_stat{1,t_ix} = compare(lme0,lme1,'CheckNesting',true);%,'NSim',1000)
+    theta_lme{1,t_ix} = lme1;
+    
+    % BG beta low and effort:
+    lme0 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ BG_roi + (1|sbj_n)');
+    lme1 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ effortS_cur + BG_roi + (1|sbj_n)');
+    beta_stat{1,t_ix} = compare(lme0,lme1,'CheckNesting',true);%,'NSim',1000)
+    beta_lme{1,t_ix}  = lme1;
+    
+    if mod(t_ix,10)==0; fprintf('\n\t'); end
+end
+fprintf('\n');
+
+%% Save LMEs
+grp_dir = [prj_dir 'data/GRP/'];
+lmm_fname = [grp_dir 'GRP_' an_id norm_bhv_str norm_nrl_str out_thresh_str '_LMM_ts.mat'];
+fprintf('Saving %s\n',lmm_fname);
+save(lmm_fname,'-v7.3','theta_lme','beta_lme','theta_stat','beta_stat','plt_time_vec');
 
