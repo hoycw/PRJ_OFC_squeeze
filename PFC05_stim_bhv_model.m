@@ -4,6 +4,8 @@ clear all
 close all
 
 %%
+model_p_acc = 0;
+
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 save_fig = 1;
 fig_ftype = 'png';
@@ -19,31 +21,6 @@ load(stim_bhv_fname);
 
 data = Reg2;
 col_names = {'Effort','Stake','Decision','Block','TrialCum','BlkCum','Stim'};
-
-%% Fit a Generalised linear model and look for an interaction term %%
-zReg = [zscore(data(:,1)) zscore(data(:,2)) data(:,3:7)];
-% T = array2table(data, 'VariableNames', col_names);
-zT = array2table(zReg, 'VariableNames', col_names);
-
-
-% GLMs
-% modelspec = 'Decision ~ Effort*Stake*Stim - Effort:Stake:Stim';
-% mdl = fitglm(T,modelspec,'Distribution','binomial')
-% zmdl = fitglm(zT,modelspec,'Distribution','binomial')
-
-% GLMMs
-modelspec = 'Decision ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block)';% + (1|TrialCum) + (1|BlkCum)';
-% mdl = fitglme(T,modelspec,'Distribution','binomial')
-zmdl = fitglme(zT,modelspec,'Distribution','binomial')
-
-
-% mdl2 = stepwiselm(T,'interactions')
-b1=[];
-beta=zmdl.Coefficients.Estimate
-
-b1=beta(6:7)
-
-% addpath('E:\Box Sync\Research\Resources & References\Software\Matlab\General_Code');
 
 %% BEHAVIORAL MODELLING %%
 effort_ix = strcmp(col_names,'Effort');
@@ -79,6 +56,40 @@ decisionfun=@(p) norm( (exp(p(1)*(data(on_idx,stake_ix)-(p(2)*(data(on_idx,effor
 
 p_accept_on = (exp(par_on(1)*(data(on_idx,stake_ix)-(par_on(2)*(data(on_idx,effort_ix)).^2))) ./...
     (exp(par_on(1)) + exp(par_on(1)*(data(on_idx,stake_ix)-(par_on(2)*(data(on_idx,effort_ix)).^2)))));
+
+%% Fit a Generalised linear model and look for an interaction term %%
+zReg = [zscore(data(:,1)) zscore(data(:,2)) data(:,3:7)];
+if model_p_acc
+    zReg = [zReg zscore([p_accept_off; p_accept_on])];
+    col_names = [col_names 'p_accept'];
+end
+% T = array2table(data, 'VariableNames', col_names);
+zT = array2table(zReg, 'VariableNames', col_names);
+
+
+% GLMs
+% modelspec = 'Decision ~ Effort*Stake*Stim - Effort:Stake:Stim';
+% mdl = fitglm(T,modelspec,'Distribution','binomial')
+% zmdl = fitglm(zT,modelspec,'Distribution','binomial')
+
+% GLMMs
+modelspec = 'Decision ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block)';% + (1|TrialCum) + (1|BlkCum)';
+% mdl = fitglme(T,modelspec,'Distribution','binomial')
+zmdl = fitglme(zT,modelspec,'Distribution','binomial')
+
+% GLMMs
+if model_p_acc
+    modelspec = 'p_accept ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block)';% + (1|TrialCum) + (1|BlkCum)';
+    zmdl_pacc = fitglme(zT,modelspec)
+end
+
+% mdl2 = stepwiselm(T,'interactions')
+b1=[];
+beta=zmdl.Coefficients.Estimate
+
+b1=beta(6:7)
+
+% addpath('E:\Box Sync\Research\Resources & References\Software\Matlab\General_Code');
 
 %% Average behavior by condition for plotting
 % Mean Reward and Effort
@@ -140,35 +151,41 @@ p_dec_mn_diff = p_dec_mn_on-p_dec_mn_off;
 
 %% Line plots of Prob accept by reward and effort
 fig_name = ['PFC05_stim_allTrials_dec_stake_ONOFF_line'];
-figure('Name',fig_name); hold on;
-errorbar(stakes,dec_stake_off_mn,dec_stake_off_se,'Color','b');
-errorbar(stakes,dec_stake_on_mn,dec_stake_on_se,'Color','r');
+figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
+errorbar(stakes,dec_stake_off_mn,dec_stake_off_se,'Color','b','linewidth',3);
+errorbar(stakes,dec_stake_on_mn,dec_stake_on_se,'Color','r','linewidth',3);
 xlabel('Reward');
 ylabel('% Accept');
 ylim([0 1.1]);
 legend({'OFF stimulation','ON stimulation'},'Location','best');
-title(['Interaction: Stimulation*Reward on Decision (p=' num2str(zmdl.Coefficients.pValue(7),'%.03f') ')']);
-set(gca,'FontSize',16);
+title(['Decision ~ Stimulation*Reward (p=' num2str(zmdl.Coefficients.pValue(7),'%.03f') ')']);
+set(gca,'FontSize',18);
 if save_fig
     fig_dir   = [prj_dir 'results/bhv/PFC05_stim/decision_stake_line/'];
     if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
     fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
+    fig_fname = [fig_dir fig_name '.fig'];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
 end
 
 fig_name = ['PFC05_stim_allTrials_p_acc_stake_ONOFF_line'];
-figure('Name',fig_name); hold on;
-errorbar(stakes,pacc_stake_off_mn,pacc_stake_off_se,'Color','b');
-errorbar(stakes,pacc_stake_on_mn,pacc_stake_on_se,'Color','r');
+figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
+errorbar(stakes,pacc_stake_off_mn,pacc_stake_off_se,'Color','b','linewidth',3);
+errorbar(stakes,pacc_stake_on_mn,pacc_stake_on_se,'Color','r','linewidth',3);
 xlabel('Reward');
 ylabel('Probability of Accept');
 ylim([0 1.1]);
 legend({'OFF stimulation','ON stimulation'},'Location','best');
-title(['Effect of Stimulation*Reward on Decision (p=' num2str(zmdl.Coefficients.pValue(7),'%.03f') ')']);
-set(gca,'FontSize',16);
+title(['Effect of Stimulation*Reward on Prob. Accept']);
+set(gca,'FontSize',18);
 if save_fig
     fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+    fig_fname = [fig_dir fig_name '.fig'];
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
 end
