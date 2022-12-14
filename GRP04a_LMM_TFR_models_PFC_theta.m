@@ -18,7 +18,6 @@ SBJs         = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 sbj_bg_roi   = {'GPi','STN','GPi','STN'};
 
-
 sbj_colors = [27, 158, 119;         % teal
               217, 95, 2;           % burnt orange
               117, 112, 179;        % purple
@@ -91,112 +90,6 @@ end
 %% ========================================================================
 %   PFC THETA
 %  ========================================================================
-%  PFC theta and previous subjective value:
-lme0 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
-lme1 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_prv + (1|sbj_n)');%,'StartMethod','random');
-pfc_theta_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-% plotResiduals(lme1);
-% plotResiduals(lme1,'fitted');
-% lme1.plotPartialDependence();
-
-% Plot theta as scatter plot and median split of SV_prv
-x_fudge = 0.2;
-scat_sz = 20;
-fig_name = 'GRP_TFR_LMM_results_PFC_theta_SV_prv_scatter';
-figure('Name',fig_name); hold on;
-xvals = min(good_tbl_prv.PFC_theta.SV_prv)-x_fudge:0.01:max(good_tbl_prv.PFC_theta.SV_prv)+x_fudge;
-for s = 1:length(SBJs)
-    scatter(good_tbl_prv.PFC_theta.SV_prv(good_tbl_prv.PFC_theta.sbj_n==s),good_tbl_prv.PFC_theta.PFC_theta(good_tbl_prv.PFC_theta.sbj_n==s),...
-        scat_sz,'k');%sbj_colors(s,:));
-    mdl = fitlm(good_tbl_prv.PFC_theta.SV_prv(good_tbl_prv.PFC_theta.sbj_n==s),good_tbl_prv.PFC_theta.PFC_theta(good_tbl_prv.PFC_theta.sbj_n==s));
-    yvals = mdl.Coefficients.Estimate(1) + xvals*mdl.Coefficients.Estimate(2);
-    line(xvals,yvals,'Color',sbj_colors(s,:),'LineWidth',3,'LineStyle',':');
-end
-yvals = lme1.Coefficients.Estimate(1) + xvals*lme1.Coefficients.Estimate(2);
-line(xvals,yvals,'Color','k','LineWidth',5);
-xlabel('Previous SV (z)');
-ylabel('PFC theta (z)');
-title(['LMM beta = ' num2str(lme1.Coefficients.Estimate(2)) '; p = ' num2str(pfc_theta_sv_prv.pValue(2),'%.03f')]);
-set(gca,'FontSize',16);
-
-if save_fig
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-% Plot PFC theta as function of increase vs. decrease in SV
-%           current low   high
-%   prv low                 X
-%   prv high         X
-fig_name = 'GRP_TFR_LMM_results_PFC_theta_SV_splits';
-figure('Name',fig_name,'units','norm','outerposition',[0 0 0.7 0.5]);
-prv_low_idx = good_tbl_prv.PFC_theta.SV_prv<median(good_tbl_prv.PFC_theta.SV_prv);
-cur_low_idx = good_tbl_prv.PFC_theta.SV_cur<median(good_tbl_prv.PFC_theta.SV_cur);
-
-subplot(1,3,1); hold on;
-vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx);
-vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx);
-violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
-line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
-set(gca,'XTickLabel',{'Low Previous SV','High Previous SV'});
-ylabel('PFC theta (z)');
-title('Median Split of Previous SV');
-set(gca,'FontSize',16);
-
-subplot(1,3,2); hold on;
-vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & cur_low_idx);
-vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx);
-violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
-line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
-set(gca,'XTickLabel',{'Low Current SV','High Current SV'});
-ylabel('PFC theta (z)');
-title('Median Split of Low Previous SV');
-set(gca,'FontSize',16);
-
-subplot(1,3,3); hold on;
-vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & cur_low_idx);
-vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & ~cur_low_idx);
-violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
-line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
-set(gca,'XTickLabel',{'Low Current SV','High Current SV'});
-ylabel('PFC theta (z)');
-title('Median Split of High Previous SV');
-set(gca,'FontSize',16);
-
-if save_fig
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-% Gratton-style line plot
-fig_name = 'GRP_TFR_LMM_results_PFC_theta_SV_gratton';
-figure('Name',fig_name); hold on;
-lL_avg = mean(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & cur_low_idx));
-lH_avg = mean(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx));
-hL_avg = mean(good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & cur_low_idx));
-hH_avg = mean(good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & ~cur_low_idx));
-lL_sem = std(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & cur_low_idx))./sqrt(sum(prv_low_idx & cur_low_idx));
-lH_sem = std(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx))./sqrt(sum(prv_low_idx & ~cur_low_idx));
-hL_sem = std(good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & cur_low_idx))./sqrt(sum(~prv_low_idx & cur_low_idx));
-hH_sem = std(good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & ~cur_low_idx))./sqrt(sum(~prv_low_idx & ~cur_low_idx));
-cur_lo_line = errorbar([1 2],[lL_avg hL_avg],[lL_sem hL_sem],'Color','b','LineWidth',2);
-cur_hi_line = errorbar([1 2],[lH_avg hH_avg],[lH_sem hH_sem],'Color','r','LineWidth',2);
-ylabel('PFC Theta (z)');
-set(gca,'XTick',[1 2]);
-set(gca,'XTickLabel',{'Low Previous SV','High Previous SV'});
-xlim([0.5 2.5]);
-legend([cur_lo_line, cur_hi_line],{'Low Current SV','High Current SV'},'Location','best');
-title('Effects of Previous and Current Subjective Value');
-set(gca,'FontSize',16);
-
-if save_fig
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
 %% PFC theta and previous reward:
 lme0 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
 lme1 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_prv + (1|sbj_n)');%,'StartMethod','random');
@@ -210,149 +103,166 @@ pfc_theta_rew_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 % pfc_theta_eff_vs_effS_prv = compare(lme1,lme2)%,'NSim',1000)
 % pfc_theta_eff_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 
-% Plot theta ~ previous reward as scatter plot
-x_fudge = 0.2;
-scat_sz = 20;
-fig_name = 'GRP_TFR_LMM_results_PFC_theta_reward_prv_scatter';
-figure('Name',fig_name); hold on;
-xvals = min(good_tbl_prv.PFC_theta.reward_prv)-x_fudge:0.01:max(good_tbl_prv.PFC_theta.reward_prv)+x_fudge;
-for s = 1:length(SBJs)
-    scatter(good_tbl_prv.PFC_theta.reward_prv(good_tbl_prv.PFC_theta.sbj_n==s),good_tbl_prv.PFC_theta.PFC_theta(good_tbl_prv.PFC_theta.sbj_n==s),...
-        scat_sz,'k');%sbj_colors(s,:));
-    mdl = fitlm(good_tbl_prv.PFC_theta.reward_prv(good_tbl_prv.PFC_theta.sbj_n==s),good_tbl_prv.PFC_theta.PFC_theta(good_tbl_prv.PFC_theta.sbj_n==s));
-    yvals = mdl.Coefficients.Estimate(1) + xvals*mdl.Coefficients.Estimate(2);
-    line(xvals,yvals,'Color',sbj_colors(s,:),'LineWidth',3,'LineStyle',':');
-end
-yvals = lme1.Coefficients.Estimate(1) + xvals*lme1.Coefficients.Estimate(2);
-line(xvals,yvals,'Color','k','LineWidth',5);
+% Plot PFC theta ~ previous reward as scatter plot
+fn_plot_LMM_scatter(SBJs,good_tbl_prv.PFC_theta,'reward_prv','PFC_theta',lme1,pfc_theta_rew_prv.pValue(2));
 xlabel('Previous Reward (z)');
 ylabel('PFC theta (z)');
-title(['LMM beta = ' num2str(lme1.Coefficients.Estimate(2)) '; p = ' num2str(pfc_theta_rew_prv.pValue(2),'%.03f')]);
-set(gca,'FontSize',16);
-
 if save_fig
+    fig_name = get(gcf,'Name');
     fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
 end
 
 % Plot theta ~ previous reward as line plot
-for s = 1:length(SBJs)
-    % Get bin edges
-    qs = quantile(good_tbl_prv.PFC_theta.reward_prv(good_tbl_prv.PFC_theta.sbj_n==s),n_quantiles);
-    rew_prv_edges = nan([n_quantiles-1 1]);
-    for i = 1:n_quantiles-1
-        rew_prv_edges(i) = mean(qs(i:i+1));
-    end
-    % Average within bins
-    rew_prv_mn.(SBJs{s})            = nan([n_quantiles 1]);
-    PFC_theta_rew_prv_mn.(SBJs{s})  = nan([n_quantiles 1]);
-    PFC_theta_rew_prv_se.(SBJs{s})  = nan([n_quantiles 1]);
-    for i = 1:n_quantiles
-        if i==1                 % first quantile
-            trl_idx = good_tbl_prv.PFC_theta.sbj_n==s & good_tbl_prv.PFC_theta.reward_prv<rew_prv_edges(i);
-        elseif i==n_quantiles   % last quantile
-            trl_idx = good_tbl_prv.PFC_theta.sbj_n==s & good_tbl_prv.PFC_theta.reward_prv>=rew_prv_edges(i-1);
-        else                    % middle quantiles
-            trl_idx = good_tbl_prv.PFC_theta.sbj_n==s & good_tbl_prv.PFC_theta.reward_prv<rew_prv_edges(i) &...
-                good_tbl_prv.PFC_theta.reward_prv>=rew_prv_edges(i-1);
-        end
-        rew_prv_mn.(SBJs{s})(i) = mean(good_tbl_prv.PFC_theta.reward_prv(trl_idx));
-        PFC_theta_rew_prv_mn.(SBJs{s})(i) = mean(good_tbl_prv.PFC_theta.PFC_theta(trl_idx));
-        PFC_theta_rew_prv_se.(SBJs{s})(i) = std(good_tbl_prv.PFC_theta.PFC_theta(trl_idx))./sqrt(sum(trl_idx));
-    end
-end
-fig_name = 'GRP_TFR_LMM_results_PFC_theta_reward_prv_line';
-figure('Name',fig_name); hold on;
-xvals = min(good_tbl_prv.PFC_theta.reward_prv)-x_fudge:0.01:max(good_tbl_prv.PFC_theta.reward_prv)+x_fudge;
-for s = 1:length(SBJs)
-    errorbar(rew_prv_mn.(SBJs{s}),PFC_theta_rew_prv_mn.(SBJs{s}),PFC_theta_rew_prv_se.(SBJs{s}),...
-        'Color',sbj_colors(s,:),'LineWidth',1.5);
-end
-yvals = lme1.Coefficients.Estimate(1) + xvals*lme1.Coefficients.Estimate(2);
-line(xvals,yvals,'Color','k','LineWidth',4);
+fn_plot_LMM_quantile_lines(SBJs,good_tbl_prv.PFC_theta,'reward_prv','PFC_theta',...
+    lme1,pfc_theta_rew_prv.pValue(2),n_quantiles);
 xlabel('Previous Reward (z)');
 ylabel('PFC theta (z)');
-title(['LMM beta = ' num2str(lme1.Coefficients.Estimate(2)) '; p = ' num2str(pfc_theta_rew_prv.pValue(2),'%.03f')]);
-legend([SBJs 'Group'],'Location','best');
-set(gca,'FontSize',16);
-
 if save_fig
+    fig_name = get(gcf,'Name');
     fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
 end
 
-% Plot median splits of PFC theta as function of current/previous reward
-fig_name = 'GRP_TFR_LMM_results_PFC_theta_reward_splits';
-figure('Name',fig_name,'units','norm','outerposition',[0 0 0.7 0.5]);
-prv_low_idx = good_tbl_prv.PFC_theta.reward_prv<median(good_tbl_prv.PFC_theta.reward_prv);
-cur_low_idx = good_tbl_prv.PFC_theta.reward_cur<median(good_tbl_prv.PFC_theta.reward_cur);
-
-subplot(1,3,1); hold on;
-vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx);
-vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx);
-violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
-line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
-set(gca,'XTickLabel',{'Low Previous Reward','High Previous Reward'});
-ylabel('PFC theta (z)');
-title('Median Split of Previous Reward');
-set(gca,'FontSize',16);
-
-subplot(1,3,2); hold on;
-vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & cur_low_idx);
-vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx);
-violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
-line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
-set(gca,'XTickLabel',{'Low Current Reward','High Current Reward'});
-ylabel('PFC theta (z)');
-title('Median Split of Low Previous Reward');
-set(gca,'FontSize',16);
-
-subplot(1,3,3); hold on;
-vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & cur_low_idx);
-vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & ~cur_low_idx);
-violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
-line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
-set(gca,'XTickLabel',{'Low Current Reward','High Current Reward'});
-ylabel('PFC theta (z)');
-title('Median Split of High Previous Reward');
-set(gca,'FontSize',16);
-
-if save_fig
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-% Gratton-style line plot
-fig_name = 'GRP_TFR_LMM_results_PFC_theta_reward_gratton';
-figure('Name',fig_name); hold on;
-lL_avg = mean(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & cur_low_idx));
-lH_avg = mean(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx));
-hL_avg = mean(good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & cur_low_idx));
-hH_avg = mean(good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & ~cur_low_idx));
-vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & cur_low_idx);
-vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & ~cur_low_idx);
-lL_sem = std(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & cur_low_idx))./sqrt(sum(prv_low_idx & cur_low_idx));
-lH_sem = std(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx))./sqrt(sum(prv_low_idx & ~cur_low_idx));
-hL_sem = std(good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & cur_low_idx))./sqrt(sum(~prv_low_idx & cur_low_idx));
-hH_sem = std(good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & ~cur_low_idx))./sqrt(sum(~prv_low_idx & ~cur_low_idx));
-cur_lo_line = errorbar([1 2],[lL_avg hL_avg],[lL_sem hL_sem],'Color','b','LineWidth',2);
-cur_hi_line = errorbar([1 2],[lH_avg hH_avg],[lH_sem hH_sem],'Color','r','LineWidth',2);
+% Plot PFC theta ~ SV_prv as Gratton-style line plot
+fn_plot_LMM_gratton(good_tbl_prv.PFC_theta,'reward','PFC_theta');
 ylabel('PFC Theta (z)');
-set(gca,'XTick',[1 2]);
-set(gca,'XTickLabel',{'Low Prev. Reward','High Prev. Reward'});
-xlim([0.5 2.5]);
-legend([cur_lo_line, cur_hi_line],{'Low Curr. Reward','High Curr. Reward'},'Location','southeast');
-title('Effects of Previous and Current Reward');
-set(gca,'FontSize',16);
-
 if save_fig
+    fig_name = get(gcf,'Name');
     fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
 end
+
+% % Plot median splits of PFC theta as function of current/previous reward
+% fig_name = 'GRP_TFR_LMM_results_PFC_theta_reward_splits';
+% figure('Name',fig_name,'units','norm','outerposition',[0 0 0.7 0.5]);
+% prv_low_idx = good_tbl_prv.PFC_theta.reward_prv<median(good_tbl_prv.PFC_theta.reward_prv);
+% cur_low_idx = good_tbl_prv.PFC_theta.reward_cur<median(good_tbl_prv.PFC_theta.reward_cur);
+% 
+% subplot(1,3,1); hold on;
+% vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx);
+% vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx);
+% violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
+% line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
+% set(gca,'XTickLabel',{'Low Previous Reward','High Previous Reward'});
+% ylabel('PFC theta (z)');
+% title('Median Split of Previous Reward');
+% set(gca,'FontSize',16);
+% 
+% subplot(1,3,2); hold on;
+% vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & cur_low_idx);
+% vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx);
+% violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
+% line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
+% set(gca,'XTickLabel',{'Low Current Reward','High Current Reward'});
+% ylabel('PFC theta (z)');
+% title('Median Split of Low Previous Reward');
+% set(gca,'FontSize',16);
+% 
+% subplot(1,3,3); hold on;
+% vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & cur_low_idx);
+% vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & ~cur_low_idx);
+% violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
+% line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
+% set(gca,'XTickLabel',{'Low Current Reward','High Current Reward'});
+% ylabel('PFC theta (z)');
+% title('Median Split of High Previous Reward');
+% set(gca,'FontSize',16);
+% 
+% if save_fig
+%     fig_fname = [fig_dir fig_name '.' fig_ftype];
+%     fprintf('Saving %s\n',fig_fname);
+%     saveas(gcf,fig_fname);
+% end
+
+%%  PFC theta and previous subjective value:
+lme0 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
+lme1 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_prv + (1|sbj_n)');%,'StartMethod','random');
+pfc_theta_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+% plotResiduals(lme1);
+% plotResiduals(lme1,'fitted');
+% lme1.plotPartialDependence();
+
+% Plot PFC theta ~ SV_prv as scatter plot 
+fn_plot_LMM_scatter(SBJs,good_tbl_prv.PFC_theta,'SV_prv','PFC_theta',lme1,pfc_theta_sv_prv.pValue(2));
+xlabel('Previous Subjective Value (z)');
+ylabel('PFC theta (z)');
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
+% Plot PFC theta ~ previous SV as line plot
+fn_plot_LMM_quantile_lines(SBJs,good_tbl_prv.PFC_theta,'SV_prv','PFC_theta',...
+    lme1,pfc_theta_sv_prv.pValue(2),n_quantiles);
+xlabel('Previous Subjective Value (z)');
+ylabel('PFC theta (z)');
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
+% Plot PFC theta ~ SV_prv as Gratton-style line plot
+fn_plot_LMM_gratton(good_tbl_prv.PFC_theta,'SV','PFC_theta');
+ylabel('PFC Theta (z)');
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
+% Plot PFC theta as function of increase vs. decrease in SV
+%           current low   high
+%   prv low                 X
+%   prv high         X
+% fig_name = 'GRP_TFR_LMM_results_PFC_theta_SV_splits';
+% figure('Name',fig_name,'units','norm','outerposition',[0 0 0.7 0.5]);
+% prv_low_idx = good_tbl_prv.PFC_theta.SV_prv<median(good_tbl_prv.PFC_theta.SV_prv);
+% cur_low_idx = good_tbl_prv.PFC_theta.SV_cur<median(good_tbl_prv.PFC_theta.SV_cur);
+% 
+% subplot(1,3,1); hold on;
+% vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx);
+% vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx);
+% violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
+% line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
+% set(gca,'XTickLabel',{'Low Previous SV','High Previous SV'});
+% ylabel('PFC theta (z)');
+% title('Median Split of Previous SV');
+% set(gca,'FontSize',16);
+% 
+% subplot(1,3,2); hold on;
+% vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & cur_low_idx);
+% vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx);
+% violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
+% line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
+% set(gca,'XTickLabel',{'Low Current SV','High Current SV'});
+% ylabel('PFC theta (z)');
+% title('Median Split of Low Previous SV');
+% set(gca,'FontSize',16);
+% 
+% subplot(1,3,3); hold on;
+% vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & cur_low_idx);
+% vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & ~cur_low_idx);
+% violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
+% line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
+% set(gca,'XTickLabel',{'Low Current SV','High Current SV'});
+% ylabel('PFC theta (z)');
+% title('Median Split of High Previous SV');
+% set(gca,'FontSize',16);
+% 
+% if save_fig
+%     fig_fname = [fig_dir fig_name '.' fig_ftype];
+%     fprintf('Saving %s\n',fig_fname);
+%     saveas(gcf,fig_fname);
+% end
 
 %% PFC theta and current reward following low reward
 % prv_low_idx = good_tbl_prv.PFC_theta.reward_prv<median(good_tbl_prv.PFC_theta.reward_prv);
@@ -384,56 +294,22 @@ lme2 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ dec_diff_prv + (1|sbj_n)');
 pfc_theta_abssv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 pfc_theta_dec_diff_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
 
-% Gratton-style line plot
-fig_name = 'GRP_TFR_LMM_results_PFC_theta_salience_gratton';
-figure('Name',fig_name);
-subplot(1,2,1); hold on;
-prv_low_idx = good_tbl_prv.PFC_theta.absSV_prv<median(good_tbl_prv.PFC_theta.absSV_prv);
-cur_low_idx = good_tbl_prv.PFC_theta.absSV_cur<median(good_tbl_prv.PFC_theta.absSV_cur);
-
-lL_avg = mean(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & cur_low_idx));
-lH_avg = mean(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx));
-hL_avg = mean(good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & cur_low_idx));
-hH_avg = mean(good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & ~cur_low_idx));
-lL_sem = std(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & cur_low_idx))./sqrt(sum(prv_low_idx & cur_low_idx));
-lH_sem = std(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx))./sqrt(sum(prv_low_idx & ~cur_low_idx));
-hL_sem = std(good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & cur_low_idx))./sqrt(sum(~prv_low_idx & cur_low_idx));
-hH_sem = std(good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & ~cur_low_idx))./sqrt(sum(~prv_low_idx & ~cur_low_idx));
-cur_lo_line = errorbar([1 2],[lL_avg hL_avg],[lL_sem hL_sem],'Color','b','LineWidth',2);
-cur_hi_line = errorbar([1 2],[lH_avg hH_avg],[lH_sem hH_sem],'Color','r','LineWidth',2);
+% Plot PFC theta ~ absSV as Gratton-style line plot
+fn_plot_LMM_gratton(good_tbl_prv.PFC_theta,'absSV','PFC_theta');
 ylabel('PFC Theta (z)');
-set(gca,'XTick',[1 2]);
-set(gca,'XTickLabel',{'Low Prev. abs(SV)','High Prev. abs(SV)'});
-xlim([0.5 2.5]);
-legend([cur_lo_line, cur_hi_line],{'Low Curr. abs(SV)','High Curr. abs(SV)'},'Location','southwest');
-title('Effects of Previous/Current abs(SV)');
-set(gca,'FontSize',16);
-
-subplot(1,2,2); hold on;
-prv_low_idx = good_tbl_prv.PFC_theta.dec_diff_prv<median(good_tbl_prv.PFC_theta.dec_diff_prv);
-cur_low_idx = good_tbl_prv.PFC_theta.dec_diff_cur<median(good_tbl_prv.PFC_theta.dec_diff_cur);
-
-lL_avg = mean(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & cur_low_idx));
-lH_avg = mean(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx));
-hL_avg = mean(good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & cur_low_idx));
-hH_avg = mean(good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & ~cur_low_idx));
-lL_sem = std(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & cur_low_idx))./sqrt(sum(prv_low_idx & cur_low_idx));
-lH_sem = std(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx))./sqrt(sum(prv_low_idx & ~cur_low_idx));
-hL_sem = std(good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & cur_low_idx))./sqrt(sum(~prv_low_idx & cur_low_idx));
-hH_sem = std(good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & ~cur_low_idx))./sqrt(sum(~prv_low_idx & ~cur_low_idx));
-cur_lo_line = errorbar([1 2],[lL_avg hL_avg],[lL_sem hL_sem],'Color','b','LineWidth',2);
-cur_hi_line = errorbar([1 2],[lH_avg hH_avg],[lH_sem hH_sem],'Color','r','LineWidth',2);
-ylabel('PFC Theta (z)');
-set(gca,'XTick',[1 2]);
-set(gca,'XTickLabel',{'Low Prev. Difficulty','High Prev. Difficulty'});
-xlim([0.5 2.5]);
-legend([cur_lo_line, cur_hi_line],{'Low Curr. Difficulty','High Curr. Difficulty'},'Location','southwest');
-title('Effects of Previous/Current Decision Difficulty');
-set(gca,'FontSize',16);
-
 if save_fig
+    fig_name = get(gcf,'Name');
     fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
 end
+fn_plot_LMM_gratton(good_tbl_prv.PFC_theta,'dec_diff','PFC_theta');
+ylabel('PFC Theta (z)');
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
 

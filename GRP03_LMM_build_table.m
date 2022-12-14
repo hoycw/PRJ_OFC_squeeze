@@ -14,9 +14,9 @@ man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 
 % sbj_colors = distinguishable_colors(length(SBJs));
 
 % Analysis parameters:
+an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
 norm_bhv_pred = 'zscore';%'none';%
 norm_nrl_pred = 'zscore';%'none';%
-an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS1t0_f2t40_log';%
 % an_id = 'TFRmth_D1t1_zS8t0_f2t40';
 use_simon_tfr = 0;
 toss_same_trials = 1;

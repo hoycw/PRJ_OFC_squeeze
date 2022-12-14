@@ -5,7 +5,7 @@ close all
 clear all
 
 %%
-an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
+an_id = 'TFRmth_S1t2_zS8t0_f2t40';%'TFRmth_S1t2_madS8t0_f2t40';%
 norm_bhv_pred = 'zscore';%'none';%
 norm_nrl_pred = 'zscore';%'none';%
 outlier_thresh = 4;
@@ -29,7 +29,7 @@ if ~strcmp(norm_nrl_pred,'none'); norm_nrl_str = ['_nrl' norm_nrl_pred]; else; n
 out_thresh_str = ['_out' num2str(outlier_thresh)];
 
 table_name = [an_id norm_bhv_str norm_nrl_str];
-fig_dir   = [prj_dir 'results/TFR/LMM/' table_name out_thresh_str '/PFC_beta/'];
+fig_dir   = [prj_dir 'results/TFR/LMM/' table_name out_thresh_str '/BG_betalo/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 
 %% Load data
@@ -88,29 +88,36 @@ for p = 1:length(pow_vars)
 end
 
 %% ========================================================================
-%   PFC BETA MODELS
+%   BASAL GANGLIA BETA LOW
 %  ========================================================================
-% PFC Beta and Reward vs. Effort models:
-% PFC beta low and reward:
-lme0 = fitlme(good_tbl_all.PFC_betalo,'PFC_betalo~ 1 + (1|sbj_n)');
-lme1 = fitlme(good_tbl_all.PFC_betalo,'PFC_betalo~ reward_cur + (1|sbj_n)');
-pfc_betalo_rew = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+% Plot BG beta low by ROI
+bg_roi_idx_all = good_tbl_all.BG_betalo.BG_roi;
+figure;
+errorbar([1 2],[mean(good_tbl_all.BG_betalo.BG_betalo(bg_roi_idx_all==1)) ...
+    mean(good_tbl_all.BG_betalo.BG_betalo(bg_roi_idx_all==2))], [std(good_tbl_all.BG_betalo.BG_betalo(bg_roi_idx_all==1)) ...
+    std(good_tbl_all.BG_betalo.BG_betalo(bg_roi_idx_all==2))]);
+xlabel('BG ROI');
+ylabel('BG beta low');
+xlim([0.5 2.5]);
+set(gca,'FontSize',16);
 
-% PFC beta low and effort:
-lme0 = fitlme(good_tbl_all.PFC_betalo,'PFC_betalo~ 1 + (1|sbj_n)');
-lme1 = fitlme(good_tbl_all.PFC_betalo,'PFC_betalo~ effort_cur + (1|sbj_n)');
-lme2 = fitlme(good_tbl_all.PFC_betalo,'PFC_betalo~ effortS_cur + (1|sbj_n)');
-lme3 = fitlme(good_tbl_all.PFC_betalo,'PFC_betalo~ SV_cur + (1|sbj_n)');
-pfc_betalo_eff = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-pfc_betalo_effS = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
-% pfc_betalo_effS_vs_SV = compare(lme3,lme2,'NSim',1000)
-%   effortS is better model than effort
-%   effort and effort S are better models than SV
+% BG modeling section from _orig:
+% BG beta low and subjective value:
+lme0 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ BG_roi + (1|sbj_n)');
+lme1 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ SV_cur + BG_roi + (1|sbj_n)');
+bg_betalo_sv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 
-% Plot PFC betalo ~ effortS as scatter plot
-fn_plot_LMM_scatter(SBJs,good_tbl_all.PFC_betalo,'effortS_cur','PFC_betalo',lme2,pfc_betalo_effS.pValue(2));
+% BG beta low and effort:
+lme0 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ BG_roi + (1|sbj_n)');
+lme1 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ effort_cur + BG_roi + (1|sbj_n)');
+lme2 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ effortS_cur + BG_roi + (1|sbj_n)');
+bg_betalo_eff = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+bg_betalo_effS = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
+
+% Plot BG betalo ~ effortS as scatter plot
+fn_plot_LMM_scatter(SBJs,good_tbl_all.BG_betalo,'effortS_cur','BG_betalo',lme2,bg_betalo_effS.pValue(2));
 xlabel('Subjective Effort (z)');
-ylabel('PFC low beta (z)');
+ylabel('BG low beta (z)');
 if save_fig
     fig_name = get(gcf,'Name');
     fig_fname = [fig_dir fig_name '.' fig_ftype];
@@ -118,11 +125,11 @@ if save_fig
     saveas(gcf,fig_fname);
 end
 
-% Plot PFC betalo ~ effortS as line plot
-fn_plot_LMM_quantile_lines(SBJs,good_tbl_all.PFC_betalo,'effortS_cur','PFC_betalo',...
-    lme2,pfc_betalo_effS.pValue(2),n_quantiles);
+% Plot BG betalo ~ effortS as line plot
+fn_plot_LMM_quantile_lines(SBJs,good_tbl_all.BG_betalo,'effortS_cur','BG_betalo',...
+    lme2,bg_betalo_effS.pValue(2),n_quantiles);
 xlabel('Subjective Effort (z)');
-ylabel('PFC low beta (z)');
+ylabel('BG low beta (z)');
 if save_fig
     fig_name = get(gcf,'Name');
     fig_fname = [fig_dir fig_name '.' fig_ftype];
@@ -130,23 +137,28 @@ if save_fig
     saveas(gcf,fig_fname);
 end
 
-% Plot PFC betalo ~ effortS as Gratton-style line plot
-fn_plot_LMM_gratton(good_tbl_prv.PFC_betalo,'effortS','PFC_betalo');
-ylabel('PFC low beta (z)');
-set(gca,'XTickLabel',{'Low Previous EFF','High Previous EFF'});
-legend({'Low Current EFF','High Current EFF'},'Location','best');
+%% BG previous trial models
+% BG beta low and subjective value:
+lme0 = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ BG_roi + (1|sbj_n)');
+lme1 = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ SV_prv + BG_roi + (1|sbj_n)');
+bg_betalo_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+
+% BG beta low and effort:
+lme0 = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ BG_roi + (1|sbj_n)');
+lme1 = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ effort_prv + BG_roi + (1|sbj_n)');
+lme2 = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ effortS_prv + BG_roi + (1|sbj_n)');
+bg_betalo_eff_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+bg_betalo_effS_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
+
+% Plot BG betalo ~ previous subjective effort as scatter plot
+fn_plot_LMM_scatter(SBJs,good_tbl_prv.BG_betalo,'effortS_prv','BG_betalo',lme2,bg_betalo_effS_prv.pValue(2));
+xlabel('Prev. Subjective Effort (z)');
+ylabel('BG low beta (z)');
 if save_fig
     fig_name = get(gcf,'Name');
     fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
 end
-
-% PFC beta low and previous effort:
-lme0 = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ 1 + (1|sbj_n)');
-lme1 = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ effort_prv + (1|sbj_n)');
-lme2 = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ effortS_prv + (1|sbj_n)');
-pfc_betalo_eff_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-pfc_betalo_effS_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
 
 

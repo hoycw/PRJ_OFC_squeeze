@@ -5,6 +5,10 @@ close all
 
 %%
 model_p_acc = 0;
+off_color = 'b';
+on_color  = 'r';
+scat_sz = 40;
+font_sz = 18;
 
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 save_fig = 1;
@@ -32,10 +36,10 @@ decisionfun=@(p) norm( (exp(p(1)*(data(:,stake_ix)-(p(2)*(data(:,effort_ix)).^2)
     (exp(p(1)) + exp(p(1)*(data(:,stake_ix)-(p(2)*(data(:,effort_ix)).^2))))) - data(:,dec_ix));
 [par_all, fit]=fminsearch(decisionfun, [1,1]);
 
-SV_fn    = @(k) data(:,stake_ix)-(k*(data(:,effort_ix)).^2);
-EFF_fn   = @(k) (k*(data(:,effort_ix)).^2);
-SV   = SV_fn(par_all(2));
-EFFs = EFF_fn(par_all(2));
+SV_fn_all    = @(k) data(:,stake_ix)-(k*(data(:,effort_ix)).^2);
+EFF_fn_all   = @(k) (k*(data(:,effort_ix)).^2);
+SV_all   = SV_fn_all(par_all(2));
+EFFs_all = EFF_fn_all(par_all(2));
 p_accept = (exp(par_all(1)*(data(:,stake_ix)-(par_all(2)*(data(:,effort_ix)).^2))) ./...
     (exp(par_all(1)) + exp(par_all(1)*(data(:,stake_ix)-(par_all(2)*(data(:,effort_ix)).^2)))));
 
@@ -47,6 +51,9 @@ decisionfun=@(p) norm( (exp(p(1)*(data(off_idx,stake_ix)-(p(2)*(data(off_idx,eff
 
 p_accept_off = (exp(par_off(1)*(data(off_idx,stake_ix)-(par_off(2)*(data(off_idx,effort_ix)).^2))) ./...
     (exp(par_off(1)) + exp(par_off(1)*(data(off_idx,stake_ix)-(par_off(2)*(data(off_idx,effort_ix)).^2)))));
+SV_fn_off    = @(k) data(off_idx,stake_ix)-(k*(data(off_idx,effort_ix)).^2);
+SV_off   = SV_fn_off(par_off(2));
+[~,SV_off_sort_idx] = sort(SV_off);
 
 % Fit ON behavior
 on_idx = data(:,stim_ix)==1;
@@ -56,6 +63,9 @@ decisionfun=@(p) norm( (exp(p(1)*(data(on_idx,stake_ix)-(p(2)*(data(on_idx,effor
 
 p_accept_on = (exp(par_on(1)*(data(on_idx,stake_ix)-(par_on(2)*(data(on_idx,effort_ix)).^2))) ./...
     (exp(par_on(1)) + exp(par_on(1)*(data(on_idx,stake_ix)-(par_on(2)*(data(on_idx,effort_ix)).^2)))));
+SV_fn_on    = @(k) data(on_idx,stake_ix)-(k*(data(on_idx,effort_ix)).^2);
+SV_on   = SV_fn_on(par_on(2));
+[~,SV_on_sort_idx] = sort(SV_on);
 
 %% Fit a Generalised linear model and look for an interaction term %%
 zReg = [zscore(data(:,1)) zscore(data(:,2)) data(:,3:7)];
@@ -152,8 +162,8 @@ p_dec_mn_diff = p_dec_mn_on-p_dec_mn_off;
 %% Line plots of Prob accept by reward and effort
 fig_name = ['PFC05_stim_allTrials_dec_stake_ONOFF_line'];
 figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
-errorbar(stakes,dec_stake_off_mn,dec_stake_off_se,'Color','b','linewidth',3);
-errorbar(stakes,dec_stake_on_mn,dec_stake_on_se,'Color','r','linewidth',3);
+errorbar(stakes,dec_stake_off_mn,dec_stake_off_se,'Color',off_color,'linewidth',3);
+errorbar(stakes,dec_stake_on_mn,dec_stake_on_se,'Color',on_color,'linewidth',3);
 xlabel('Reward');
 ylabel('% Accept');
 ylim([0 1.1]);
@@ -166,15 +176,15 @@ if save_fig
     fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
-    fig_fname = [fig_dir fig_name '.fig'];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
+%     fig_fname = [fig_dir fig_name '.fig'];
+%     fprintf('Saving %s\n',fig_fname);
+%     saveas(gcf,fig_fname);
 end
 
 fig_name = ['PFC05_stim_allTrials_p_acc_stake_ONOFF_line'];
 figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
-errorbar(stakes,pacc_stake_off_mn,pacc_stake_off_se,'Color','b','linewidth',3);
-errorbar(stakes,pacc_stake_on_mn,pacc_stake_on_se,'Color','r','linewidth',3);
+errorbar(stakes,pacc_stake_off_mn,pacc_stake_off_se,'Color',off_color,'linewidth',3);
+errorbar(stakes,pacc_stake_on_mn,pacc_stake_on_se,'Color',on_color,'linewidth',3);
 xlabel('Reward');
 ylabel('Probability of Accept');
 ylim([0 1.1]);
@@ -185,9 +195,33 @@ if save_fig
     fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
-    fig_fname = [fig_dir fig_name '.fig'];
+%     fig_fname = [fig_dir fig_name '.fig'];
+%     fprintf('Saving %s\n',fig_fname);
+%     saveas(gcf,fig_fname);
+end
+
+%% Line plot for SV vs. decision function
+fig_name = ['PFC05_stim_dec_fn_ONOFF_line'];
+figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
+off_line = line(SV_off(SV_off_sort_idx),p_accept_off(SV_off_sort_idx),'Color',off_color,'LineWidth',3);
+scatter(SV_off(SV_off_sort_idx),p_accept_off(SV_off_sort_idx),scat_sz,off_color);
+on_line = line(SV_on(SV_on_sort_idx),p_accept_on(SV_on_sort_idx),'Color',on_color,'LineWidth',3);
+scatter(SV_on(SV_on_sort_idx),p_accept_on(SV_on_sort_idx),scat_sz,on_color);
+%     line(mdl_x,mdl_y,'Color','k');
+line([0 0],[0 1],'Color','k','LineStyle','--');
+xlabel('Subjective Value'); ylabel('Probabilty Accept');
+title('Subjective Value Decision Function');
+legend([off_line,on_line],{'OFF stimulation','ON stimulation'},'Location','best');
+set(gca,'FontSize',font_sz);
+if save_fig
+    fig_dir   = [prj_dir 'results/bhv/PFC05_stim/decision_fn_line/'];
+    if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
+%     fig_fname = [fig_dir fig_name '.fig'];
+%     fprintf('Saving %s\n',fig_fname);
+%     saveas(gcf,fig_fname);
 end
 
 %% 3-D plot of decision as function of reward and effort
@@ -310,7 +344,7 @@ yticklabels(stakes);
 xlabel('Effort (% Max)');
 xticklabels(efforts*100);
 zlabel('Probability Accept');
-set(gca,'FontSize',16);
+set(gca,'FontSize',font_sz);
 view([135 30]);
 
 % Shade bar according to z-axis
