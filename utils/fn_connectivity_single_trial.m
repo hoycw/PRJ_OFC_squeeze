@@ -1,4 +1,4 @@
-function [conn] = fn_single_trial_connectivity(data,metric)
+function [conn] = fn_connectivity_single_trial(data,metric)
 %% Compute single trial connectivity
 % INPUTS:
 %   data [ft struct] - output of ft_preprocessing filtered data

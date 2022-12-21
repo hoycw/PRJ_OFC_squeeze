@@ -5,8 +5,8 @@ close all
 clear all
 
 %%
-% an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
-an_id = 'TFRmth_D1t1_madS8t0_f2t40';%'TFRmth_D1t1_zS8t0_f2t40';%
+an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
+% an_id = 'TFRmth_D1t1_madS8t0_f2t40';%'TFRmth_D1t1_zS8t0_f2t40';%
 norm_bhv_pred = 'zscore';%'none';%
 norm_nrl_pred = 'zscore';%'none';%
 outlier_thresh = 4;
@@ -170,6 +170,7 @@ fn_plot_LMM_scatter(SBJs,good_tbl_prv.BG_theta,'SV_prv','BG_theta',lme1,bg_theta
 xlabel('Previous Subjective Value (z)');
 ylabel('BG theta (z)');
 if save_fig
+    fig_name = get(gcf,'Name');
     fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);

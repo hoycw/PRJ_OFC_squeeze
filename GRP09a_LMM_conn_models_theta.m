@@ -7,7 +7,7 @@ clear all
 %%
 an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40';% an_id = 'TFRmth_D1t1_zS8t0_f2t40';
-conn_metric = 'PLV';
+conn_metric = 'ampcorr';
 evnt_id     = 'S';
 if contains(an_id,'_S')
     an_lim = [0.5 1.5];
@@ -22,7 +22,7 @@ outlier_thresh = 4;
 n_quantiles = 5;
 
 save_fig = 1;
-fig_ftype = 'png';
+fig_ftype = 'fig';
 
 SBJs         = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};

@@ -7,7 +7,7 @@ clear all
 %%
 an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40';% an_id = 'TFRmth_D1t1_zS8t0_f2t40';
-conn_metric = 'PLV';
+conn_metric = 'ampcorr';
 evnt_id     = 'S';
 if contains(an_id,'_S')
     an_lim = [0.5 1.5];
@@ -41,7 +41,7 @@ out_thresh_str = ['_out' num2str(outlier_thresh)];
 win_str = ['_' num2str(an_lim(1)) 't' num2str(an_lim(2))];
 win_str = strrep(strrep(win_str,'-','n'),'.','');
 table_name = [conn_metric '_' an_id win_str norm_bhv_str norm_nrl_str];
-fig_dir   = [prj_dir 'results/TFR/LMM/' table_name out_thresh_str '/PFC_beta/'];
+fig_dir   = [prj_dir 'results/TFR/LMM/' table_name out_thresh_str '/beta_conn/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 
 %% Load data

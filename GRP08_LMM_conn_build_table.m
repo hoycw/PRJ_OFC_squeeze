@@ -106,21 +106,21 @@ for s = 1:length(SBJs)
     conn_data = ft_selectdata(cfgs,filt_data);
     
     % Compute theta connectivity
-    theta_conn_sbj{s} = fn_single_trial_connectivity(conn_data,conn_metric);
+    theta_conn_sbj{s} = fn_connectivity_single_trial(conn_data,conn_metric);
     
     % Repeat for low beta
     cfgpp.lpfreq      = betalo_lim(s,pk_frq_ch_ix,1);
     cfgpp.hpfreq      = betalo_lim(s,pk_frq_ch_ix,2);
     filt_data = ft_preprocessing(cfgpp, sbj_data.ts);
     conn_data = ft_selectdata(cfgs, filt_data);
-    betalo_conn_sbj{s} = fn_single_trial_connectivity(conn_data,conn_metric);
+    betalo_conn_sbj{s} = fn_connectivity_single_trial(conn_data,conn_metric);
     
     % Repeat for high beta
     cfgpp.lpfreq      = betahi_lim(s,pk_frq_ch_ix,1);
     cfgpp.hpfreq      = betahi_lim(s,pk_frq_ch_ix,2);
     filt_data = ft_preprocessing(cfgpp, sbj_data.ts);
     conn_data = ft_selectdata(cfgs, filt_data);
-    betahi_conn_sbj{s} = fn_single_trial_connectivity(conn_data,conn_metric);
+    betahi_conn_sbj{s} = fn_connectivity_single_trial(conn_data,conn_metric);
 end
 
 %% Concatenate variables (cur = current trial, prv = previous trial)
