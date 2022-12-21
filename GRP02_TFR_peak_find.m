@@ -15,9 +15,9 @@ sbj_bg_roi   = {'GPi','STN','GPi','STN'};
 summary_metric = 'mn'; % 'md' for median, 'mn' for mean
 
 % an_id = 'TFRw_S25t2_dbS25t05_fl2t40_c7';%'TFRw_S25t2_noBsln_fl1t40_c7';%'TFRw_S25t2_noBsln_fl2t40_c7';
-% an_id = 'TFRmth_D1t1_zS1t0_f2t40';%'TFRw_D1t1_dbS25t05_fl2t40_c7';%
+an_id = 'TFRmth_D1t1_madS8t0_f2t40';%'TFRw_D1t1_dbS25t05_fl2t40_c7';%
 % an_id = 'TFRmth_S1t2_zS1t0_f2t40';%'TFRmth_S1t2_dbS1t0_f2t40';
-an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S2t2_zS1t0_f2t40','TFRmth_S2t2_zS5t0_f2t40','TFRmth_S2t2_zS25t0_f2t40','TFRmth_S2t2_zS25t05_f2t40',...
+% an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S2t2_zS1t0_f2t40','TFRmth_S2t2_zS5t0_f2t40','TFRmth_S2t2_zS25t0_f2t40','TFRmth_S2t2_zS25t05_f2t40',...
 %           'TFRmth_D1t2_zS5t0_f2t40','TFRmth_D1t2_zS25t0_f2t40','TFRmth_D1t2_zS25t05_f2t40'};
 % plt_lim = [-1 2];
 
@@ -224,7 +224,11 @@ freq_tick_ix = nan(size(freq_ticks));
 for f = 1:numel(freq_ticks)
     [~,freq_tick_ix(f)] = min(abs(freq_vec-freq_ticks(f)));
 end
-time_ticks = 0:0.5:2;%plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2);
+if strcmp(plt.evnt_lab,'S')
+    time_ticks = 0:0.5:2;
+else
+    time_ticks = plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2);
+end
 time_tick_ix = nan(size(time_ticks));
 for t = 1:numel(time_ticks)
     [~,time_tick_ix(t)] = min(abs(time_vec-time_ticks(t)));

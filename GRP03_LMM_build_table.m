@@ -15,60 +15,20 @@ man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 
 
 % Analysis parameters:
 an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
+% an_id = 'TFRmth_D1t1_madS8t0_f2t40';% an_id = 'TFRmth_D1t1_zS8t0_f2t40';
 norm_bhv_pred = 'zscore';%'none';%
 norm_nrl_pred = 'zscore';%'none';%
-% an_id = 'TFRmth_D1t1_zS8t0_f2t40';
+
 use_simon_tfr = 0;
 toss_same_trials = 1;
+
 if contains(an_id,'_S')
     an_lim = [0.5 1.5];
-    betahi_cf = ones([2 numel(SBJs)])*-1;
-    if use_simon_tfr
-        % Simon params: [10,17,13,12]
-        theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
-        betalo_cf = [-1 -1 -1 -1; 10 17 13 12]; % PFC03, PFC04, PFC05, PFC01
-    elseif strcmp(an_id,'TFRmth_S1t2_zS1t0_f2t40')  % equivalent to Simon
-        theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
-        betalo_cf  = [-1 -1 -1 -1; 10 17 13 12];
-    elseif any(strcmp(an_id,{'TFRmth_S1t2_zS8t0_f2t40','TFRmth_S1t2_madS8t0_f2t40'}))
-        theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
-        betalo_cf  = [-1 -1 -1 -1; 11 19 12 12];
-    elseif strcmp(an_id,'TFRw_S25t2_dbS25t05_fl2t40_c7')
-        theta_cf = [2.5 3.5 3.5 6; 5 4 3.5 3]; % BG (row1) then PFC (row2)
-        betalo_cf  = [-1 -1 -1 -1; -1 -1 -1 -1];
-    else
-        theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
-        betalo_cf = [-1 -1 -1 -1; 10 17 13 12]; % PFC03, PFC04, PFC05, PFC01
-        % As of GRP_TFR_peak_find on 0.25-1.5 from 7/5/22
-        %   Use -1 for canonical bands
-%         theta_cf = [2.5 3 3.5 5; 5 3.5 3.5 3]; % BG (row1) then PFC (row2)
-%         betalo_cf  = [17 22 14 14; 13 17 11 15];
-        %     betahi_cf  = % no SBJ-specific peaks;
-        %     betalo_cf = ones([2 numel(SBJs)])*-1;
-    end
 elseif contains(an_id,'_D')
     an_lim = [-0.5 0];
-    betahi_cf = ones([2 numel(SBJs)])*-1;
-    if strcmp(an_id,'TFRw_D1t1_dbS25t05_fl2t40_c7')
-        theta_cf = [3.5 3 4.5 6; 3 3 4.5 3]; % BG (row1) then PFC (row2)
-        betalo_cf  = [13 20 17 18; -1 -1 -1 -1];
-        betahi_cf = ones([2 numel(SBJs)])*-1;
-    elseif strcmp(an_id,'TFRmth_D1t1_zS1t0_f2t40')  % equivalent to Simon
-        theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
-        betalo_cf  = [-1 -1 -1 -1; -1 -1 -1 -1];%10 17 13 12];
-    elseif contains(an_id,'TFRmth_D1t1_zS8t0_f2t40')
-        theta_cf = [-1 -1 -1 -1; -1 -1 -1 -1]; % BG (row1) then PFC (row2)
-        betalo_cf  = [-1 -1 -1 -1; 11 19 12 12];
-    else
-        % As of GRP_TFR_peak_find on 0.25-1.5 from 7/5/22
-        %   Use -1 for canonical bands
-        theta_cf = [3.5 3 3.5 7; 4.5 3 3.5 3]; % BG (row1) then PFC (row2)
-        %     betalo_cf  = [17 22 14 14; 13 17 11 15];
-        %     betahi_cf  = % no SBJ-specific peaks;
-        betalo_cf = [20 17 11 24; -1 -1 -1 -1];
-    end
 end
 
+%% Analysis Set Up
 if ~strcmp(norm_bhv_pred,'none')
     norm_bhv_str = ['_bhv' norm_bhv_pred];
 else
@@ -80,62 +40,18 @@ else
     norm_nrl_str = '';
 end
 
-% Simon originals:
-theta_bw  = 3;
-betalo_bw = 4;
-betahi_bw = 4;
-theta_canon  = [4 7];
-betalo_canon = [12 20];
-betahi_canon = [21 35];
-% theta_lim  = [4 7];
-% beta_lim   = [13 30];    
-% alternatives: (1)=[17,17,13,12]; (2)=[17,22,13,13];
+[theta_cf, betalo_cf, betahi_cf] = fn_get_sbj_peak_frequencies(SBJs,an_id);
+theta_lim  = fn_compute_freq_lim(SBJs,theta_cf,'theta');
+betalo_lim = fn_compute_freq_lim(SBJs,betalo_cf,'betalo');
+betahi_lim = fn_compute_freq_lim(SBJs,betahi_cf,'betahi');
 
-%% Analysis Set Up
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 addpath([prj_dir 'scripts/']);
 addpath([prj_dir 'scripts/utils/']);
 
-theta_lim  = nan(length(SBJs),2,2);
-betalo_lim = nan(length(SBJs),2,2);
-betahi_lim = nan(length(SBJs),2,2);
-for s = 1:length(SBJs)
-    for ch_ix = 1:2
-        if theta_cf(ch_ix,s)==-1
-            theta_lim(s,ch_ix,:) = theta_canon;
-        else
-            theta_lim(s,ch_ix,:) = [theta_cf(ch_ix,s)-theta_bw/2 theta_cf(ch_ix,s)+theta_bw/2];
-        end
-        if betalo_cf(ch_ix,s)==-1
-            betalo_lim(s,ch_ix,:) = betalo_canon;
-        else
-            betalo_lim(s,ch_ix,:)  = [betalo_cf(ch_ix,s)-betalo_bw/2 betalo_cf(ch_ix,s)+betalo_bw/2];
-        end
-        if betahi_cf(ch_ix,s)==-1
-            betahi_lim(s,ch_ix,:) = betahi_canon;
-        else
-            betahi_lim(s,ch_ix,:)  = [betahi_cf(ch_ix,s)-betahi_bw/2 betahi_cf(ch_ix,s)+betahi_bw/2];
-        end
-        
-        % Print final parameters
-        if ch_ix==1; ch_lab = sbj_bg_roi{s}; else; ch_lab = sbj_pfc_roi{s}; end
-%         fprintf('%s %s theta CF = %.02f; BW = %.02f to %.02f\n',SBJs{s},ch_lab,theta_cf(ch_ix,s),theta_lim(s,ch_ix,1),theta_lim(s,ch_ix,2));
-%         fprintf('%s %s beta lo CF = %.02f; BW = %.02f to %.02f\n',SBJs{s},ch_lab,betalo_cf(ch_ix,s),betalo_lim(s,ch_ix,1),betalo_lim(s,ch_ix,2));
-%         fprintf('%s %s beta hi CF = %.02f; BW = %.02f to %.02f\n',SBJs{s},ch_lab,betahi_cf(ch_ix,s),betahi_lim(s,ch_ix,1),betahi_lim(s,ch_ix,2));
-    end
-end
-
-%% Load Simon file details
-if use_simon_tfr
-    DataStorage='/Users/colinhoy/Code/PRJ_OFC_squeeze/box/Analysis/Group/Preprocess';
-    DataStorage2='/Users/colinhoy/Code/PRJ_OFC_squeeze/box/Analysis/Group/Preprocess/Output_files_shifted_behavior';
-    
-    [numbers, strings, raw] = xlsread(strcat(DataStorage,'/','SqueezeSubjectSyncSummary.xlsx'));
-    % SBJs: PFC03, PFC04, PFC05, PFC01, PMC10
-    if ~all(strcmp(strings(2:6,1),[SBJs {'PMC10'}]')); error('SBJ order off!'); end
-    
-    FileDetails = strings(2:end,:);
-end
+win_str = ['_' num2str(an_lim(1)) 't' num2str(an_lim(2))];
+win_str = strrep(strrep(win_str,'-','n'),'.','');
+table_name = [an_id win_str norm_bhv_str norm_nrl_str];
 
 %% Compute Theta and Beta power
 theta_pow  = cell([numel(SBJs) 2]);
@@ -146,44 +62,7 @@ for s = 1:length(SBJs)
     %% Load TFR
     sbj_dir = [prj_dir 'data/' SBJs{s} '/'];
     if use_simon_tfr
-        % Load data files
-        proc_fname = strcat(DataStorage2,'/',FileDetails{s,1},'Stimulus_Locked.mat');
-        fprintf('Loading %s\n',proc_fname);
-        load(proc_fname);
-        tfr = AllData.TFbl;
-        bhvs{s} = AllData.exp;
-        if toss_same_trials
-            load([sbj_dir SBJs{s} '_stim_preproc.mat'],'sbj_data');
-            % Combine bad behavioral and neural trials 
-            %   (empty and bad key are already tossed in Simon data)
-            simon_trl_idx = 1:150;
-            if strcmp(SBJs{s},'PFC04')
-                simon_trl_idx(72) = [];% from whrc neural variance
-            elseif strcmp(SBJs{s},'PFC05')
-                simon_trl_idx(76) = [];% from whrempty
-            elseif strcmp(SBJs{s},'PFC01')
-                simon_trl_idx(26) = [];% from whrtrl
-            end
-            all_bad_ix = unique([man_trl_rej_ix{s}'; sbj_data.bhv.empty_ix; sbj_data.bhv.bad_resp_ix; sbj_data.bhv.bad_rt_ix]);
-            simon_bad_ix = [];
-            for t = 1:length(all_bad_ix)
-                simon_bad_ix = [simon_bad_ix; find(simon_trl_idx==all_bad_ix(t))];
-            end
-            if isempty(simon_bad_ix)
-                fprintf('%s: All bad trials already tossed!\n',SBJs{s});
-            else
-                fprintf(2,'%s: Removing %d trials!\n',SBJs{s},length(simon_bad_ix));
-                % Remove from behavior
-                bhv_fields = fieldnames(bhvs{s});
-                for f = 1:length(bhv_fields)
-                    if length(bhvs{s}.(bhv_fields{f}))==length(simon_trl_idx) && ~contains(bhv_fields{f},'_ix')
-                        bhvs{s}.(bhv_fields{f})(simon_bad_ix) = [];
-                    end
-                end
-                % Remove from neural
-                tfr.powspctrm(simon_bad_ix,:,:,:) = [];
-            end
-        end
+        [tfr, bhvs{s}] = fn_load_simon_TFR(SBJs,toss_same_trials,man_trl_rej_ix);
     else
         proc_fname = [sbj_dir SBJs{s} '_' an_id '.mat'];
         fprintf('Loading %s\n',proc_fname);
@@ -326,7 +205,7 @@ table_all  = table(trl_n_cur, sbj_n, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC
                  rt_prv, logrt_prv, reward_prv, effort_prv, effortS_prv, decision_prv, SV_prv, absSV_prv, pAccept_prv, dec_diff_prv);
 
 %% Write table for R
-table_all_fname = [prj_dir 'data/GRP/GRP_' an_id norm_bhv_str norm_nrl_str '_full_table_all.csv'];
+table_all_fname = [prj_dir 'data/GRP/GRP_' table_name '_full_table_all.csv'];
 fprintf('\tSaving %s...\n',table_all_fname);
 writetable(table_all,table_all_fname);
 
