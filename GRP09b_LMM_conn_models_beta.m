@@ -110,9 +110,11 @@ betalo_conn_rew = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 
 % Low beta connectivity low and effort:
 lme0 = fitlme(good_tbl_all.betalo_conn,'betalo_conn~ 1 + (1|sbj_n)');
+% lme0bg = fitlme(good_tbl_all.betalo_conn,'betalo_conn~ BG_roi + (1|sbj_n)');
 lme1 = fitlme(good_tbl_all.betalo_conn,'betalo_conn~ effort_cur + (1|sbj_n)');
 lme2 = fitlme(good_tbl_all.betalo_conn,'betalo_conn~ effortS_cur + (1|sbj_n)');
 lme3 = fitlme(good_tbl_all.betalo_conn,'betalo_conn~ SV_cur + (1|sbj_n)');
+% betalo_conn_bgroi = compare(lme0,lme0bg,'CheckNesting',true)%,'NSim',1000)
 betalo_conn_eff = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 betalo_conn_effS = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
 % betalo_conn_effS_vs_SV = compare(lme3,lme2,'NSim',1000)

@@ -8,7 +8,6 @@ clear all
 an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40';% an_id = 'TFRmth_D1t1_zS8t0_f2t40';
 conn_metric = 'ampcorr';
-evnt_id     = 'S';
 if contains(an_id,'_S')
     an_lim = [0.5 1.5];
 elseif contains(an_id,'_D')
@@ -104,9 +103,12 @@ end
 %  ========================================================================
 %% theta connectivity and previous reward:
 lme0 = fitlme(good_tbl_prv.theta_conn,'theta_conn~ 1 + (1|sbj_n)');%,'StartMethod','random');
+% lme0bg = fitlme(good_tbl_prv.theta_conn,'theta_conn~ BG_roi + (1|sbj_n)');%,'StartMethod','random');
 lme1 = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_prv + (1|sbj_n)');%,'StartMethod','random');
+lme1bg = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_prv + BG_roi + (1|sbj_n)');%,'StartMethod','random');
 lme2 = fitlme(good_tbl_prv.theta_conn,'theta_conn~ SV_prv + (1|sbj_n)');%,'StartMethod','random');
 lme3 = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_prv + SV_prv + (1|sbj_n)');
+% theta_conn_bg = compare(lme0,lme0bg,'CheckNesting',true)%,'NSim',1000)
 theta_conn_rew_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 % theta_conn_SV_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
 % lme0 = fitlme(good_tbl_prv.theta_conn,'theta_conn~ 1 + (1|sbj_n)');%,'StartMethod','random');

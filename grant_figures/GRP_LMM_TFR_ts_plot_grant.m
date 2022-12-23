@@ -15,9 +15,9 @@ sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 sbj_bg_roi   = {'GPi','STN','GPi','STN'};
 man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 148 149 150]};
 
-an_id = 'TFRmth_S1t2_zS8t0_f2t40';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40';
 norm_bhv_pred = 'zscore';%'none';%
-norm_nrl_pred = 'logz';%'none';%
+norm_nrl_pred = 'zscore';%'none';%
 outlier_thresh = 4;
 use_simon_tfr = 0;
 toss_same_trials = 1;
@@ -49,9 +49,9 @@ beta_cf = [-1 -1 -1 -1; 10 17 13 12]; % PFC03, PFC04, PFC05, PFC01
 
 % Plotting parameters
 plot_psd  = 0;
-font_size = 18;
+font_size = 24;
 save_fig  = 1;
-fig_ftype = 'fig';
+fig_ftype = 'png';
 fig_vis   = 'on';
 
 %% Prep stuff
@@ -417,9 +417,9 @@ for ch_ix = 1:2
     end
     
     t_line = shadedErrorBar(time_vec, squeeze(theta_grp_avg(ch_ix,:)), ...
-        squeeze(theta_grp_sem(ch_ix,:)),'lineprops',{'Color','r'});
+        squeeze(theta_grp_sem(ch_ix,:)),'lineprops',{'Color','r','LineWidth',2});
     b_line = shadedErrorBar(time_vec, squeeze(beta_grp_avg(ch_ix,:)),...
-        squeeze(beta_grp_sem(ch_ix,:)), 'lineprops',{'Color','b'});
+        squeeze(beta_grp_sem(ch_ix,:)), 'lineprops',{'Color','b','LineWidth',2});
     ylims = ylim;
     line([0 0],ylims,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
         'LineStyle',plt.evnt_styles{1});
@@ -454,12 +454,77 @@ for ch_ix = 1:2
     set(gca,'XTick', time_ticks);%plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
     set(gca,'YLim',ylims);
     xlabel('Time (s)');
-    ylabel('Model Coefficient');
+    ylabel('Fixed Effect Coefficient');
     legend([t_line b_line],{...
         ['Theta ~ previous reward'],...
         ['Beta ~ effort']},'Location','best');
     set(gca,'FontSize',font_size);
 end
+
+% Save Figure
+if save_fig
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
+%% Plot PFC and BG time-resolved coefficients together
+fig_name = ['GRP_TFR_theta_beta_' lmm_name '_combined_coef_ts'];
+figure('Name',fig_name,'units','normalized',...
+    'outerposition',[0 0 1 1],'Visible',fig_vis);
+
+pfc_theta_color = [178,24,43]./256;
+pfc_beta_color  = [33,102,172]./256;
+bg_theta_color  = [244,165,130]./256;
+bg_beta_color   = [146,197,222]./256;
+
+% Plot coefficient time series
+subplot(2,3,1); hold on;
+pfc_t_line = plot(lme_time_vec, squeeze(theta_coef(2,:)),'Color',pfc_theta_color,'LineWidth',2);
+pfc_b_line = plot(lme_time_vec, squeeze(beta_coef(2,:)),'Color',pfc_beta_color,'LineWidth',2);
+bg_t_line = plot(lme_time_vec, squeeze(theta_coef(1,:)),'Color',bg_theta_color,'LineWidth',2);%,'LineStyle',':');
+bg_b_line = plot(lme_time_vec, squeeze(beta_coef(1,:)),'Color',bg_beta_color,'LineWidth',2);%,'LineStyle',':');
+ylims = ylim;
+line([0 0],ylims,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
+    'LineStyle',plt.evnt_styles{1});
+patch([0.5 0.5 1.5 1.5],[ylims(1) ylims(2) ylims(2) ylims(1)],'k','FaceAlpha',0,...
+    'LineWidth',2,'LineStyle','--');
+
+% Axes and parameters
+title(['PFC and BG Main Effects'], 'interpreter', 'none');
+set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
+set(gca,'XTick', time_ticks);%plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
+set(gca,'YLim',ylims);
+xlabel('Time (s)');
+ylabel('Fixed Effect Coefficient');
+% legend([pfc_t_line pfc_b_line bg_t_line bg_b_line],{...
+%     'PFC Theta ~ previous reward','PFC Beta ~ effort', ...
+%     'BG Theta ~ previous reward','BG Beta ~ effort', ...
+%     },'Location','eastoutside');
+set(gca,'FontSize',font_size);
+
+% Plot again for legend
+subplot(2,3,4); hold on;
+pfc_t_line = plot(lme_time_vec, squeeze(theta_coef(2,:)),'Color',pfc_theta_color,'LineWidth',2);
+pfc_b_line = plot(lme_time_vec, squeeze(beta_coef(2,:)),'Color',pfc_beta_color,'LineWidth',2);
+bg_t_line = plot(lme_time_vec, squeeze(theta_coef(1,:)),'Color',bg_theta_color,'LineWidth',2);%,'LineStyle',':');
+bg_b_line = plot(lme_time_vec, squeeze(beta_coef(1,:)),'Color',bg_beta_color,'LineWidth',2);%,'LineStyle',':');
+ylims = ylim;
+line([0 0],ylims,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
+    'LineStyle',plt.evnt_styles{1});
+
+% Axes and parameters
+title([ch_lab ' Main Effects'], 'interpreter', 'none');
+set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
+set(gca,'XTick', time_ticks);%plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
+set(gca,'YLim',ylims);
+xlabel('Time (s)');
+ylabel('Fixed Effect Coefficient');
+legend([pfc_t_line pfc_b_line bg_t_line bg_b_line],{...
+    'PFC Theta ~ previous reward (p=0.035)','PFC Beta ~ effort (p=0.005)', ...
+    'BG Theta ~ previous reward (p=0.030)','BG Beta ~ effort (p=0.039)', ...
+    },'Location','eastoutside');
+set(gca,'FontSize',font_size);
 
 % Save Figure
 if save_fig

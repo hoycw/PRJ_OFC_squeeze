@@ -11,7 +11,8 @@ ft_defaults
 
 %% Parameters
 conn_metric = 'ampcorr';
-an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_madS8t0_f2t40';
+% an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_madS8t0_f2t40';
+an_id = 'TFRmth_D1t1_madS8t0_f2t40';
 freq_ch = 'PFC';    % which channel's SBJ-specific frequency band should be used? 'PFC' or 'BG'
 
 % Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
@@ -33,10 +34,8 @@ else
 end
 if contains(an_id,'_S') || contains(an_id,'simon')
     plt_id = 'ts_S2t2_evnts_sigLine';
-    time_ticks = [0:0.5:2];%plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2);
 elseif contains(an_id,'_D')
     plt_id = 'ts_D1t1_evnts_sigLine';
-    time_ticks = plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2);
 else
     error('couldnt pick plt_id based on an_id');
 end
@@ -53,6 +52,12 @@ if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 % eval(an_vars_cmd);
 plt_vars_cmd = ['run ' prj_dir 'scripts/plt_vars/' plt_id '_vars.m'];
 eval(plt_vars_cmd);
+if contains(an_id,'_S')
+    time_ticks = [0:0.5:2];%plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2);
+elseif contains(an_id,'_D')
+    time_ticks = plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2);
+end
+
 
 [theta_cf, betalo_cf, betahi_cf] = fn_get_sbj_peak_frequencies(SBJs,an_id);
 theta_lim  = fn_compute_freq_lim(SBJs,theta_cf,'theta');

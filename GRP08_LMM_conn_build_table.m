@@ -15,11 +15,12 @@ eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 %   an_id used for SBJ-specific band limits
 an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40';% an_id = 'TFRmth_D1t1_zS8t0_f2t40';
-conn_metric = 'PLV';
-evnt_id     = 'S';
+conn_metric = 'ampcorr';
 if contains(an_id,'_S')
+    evnt_id     = 'S';
     an_lim = [0.5 1.5];
 elseif contains(an_id,'_D')
+    evnt_id     = 'D';
     an_lim = [-0.5 0];
 end
 freq_ch = 'PFC';    % which channel's SBJ-specific frequency band should be used? 'PFC' or 'BG'
@@ -78,7 +79,7 @@ for s = 1:length(SBJs)
     % For decision-locked, re-align to button press
     if strcmp(evnt_id,'D')
         cfg_realign = [];
-        cfg_realign.offset = round(-bhvs{s}.rt*filt_data.fsample);
+        cfg_realign.offset = round(-bhvs{s}.rt*sbj_data.ts.fsample);
         input = ft_redefinetrial(cfg_realign, sbj_data.ts);
     else
         input = sbj_data.ts;
@@ -125,8 +126,8 @@ end
 
 %% Concatenate variables (cur = current trial, prv = previous trial)
 sbj_n      = [];
-% PFC_roi    = [];
-% BG_roi     = [];
+PFC_roi    = [];
+BG_roi     = [];
 trl_n_cur  = [];
 theta_conn  = [];
 betalo_conn = [];
@@ -160,10 +161,10 @@ for s = 1:length(SBJs)
     trl_n = size(bhvs{s}.stake,1);
     trl_n_cur = [trl_n_cur; bhvs{s}.trl];
     sbj_n = [sbj_n; num2str(ones(trl_n,1).*s)];
-%     if strcmp(sbj_pfc_roi{s},'OFC'); pfc_roi_ix = 1; else; pfc_roi_ix = 2; end
-%     PFC_roi = [PFC_roi; num2str(ones(trl_n,1).*pfc_roi_ix)];
-%     if strcmp(sbj_bg_roi{s},'STN'); bg_roi_ix = 1; else; bg_roi_ix = 2; end
-%     BG_roi = [BG_roi; num2str(ones(trl_n,1).*bg_roi_ix)];
+    if strcmp(sbj_pfc_roi{s},'OFC'); pfc_roi_ix = 1; else; pfc_roi_ix = 2; end
+    PFC_roi = [PFC_roi; num2str(ones(trl_n,1).*pfc_roi_ix)];
+    if strcmp(sbj_bg_roi{s},'STN'); bg_roi_ix = 1; else; bg_roi_ix = 2; end
+    BG_roi = [BG_roi; num2str(ones(trl_n,1).*bg_roi_ix)];
     
     theta_conn  = [theta_conn; fn_normalize_predictor(theta_conn_sbj{s},norm_nrl_pred)];
     betalo_conn = [betalo_conn; fn_normalize_predictor(betalo_conn_sbj{s},norm_nrl_pred)];
@@ -196,7 +197,7 @@ for s = 1:length(SBJs)
 end
 
 %% Convert into table format suitable for LME modelling
-table_all  = table(trl_n_cur, sbj_n, theta_conn, betalo_conn, betahi_conn,...
+table_all  = table(trl_n_cur, sbj_n, PFC_roi, BG_roi, theta_conn, betalo_conn, betahi_conn,...
                  rt_cur, logrt_cur, reward_cur, effort_cur, effortS_cur, decision_cur, SV_cur, absSV_cur, pAccept_cur, dec_diff_cur,...
                  rt_prv, logrt_prv, reward_prv, effort_prv, effortS_prv, decision_prv, SV_prv, absSV_prv, pAccept_prv, dec_diff_prv);
 
