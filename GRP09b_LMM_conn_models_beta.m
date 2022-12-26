@@ -17,7 +17,7 @@ end
 freq_ch = 'PFC';    % which channel's SBJ-specific frequency band should be used? 'PFC' or 'BG'
 
 norm_bhv_pred = 'zscore';%'none';%
-norm_nrl_pred = 'zscore';%'none';%
+norm_nrl_pred = 'fishz';%'none';%
 outlier_thresh = 4;
 n_quantiles = 5;
 

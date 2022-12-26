@@ -91,7 +91,10 @@ end
 %% ========================================================================
 %   BASAL GANGLIA THETA
 %  ========================================================================
-% Plot BG theta by ROI
+lme_all = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
+lme_sv_curprv = fitlme(good_tbl_prv.BG_theta,'BG_theta~ SV_cur + SV_prv + (1|sbj_n)');
+
+%% Plot BG theta by ROI
 bg_roi_idx_all = good_tbl_all.BG_theta.BG_roi;
 figure; hold on;
 errorbar([1 2],[mean(good_tbl_all.BG_theta.BG_theta(bg_roi_idx_all==1)) ...

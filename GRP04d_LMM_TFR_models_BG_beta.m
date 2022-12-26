@@ -91,7 +91,10 @@ end
 %% ========================================================================
 %   BASAL GANGLIA BETA LOW
 %  ========================================================================
-% Plot BG beta low by ROI
+lme_all = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ reward_cur + effortS_cur + reward_prv + effortS_prv + BG_roi + (1|sbj_n)');
+lme_sv_curprv = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ SV_cur + SV_prv + BG_roi + (1|sbj_n)');
+
+%% Plot BG beta low by ROI
 bg_roi_idx_all = good_tbl_all.BG_betalo.BG_roi;
 figure;
 errorbar([1 2],[mean(good_tbl_all.BG_betalo.BG_betalo(bg_roi_idx_all==1)) ...

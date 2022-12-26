@@ -19,6 +19,8 @@ switch norm_method
             log_pred = log(pred);
         end
         predictor = (log_pred-nanmean(log_pred))./nanstd(log_pred);
+    case 'fishz'
+        predictor = atanh(pred);
     case 'zscore'
         predictor = (pred-nanmean(pred))./nanstd(pred);
     case 'demean'

@@ -256,7 +256,9 @@ for s = 1:length(SBJs)
         % Axes and parameters
 %         title([ch_lab '- ' an_id], 'interpreter', 'none');
         title([ch_lab ' Time-Frequency Representation'], 'interpreter', 'none');
-        set(gca,'XLim',[1 numel(time_vec)]);
+        [~,ix1] = min(abs(time_vec-plt.plt_lim(1)));
+        [~,ix2] = min(abs(time_vec-plt.plt_lim(2)));
+        set(gca,'XLim',[ix1 ix2]);
         set(gca,'XTick', time_tick_ix);
         set(gca,'XTickLabels', time_ticks);
         set(gca,'YLim',[1 numel(freq_vec)]);
@@ -473,13 +475,76 @@ fig_name = ['GRP_TFR_theta_beta_' lmm_name '_combined_coef_ts'];
 figure('Name',fig_name,'units','normalized',...
     'outerposition',[0 0 1 1],'Visible',fig_vis);
 
+patch_alpha = 0.1;
+pow_y_min = -1;
+leg_line_length = [20 18]; % defaults are [30,18], so go smaller; left controls length, right doesn't seem to do anything
+plot_boxes = 1;
+an_lim     = [0.5 1.5];
+
 pfc_theta_color = [178,24,43]./256;
 pfc_beta_color  = [33,102,172]./256;
 bg_theta_color  = [244,165,130]./256;
 bg_beta_color   = [146,197,222]./256;
 
-% Plot coefficient time series
+% Plot PFC and BG power
 subplot(2,3,1); hold on;
+pfc_t_line = shadedErrorBar(time_vec, squeeze(theta_grp_avg(2,:)), ...
+    squeeze(theta_grp_sem(2,:)),'patchSaturation',patch_alpha,'lineprops',{'Color',pfc_theta_color,'LineWidth',2});
+pfc_b_line = shadedErrorBar(time_vec, squeeze(beta_grp_avg(2,:)),...
+    squeeze(beta_grp_sem(2,:)),'patchSaturation',patch_alpha, 'lineprops',{'Color',pfc_beta_color,'LineWidth',2});
+bg_t_line = shadedErrorBar(time_vec, squeeze(theta_grp_avg(1,:)), ...
+    squeeze(theta_grp_sem(2,:)),'patchSaturation',patch_alpha,'lineprops',{'Color',bg_theta_color,'LineWidth',2});
+bg_b_line = shadedErrorBar(time_vec, squeeze(beta_grp_avg(1,:)),...
+    squeeze(beta_grp_sem(2,:)),'patchSaturation',patch_alpha, 'lineprops',{'Color',bg_beta_color,'LineWidth',2});
+ylims = ylim;
+line([0 0],[pow_y_min max(ylims)],'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
+    'LineStyle',plt.evnt_styles{1});
+if plot_boxes
+    patch([an_lim(1) an_lim(1) an_lim(2) an_lim(2)],[pow_y_min ylims(2) ylims(2) pow_y_min],'k','FaceAlpha',0,...
+        'LineWidth',2,'LineStyle','--');
+    fig_name = [fig_name '_boxes'];
+end
+
+% Axes and parameters
+title('PFC and BG Power', 'interpreter', 'none');
+set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
+set(gca,'XTick', time_ticks);%plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
+set(gca,'YLim',[pow_y_min max(ylims)]);
+xlabel('Time (s)');
+ylabel('Power (z)');
+set(gca,'FontSize',font_size);
+
+% Plot PFC and BG power for legend
+subplot(2,3,5); hold on;
+pfc_t_line = shadedErrorBar(time_vec, squeeze(theta_grp_avg(2,:)), ...
+    squeeze(theta_grp_sem(2,:)),'patchSaturation',patch_alpha,'lineprops',{'Color',pfc_theta_color,'LineWidth',2});
+pfc_b_line = shadedErrorBar(time_vec, squeeze(beta_grp_avg(2,:)),...
+    squeeze(beta_grp_sem(2,:)),'patchSaturation',patch_alpha, 'lineprops',{'Color',pfc_beta_color,'LineWidth',2});
+bg_t_line = shadedErrorBar(time_vec, squeeze(theta_grp_avg(1,:)), ...
+    squeeze(theta_grp_sem(2,:)),'patchSaturation',patch_alpha,'lineprops',{'Color',bg_theta_color,'LineWidth',2});
+bg_b_line = shadedErrorBar(time_vec, squeeze(beta_grp_avg(1,:)),...
+    squeeze(beta_grp_sem(2,:)),'patchSaturation',patch_alpha, 'lineprops',{'Color',bg_beta_color,'LineWidth',2});
+ylims = ylim;
+line([0 0],[pow_y_min max(ylims)],'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
+    'LineStyle',plt.evnt_styles{1});
+
+% Axes and parameters
+title('PFC and BG Power', 'interpreter', 'none');
+set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
+set(gca,'XTick', time_ticks);%plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
+set(gca,'YLim',[pow_y_min max(ylims)]);
+xlabel('Time (s)');
+ylabel('Power (z)');
+leg = legend([pfc_t_line.mainLine pfc_b_line.mainLine bg_t_line.mainLine bg_b_line.mainLine],{...
+    'PFC Theta','PFC Beta','BG Theta','BG Beta'},'Location','southoutside');
+%     ['PFC Theta (' num2str(mean(theta_lim(:,ch_ix,1))) '-' num2str(mean(theta_lim(:,ch_ix,2))) ' Hz)'],...
+%     ['PFC Beta (' num2str(mean(beta_lim(:,ch_ix,1))) '-' num2str(mean(beta_lim(:,ch_ix,2))) ' Hz)']},'Location','best');
+leg.Orientation = 'horizontal';
+leg.ItemTokenSize = leg_line_length;
+set(gca,'FontSize',font_size);
+
+% Plot PFC and BG coefficient time series
+subplot(2,3,2); hold on;
 pfc_t_line = plot(lme_time_vec, squeeze(theta_coef(2,:)),'Color',pfc_theta_color,'LineWidth',2);
 pfc_b_line = plot(lme_time_vec, squeeze(beta_coef(2,:)),'Color',pfc_beta_color,'LineWidth',2);
 bg_t_line = plot(lme_time_vec, squeeze(theta_coef(1,:)),'Color',bg_theta_color,'LineWidth',2);%,'LineStyle',':');
@@ -487,8 +552,10 @@ bg_b_line = plot(lme_time_vec, squeeze(beta_coef(1,:)),'Color',bg_beta_color,'Li
 ylims = ylim;
 line([0 0],ylims,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
     'LineStyle',plt.evnt_styles{1});
-patch([0.5 0.5 1.5 1.5],[ylims(1) ylims(2) ylims(2) ylims(1)],'k','FaceAlpha',0,...
-    'LineWidth',2,'LineStyle','--');
+if plot_boxes
+    patch([an_lim(1) an_lim(1) an_lim(2) an_lim(2)],[ylims(1) ylims(2) ylims(2) ylims(1)],'k','FaceAlpha',0,...
+        'LineWidth',2,'LineStyle','--');
+end
 
 % Axes and parameters
 title(['PFC and BG Main Effects'], 'interpreter', 'none');
@@ -504,7 +571,7 @@ ylabel('Fixed Effect Coefficient');
 set(gca,'FontSize',font_size);
 
 % Plot again for legend
-subplot(2,3,4); hold on;
+subplot(2,3,6); hold on;
 pfc_t_line = plot(lme_time_vec, squeeze(theta_coef(2,:)),'Color',pfc_theta_color,'LineWidth',2);
 pfc_b_line = plot(lme_time_vec, squeeze(beta_coef(2,:)),'Color',pfc_beta_color,'LineWidth',2);
 bg_t_line = plot(lme_time_vec, squeeze(theta_coef(1,:)),'Color',bg_theta_color,'LineWidth',2);%,'LineStyle',':');
@@ -521,13 +588,14 @@ set(gca,'YLim',ylims);
 xlabel('Time (s)');
 ylabel('Fixed Effect Coefficient');
 legend([pfc_t_line pfc_b_line bg_t_line bg_b_line],{...
-    'PFC Theta ~ previous reward (p=0.035)','PFC Beta ~ effort (p=0.005)', ...
-    'BG Theta ~ previous reward (p=0.030)','BG Beta ~ effort (p=0.039)', ...
+    'PFC Theta ~ prev. REW. (p=0.04)','PFC Beta  ~ EFF. (p=0.01)', ...
+    'BG Theta  ~ prev. REW. (p=0.03)','BG Beta    ~ EFF. (p=0.04)', ...
     },'Location','eastoutside');
 set(gca,'FontSize',font_size);
 
 % Save Figure
 if save_fig
+    fig_name = [fig_name '_legspaces'];
     fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);

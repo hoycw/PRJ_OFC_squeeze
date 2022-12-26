@@ -27,7 +27,7 @@ freq_ch = 'PFC';    % which channel's SBJ-specific frequency band should be used
 
 % Model parameters:
 norm_bhv_pred = 'zscore';%'none';%
-norm_nrl_pred = 'zscore';%'none';%
+norm_nrl_pred = 'fishz';%'none';%
 
 %% Analysis Set Up
 [theta_cf, betalo_cf, betahi_cf] = fn_get_sbj_peak_frequencies(SBJs,an_id);

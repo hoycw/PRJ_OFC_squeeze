@@ -6,11 +6,17 @@ close all
 clear all
 
 %%
-an_id = 'TFRmth_S1t2_zS8t0_f2t40';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40';
 norm_bhv_pred = 'zscore';%'none';%
-norm_nrl_pred = 'logz';%'none';%
+norm_nrl_pred = 'zscore';%'none';%
 outlier_thresh = 4;
 n_quantiles = 5;
+
+if contains(an_id,'_S')
+    an_lim = [0.5 1.5];
+elseif contains(an_id,'_D')
+    an_lim = [-0.5 0];
+end
 
 save_fig = 1;
 fig_ftype = 'png';
@@ -29,7 +35,9 @@ if ~strcmp(norm_bhv_pred,'none'); norm_bhv_str = ['_bhv' norm_bhv_pred]; else; n
 if ~strcmp(norm_nrl_pred,'none'); norm_nrl_str = ['_nrl' norm_nrl_pred]; else; norm_nrl_str = ''; end
 out_thresh_str = ['_out' num2str(outlier_thresh)];
 
-table_name = [an_id norm_bhv_str norm_nrl_str];
+win_str = ['_' num2str(an_lim(1)) 't' num2str(an_lim(2))];
+win_str = strrep(strrep(win_str,'-','n'),'.','');
+table_name = [an_id win_str norm_bhv_str norm_nrl_str];
 fig_dir   = [prj_dir 'results/bhv/LMM/' table_name out_thresh_str '/lRT/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 
@@ -131,6 +139,35 @@ for s = 1:length(SBJs)
     end
 end
 
+%% Test decision ~ task features
+% dec0 = fitglme(good_tbl_all.logrt_cur,'decision_cur ~ 1 + (1|sbj_n)','Distribution','binomial');
+% decr = fitglme(good_tbl_all.logrt_cur,'decision_cur ~ reward_cur + (1|sbj_n)','Distribution','binomial');
+% dec_rew = compare(dec0,decr,'CheckNesting',true)%,'NSim',1000)
+% dece  = fitglme(good_tbl_all.logrt_cur,'decision_cur ~ effort_cur + (1|sbj_n)','Distribution','binomial');
+% deceS = fitglme(good_tbl_all.logrt_cur,'decision_cur ~ effortS_cur + (1|sbj_n)','Distribution','binomial');
+% dec_eff = compare(dec0,dece,'CheckNesting',true)%,'NSim',1000)
+% dec_effS = compare(dec0,deceS,'CheckNesting',true)%,'NSim',1000)
+% % dec_effS = compare(deceS,decreS,'CheckNesting',true)%,'NSim',1000)
+% %   regular effort seems to be better predictor than subjective effort
+% decsv  = fitglme(good_tbl_all.logrt_cur,'decision_cur ~ SV_cur + (1|sbj_n)','Distribution','binomial');
+% 
+% decre  = fitglme(good_tbl_all.logrt_cur,'decision_cur ~ effort_cur + reward_cur + (1|sbj_n)','Distribution','binomial');
+% decreS = fitglme(good_tbl_all.logrt_cur,'decision_cur ~ effortS_cur + reward_cur + (1|sbj_n)','Distribution','binomial');
+% dec_re_vs_sv = compare(decsv,decre)
+% 
+% decrei = fitglme(good_tbl_all.logrt_cur,'decision_cur ~ effort_cur*reward_cur + (1|sbj_n)','Distribution','binomial');
+% dec_effS = compare(dec0,deceS,'CheckNesting',true)%,'NSim',1000)
+% 
+% % Full model
+model_formula_full = 'decision_cur ~ effort_cur + reward_cur + dec_diff_cur + (1|sbj_n)';
+model_formula_noE  = 'decision_cur ~ reward_cur + dec_diff_cur + (1|sbj_n)';
+model_formula_noR  = 'decision_cur ~ effort_cur + dec_diff_cur + (1|sbj_n)';
+decred = fitglme(good_tbl_all.logrt_cur,model_formula_full,'Distribution','binomial');
+decrd = fitglme(good_tbl_all.logrt_cur,model_formula_noE,'Distribution','binomial');
+deced = fitglme(good_tbl_all.logrt_cur,model_formula_noR,'Distribution','binomial');
+dec_rew = compare(deced,decred,'CheckNesting',true)
+dec_eff = compare(decrd,decred,'CheckNesting',true)
+
 %% Test log(RT) vs. RT modeling
 % Reward model (this result holds for effort and SV too)
 lme0 = fitlme(good_tbl_all.rt_cur,'rt_cur~ 1 + (1|sbj_n)');
@@ -169,6 +206,8 @@ figure('Name',fig_name);
 % Reward model
 lme0 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ 1 + (1|sbj_n)');
 lme1 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ reward_cur + (1|sbj_n)');
+%     AIC       BIC       LogLikelihood    Deviance
+%     1631.2    1648.6    -811.61          1623.2  
 rt_rew = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 subplot(2,2,1); hold on;
 for s = 1:length(SBJs)
@@ -196,6 +235,23 @@ rt_effort = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 % Subjective Value model
 lme0 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ 1 + (1|sbj_n)');
 lme2 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ SV_cur + (1|sbj_n)');
+%     AIC       BIC     LogLikelihood    Deviance
+%     1631.6    1649    -811.8           1623.6  
+% lme3 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ reward_cur + effort_cur + (1|sbj_n)');
+%     AIC       BIC       LogLikelihood    Deviance
+%     1631.5    1653.3    -810.76          1621.5  
+% lme4 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ reward_cur*effortS_cur + (1|sbj_n)');
+%     AIC       BIC       LogLikelihood    Deviance
+%     1629.7    1655.8    -808.86          1617.7  
+% lme42 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ reward_cur:effortS_cur + (1|sbj_n)');
+%     AIC       BIC       LogLikelihood    Deviance
+%     1631.1    1648.5    -811.53          1623.1  
+% lme5 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ absSV_cur + (1|sbj_n)');
+%     AIC       BIC     LogLikelihood    Deviance
+%     1609.6    1627    -800.79          1601.6  
+% lme6 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ reward_cur + absSV_cur + (1|sbj_n)');
+%     AIC       BIC       LogLikelihood    Deviance
+%     1611.5    1633.3    -800.75          1601.5  
 rt_sv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 subplot(2,2,2); hold on;
 for s = 1:length(SBJs)
@@ -281,6 +337,7 @@ rt_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 lme0 = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ 1 + (1|sbj_n)');
 lme1 = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ absSV_prv + (1|sbj_n)');
 lme2 = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ dec_diff_prv + (1|sbj_n)');
+lme3 = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ logrt_prv + (1|sbj_n)');
 rt_abssv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 rt_dec_diff_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
 

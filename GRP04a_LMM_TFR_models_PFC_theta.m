@@ -91,6 +91,9 @@ end
 %% ========================================================================
 %   PFC THETA
 %  ========================================================================
+lme_all = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
+lme_sv_curprv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_cur + SV_prv + (1|sbj_n)');
+
 %% PFC theta and previous reward:
 lme0 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
 lme1 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_prv + (1|sbj_n)');%,'StartMethod','random');

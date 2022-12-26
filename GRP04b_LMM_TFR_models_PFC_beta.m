@@ -91,7 +91,10 @@ end
 %% ========================================================================
 %   PFC BETA MODELS
 %  ========================================================================
-% PFC Beta and Reward vs. Effort models:
+lme_all = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
+lme_sv_curprv = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ SV_cur + SV_prv + (1|sbj_n)');
+
+%% PFC Beta and Reward vs. Effort models:
 % PFC beta low and reward:
 lme0 = fitlme(good_tbl_all.PFC_betalo,'PFC_betalo~ 1 + (1|sbj_n)');
 lme1 = fitlme(good_tbl_all.PFC_betalo,'PFC_betalo~ reward_cur + (1|sbj_n)');
