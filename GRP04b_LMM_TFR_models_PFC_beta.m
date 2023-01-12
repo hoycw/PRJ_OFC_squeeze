@@ -91,6 +91,35 @@ end
 %% ========================================================================
 %   PFC BETA MODELS
 %  ========================================================================
+%% Full model
+% lme_full = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ reward_cur + effortS_cur + dec_diff_cur + reward_prv + effortS_prv + dec_diff_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_noDEc = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ reward_cur + effortS_cur + reward_prv + effortS_prv + dec_diff_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_noDEp = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ reward_cur + effortS_cur + dec_diff_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_norewc = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ effortS_cur + dec_diff_cur + reward_prv + effortS_prv + dec_diff_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_norewp = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ reward_cur + effortS_cur + dec_diff_cur + effortS_prv + dec_diff_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_noeffc = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ reward_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_noeffp = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ reward_cur + effortS_cur + reward_prv + (1|sbj_n) + (1|trl_n_cur)');
+% 
+% pfc_betalo_dec = compare(lme_full_noDEc,lme_full,'CheckNesting',true)
+% pfc_betalo_dep = compare(lme_full_noDEp,lme_full,'CheckNesting',true)
+% pfc_betalo_rew = compare(lme_full_norewc,lme_full,'CheckNesting',true)
+% pfc_betalo_rewp = compare(lme_full_norewp,lme_full,'CheckNesting',true)
+% pfc_betalo_effc = compare(lme_full_noeffc,lme_full,'CheckNesting',true)
+% pfc_betalo_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
+
+%% Full model no decision ease/difficulty
+lme_full = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_full_norewc = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_full_norewp = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_full_noeffc = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ reward_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_full_noeffp = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ reward_cur + effortS_cur + reward_prv + (1|sbj_n) + (1|trl_n_cur)');
+
+pfc_betalo_rewc = compare(lme_full_norewc,lme_full,'CheckNesting',true)
+pfc_betalo_rewp = compare(lme_full_norewp,lme_full,'CheckNesting',true)
+pfc_betalo_effc = compare(lme_full_noeffc,lme_full,'CheckNesting',true)
+pfc_betalo_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
+
+%% Compare reward + effort vs. SV
 lme_all = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
 lme_sv_curprv = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ SV_cur + SV_prv + (1|sbj_n)');
 
@@ -107,7 +136,7 @@ lme2 = fitlme(good_tbl_all.PFC_betalo,'PFC_betalo~ effortS_cur + (1|sbj_n)');
 lme3 = fitlme(good_tbl_all.PFC_betalo,'PFC_betalo~ SV_cur + (1|sbj_n)');
 pfc_betalo_eff = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 pfc_betalo_effS = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
-% pfc_betalo_effS_vs_SV = compare(lme3,lme2,'NSim',1000)
+pfc_betalo_effS_vs_SV = compare(lme3,lme2,'NSim',1000)
 %   effortS is better model than effort
 %   effort and effort S are better models than SV
 

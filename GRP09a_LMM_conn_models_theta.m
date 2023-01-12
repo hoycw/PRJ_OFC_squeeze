@@ -21,7 +21,7 @@ outlier_thresh = 4;
 n_quantiles = 5;
 
 save_fig = 1;
-fig_ftype = 'fig';
+fig_ftype = 'png';
 
 SBJs         = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
@@ -101,11 +101,35 @@ end
 %% ========================================================================
 %   PFC THETA
 %  ========================================================================
+%% Full model
+% lme_full = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + dec_diff_cur + reward_prv + effortS_prv + dec_diff_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_noDEc = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + reward_prv + effortS_prv + dec_diff_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_noDEp = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + dec_diff_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_norewc = fitlme(good_tbl_prv.theta_conn,'theta_conn~ effortS_cur + dec_diff_cur + reward_prv + effortS_prv + dec_diff_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_norewp = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + dec_diff_cur + effortS_prv + dec_diff_prv + (1|sbj_n) + (1|trl_n_cur)');
+% 
+% tconn_dec = compare(lme_full_noDEc,lme_full,'CheckNesting',true)
+% tconn_dep = compare(lme_full_noDEp,lme_full,'CheckNesting',true)
+% tconn_rew = compare(lme_full_norewc,lme_full,'CheckNesting',true)
+% tconn_rewp = compare(lme_full_norewp,lme_full,'CheckNesting',true)
+
+%% Full model no decision ease/difficulty
+lme_full = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_full_norewc = fitlme(good_tbl_prv.theta_conn,'theta_conn~ effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_full_norewp = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_full_noeffc = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_full_noeffp = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + reward_prv + (1|sbj_n) + (1|trl_n_cur)');
+
+tconn_rewc = compare(lme_full_norewc,lme_full,'CheckNesting',true)
+tconn_rewp = compare(lme_full_norewp,lme_full,'CheckNesting',true)
+tconn_effc = compare(lme_full_noeffc,lme_full,'CheckNesting',true)
+tconn_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
+
 %% theta connectivity and previous reward:
 lme0 = fitlme(good_tbl_prv.theta_conn,'theta_conn~ 1 + (1|sbj_n)');%,'StartMethod','random');
 % lme0bg = fitlme(good_tbl_prv.theta_conn,'theta_conn~ BG_roi + (1|sbj_n)');%,'StartMethod','random');
 lme1 = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_prv + (1|sbj_n)');%,'StartMethod','random');
-lme1bg = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_prv + BG_roi + (1|sbj_n)');%,'StartMethod','random');
+lme1bg = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_prv + PFC_roi + (1|sbj_n)');%,'StartMethod','random');
 lme2 = fitlme(good_tbl_prv.theta_conn,'theta_conn~ SV_prv + (1|sbj_n)');%,'StartMethod','random');
 lme3 = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_prv + SV_prv + (1|sbj_n)');
 % theta_conn_bg = compare(lme0,lme0bg,'CheckNesting',true)%,'NSim',1000)

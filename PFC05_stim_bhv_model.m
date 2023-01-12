@@ -4,7 +4,7 @@ clear all
 close all
 
 %%
-model_p_acc = 0;
+model_p_acc = 1;
 off_color = 'b';
 on_color  = 'r';
 scat_sz = 40;
@@ -31,6 +31,7 @@ effort_ix = strcmp(col_names,'Effort');
 stake_ix  = strcmp(col_names,'Stake');
 dec_ix    = strcmp(col_names,'Decision');
 stim_ix   = strcmp(col_names,'Stim');
+blk_ix    = strcmp(col_names,'Block');
 % Fit all behavior. Minimise the difference between the probability and the decision
 decisionfun=@(p) norm( (exp(p(1)*(data(:,stake_ix)-(p(2)*(data(:,effort_ix)).^2))) ./ ...
     (exp(p(1)) + exp(p(1)*(data(:,stake_ix)-(p(2)*(data(:,effort_ix)).^2))))) - data(:,dec_ix));
@@ -68,7 +69,7 @@ SV_on   = SV_fn_on(par_on(2));
 [~,SV_on_sort_idx] = sort(SV_on);
 
 %% Fit a Generalised linear model and look for an interaction term %%
-zReg = [zscore(data(:,1)) zscore(data(:,2)) data(:,3:7)];
+zReg = [zscore(data(:,effort_ix)) zscore(data(:,stake_ix)) data(:,3:7)];
 if model_p_acc
     zReg = [zReg zscore([p_accept_off; p_accept_on])];
     col_names = [col_names 'p_accept'];
@@ -91,6 +92,21 @@ zmdl = fitglme(zT,modelspec,'Distribution','binomial')
 if model_p_acc
     modelspec = 'p_accept ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block)';% + (1|TrialCum) + (1|BlkCum)';
     zmdl_pacc = fitglme(zT,modelspec)
+    
+    % Check mid-range stakes where difference is most pronounced
+%     stake_val = 4;
+%     stake_idx = data(:,stake_ix)==stake_val;
+%     modelspec = 'p_accept ~ Stim*Effort + (1|Block)';% + (1|TrialCum) + (1|BlkCum)';
+%     zmdl_pacc_stake4 = fitglme(zT(stake_idx,:),modelspec)
+%     
+%     stake_val = 7;
+%     stake_idx = data(:,stake_ix)==stake_val;
+%     modelspec = 'p_accept ~ Stim*Effort + (1|Block)';% + (1|TrialCum) + (1|BlkCum)';
+%     zmdl_pacc_stake4 = fitglme(zT(stake_idx,:),modelspec)
+%     
+%     stake_idx = data(:,stake_ix)==4 | data(:,stake_ix)==7;
+%     modelspec = 'p_accept ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block)';% + (1|TrialCum) + (1|BlkCum)';
+%     zmdl_pacc_stake4 = fitglme(zT(stake_idx,:),modelspec)
 end
 
 % mdl2 = stepwiselm(T,'interactions')
@@ -106,6 +122,7 @@ b1=beta(6:7)
 efforts = unique(data(:,effort_ix));
 stakes  = unique(data(:,stake_ix));
 if length(efforts)~=5 || length(stakes)~=5; error('should be 5 conditions!'); end
+sv_mn        = nan([length(stakes) length(efforts)]);
 p_dec_mn     = nan([length(stakes) length(efforts)]);
 p_dec_mn_on  = nan([length(stakes) length(efforts)]);
 p_dec_mn_off = nan([length(stakes) length(efforts)]);
@@ -141,6 +158,8 @@ for stk_i = 1:5
     
     for eff_i = 1:5
         cond_idx = data(:,effort_ix)==efforts(eff_i) & data(:,stake_ix)==stakes(stk_i);
+        % Average Subejctive value
+        sv_mn(stk_i,eff_i) = mean(SV_all(cond_idx));
         % Average over all data
         p_dec_mn(stk_i,eff_i) = mean(data(cond_idx,dec_ix));
         p_acc_mn(stk_i,eff_i) = mean(p_accept(cond_idx));
@@ -158,6 +177,42 @@ end
 % Prob accept ON - OFF
 p_acc_mn_diff = p_acc_mn_on-p_acc_mn_off;
 p_dec_mn_diff = p_dec_mn_on-p_dec_mn_off;
+
+% Average decision by stim condition
+stim_cond = {'Stim. OFF','Stim. ON'};
+blocks = unique(data(:,blk_ix));
+dec_block_off_mn = nan([length(blocks) 1]);
+dec_block_on_mn  = nan([length(blocks) 1]);
+for b_ix = 1:length(blocks)
+    b_idx = data(:,blk_ix)==blocks(b_ix);
+    dec_block_off_mn(b_ix) = mean(data(b_idx & off_idx,dec_ix));
+    dec_block_on_mn(b_ix)  = mean(data(b_idx & on_idx,dec_ix));
+end
+dec_mn = [nanmean(dec_block_off_mn) nanmean(dec_block_on_mn)];
+dec_se = [nanstd(dec_block_off_mn)./sqrt(sum(~isnan(dec_block_off_mn))) ...
+          nanstd(dec_block_on_mn)./sqrt(sum(~isnan(dec_block_on_mn)))];
+
+%% Bar plot of main effect of stim on work rate (% accept)
+fig_name = ['PFC05_stim_allTrials_dec_ONOFF_errbar'];
+figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
+bars = bar([1 2],diag(dec_mn),'stacked');
+bars(1).FaceColor = off_color;
+bars(2).FaceColor = on_color;
+errorbar([1 2],dec_mn,dec_se,'linewidth',3,'color','k','linestyle','none');
+xticklabels(stim_cond);
+xticks([1 2]);
+ylabel('Work Rate (% Accept)');
+ylim([0.7 0.81]);
+title(['Decision ~ Stimulation (p=' num2str(zmdl.Coefficients.pValue(4),'%.03f') ')']);
+set(gca,'FontSize',18);
+
+if save_fig
+    fig_dir   = [prj_dir 'results/bhv/PFC05_stim/'];
+    if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
 
 %% Line plots of Prob accept by reward and effort
 fig_name = ['PFC05_stim_allTrials_dec_stake_ONOFF_line'];
@@ -186,10 +241,10 @@ figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
 errorbar(stakes,pacc_stake_off_mn,pacc_stake_off_se,'Color',off_color,'linewidth',3);
 errorbar(stakes,pacc_stake_on_mn,pacc_stake_on_se,'Color',on_color,'linewidth',3);
 xlabel('Reward');
-ylabel('Probability of Accept');
+ylabel('Probability Accept');
 ylim([0 1.1]);
 legend({'OFF stimulation','ON stimulation'},'Location','best');
-title(['Effect of Stimulation*Reward on Prob. Accept']);
+title(['Model Prob. Accept ~ Stimulation*Reward']);
 set(gca,'FontSize',18);
 if save_fig
     fig_fname = [fig_dir fig_name '.' fig_ftype];
@@ -224,11 +279,32 @@ if save_fig
 %     saveas(gcf,fig_fname);
 end
 
+%% 3D bar plot of subjective value landscape
+fig_name = ['PFC05_stim_allTrials_sv_bar3'];
+figure('Name',fig_name);
+[bars] = fn_3d_decision_landscape(stakes,efforts,sv_mn,font_sz);
+zlabel('Subjective Value');
+title('PFC05 Subjective Value Landscape: All trials');
+
+% Shade bar according to z-axis
+for b = 1:length(bars)
+    zdata = bars(b).ZData;
+    bars(b).CData = zdata;
+    bars(b).FaceColor = 'interp';
+end
+if save_fig
+    fig_dir   = [prj_dir 'results/bhv/PFC05_stim/sv_bar3/'];
+    if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
 %% 3-D plot of decision as function of reward and effort
 % Total behavior
 fig_name = ['PFC05_stim_allTrials_p_dec_bar3'];
 figure('Name',fig_name);
-[bars] = fn_3d_decision_landscape(stakes,efforts,p_dec_mn);
+[bars] = fn_3d_decision_landscape(stakes,efforts,p_dec_mn,font_sz);
 zlabel('% Accept');
 title('PFC05 Decision Landscape: All trials');
 caxis([0 1]);
@@ -243,7 +319,7 @@ end
 % ON-OFF behavior
 fig_name = ['PFC05_stim_ON-OFF_p_dec_bar3'];
 figure('Name',fig_name);
-[bars] = fn_3d_decision_landscape(stakes,efforts,p_dec_mn_diff);
+[bars] = fn_3d_decision_landscape(stakes,efforts,p_dec_mn_diff,font_sz);
 zlabel('% Accept');
 title('PFC05 Decision Landscape: ON-OFF');
 rb_cmap = redblue();
@@ -258,7 +334,7 @@ end
 % OFF stim
 fig_name = ['PFC05_stim_OFF_p_dec_bar3'];
 figure('Name',fig_name);
-[bars] = fn_3d_decision_landscape(stakes,efforts,p_dec_mn_off);
+[bars] = fn_3d_decision_landscape(stakes,efforts,p_dec_mn_off,font_sz);
 zlabel('% Accept');
 title('PFC05 Decision Landscape: OFF Stimulation');
 caxis([0 1]);
@@ -271,7 +347,7 @@ end
 % ON stim
 fig_name = ['PFC05_stim_ON_p_dec_bar3'];
 figure('Name',fig_name);
-[bars] = fn_3d_decision_landscape(stakes,efforts,p_dec_mn_on);
+[bars] = fn_3d_decision_landscape(stakes,efforts,p_dec_mn_on,font_sz);
 zlabel('% Accept');
 title('PFC05 Decision Landscape: ON Stimulation');
 caxis([0 1]);
@@ -285,7 +361,7 @@ end
 % Total behavior
 fig_name = ['PFC05_stim_allTrials_p_acc_bar3'];
 figure('Name',fig_name);
-[bars] = fn_3d_decision_landscape(stakes,efforts,p_acc_mn);
+[bars] = fn_3d_decision_landscape(stakes,efforts,p_acc_mn,font_sz);
 
 title('PFC05 Decision Model Landscape: All trials');
 caxis([0 1]);
@@ -300,7 +376,7 @@ end
 % ON-OFF behavior
 fig_name = ['PFC05_stim_ON-OFF_p_acc_bar3'];
 figure('Name',fig_name);
-[bars] = fn_3d_decision_landscape(stakes,efforts,p_acc_mn_diff);
+[bars] = fn_3d_decision_landscape(stakes,efforts,p_acc_mn_diff,font_sz);
 title('PFC05 Decision Model Landscape: ON-OFF');
 rb_cmap = redblue();
 colormap(rb_cmap);
@@ -314,7 +390,7 @@ end
 % OFF stim
 fig_name = ['PFC05_stim_OFF_p_acc_bar3'];
 figure('Name',fig_name);
-[bars] = fn_3d_decision_landscape(stakes,efforts,p_acc_mn_off);
+[bars] = fn_3d_decision_landscape(stakes,efforts,p_acc_mn_off,font_sz);
 title('PFC05 Decision Model Landscape: OFF Stimulation');
 caxis([0 1]);
 if save_fig
@@ -326,7 +402,7 @@ end
 % ON stim
 fig_name = ['PFC05_stim_ON_p_acc_bar3'];
 figure('Name',fig_name);
-[bars] = fn_3d_decision_landscape(stakes,efforts,p_acc_mn_on);
+[bars] = fn_3d_decision_landscape(stakes,efforts,p_acc_mn_on,font_sz);
 title('PFC05 Decision Model Landscape: ON Stimulation');
 caxis([0 1]);
 if save_fig
@@ -336,7 +412,7 @@ if save_fig
 end
 
 %% define function for 3D bar plot
-function [bars] = fn_3d_decision_landscape(stakes,efforts,zvals)
+function [bars] = fn_3d_decision_landscape(stakes,efforts,zvals,font_sz)
 
 bars = bar3(zvals);
 ylabel('Reward');

@@ -10,10 +10,14 @@ addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 
 %% Parameters
-SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
-sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
-sbj_bg_roi   = {'GPi','STN','GPi','STN'};
-man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 148 149 150]};
+% Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
+prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
+eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
+
+% SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
+% sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
+% sbj_bg_roi   = {'GPi','STN','GPi','STN'};
+% man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 148 149 150]};
 
 an_id = 'TFRmth_S1t2_madS8t0_f2t40';
 norm_bhv_pred = 'zscore';%'none';%
@@ -48,7 +52,7 @@ beta_cf = [-1 -1 -1 -1; 10 17 13 12]; % PFC03, PFC04, PFC05, PFC01
 
 
 % Plotting parameters
-plot_psd  = 0;
+plot_psd  = 1;
 font_size = 24;
 save_fig  = 1;
 fig_ftype = 'png';
@@ -205,8 +209,7 @@ for ch_ix = 1:2
     [beta_sig(ch_ix,:), ~, ~, ~]  = fdr_bh(beta_pval(ch_ix,:));
 end
 
-%% Plot SBJ TFRs
-% Get frequency and time ticks
+%% Get frequency and time ticks
 freq_tick_ix = nan(size(freq_ticks));
 for f = 1:numel(freq_ticks)
     [~,freq_tick_ix(f)] = min(abs(freq_vec-freq_ticks(f)));
@@ -220,6 +223,7 @@ for t = 1:numel(time_ticks)
 end
 if ~any(time_ticks==0); error('cant plot event with no tick at 0'); end
 
+%% Plot SBJ TFRs
 for s = 1:length(SBJs)
     %% Plot TFRs for each SBJ
     fig_name = [SBJs{s} '_TFR_theta_beta_' lmm_name];
@@ -344,7 +348,7 @@ for ch_ix = 1:2
     beta_grp_sem(ch_ix,:)  = squeeze(mean(beta_sem(:,ch_ix,:),1));
 end
 
-%% Plot TFRs for the GROUP
+%% Plot TFRs for the GROUP with coefficient time series
 if plot_psd
     fig_name = ['GRP_TFR_theta_beta_' lmm_name '_withPSD'];
 else
@@ -596,6 +600,105 @@ set(gca,'FontSize',font_size);
 % Save Figure
 if save_fig
     fig_name = [fig_name '_legspaces'];
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
+%% Plot TFRs for the GROUP with SBJ PSDs
+if plot_boxes; box_str = '_boxes'; else; box_str = ''; end
+fig_name = ['GRP_TFR_theta_beta_' lmm_name '_withPSD_noCoef' box_str];
+figure('Name',fig_name,'units','normalized',...
+    'outerposition',[0 0 1 1],'Visible',fig_vis);
+for ch_ix = 1:2
+    if ch_ix==1
+        ch_lab = 'Basal Ganglia';
+        ch_color = [0 0 1];
+    else
+        ch_lab = 'Prefrontal Cortex';
+        ch_color = [255,165,0]./255; % orange
+    end
+    
+    % Plot TFR
+    subplot(2,3,ch_ix*3-2); hold on;
+    % Get color lims per condition
+    vals = tfr_grp(ch_ix,:,:);
+    if symmetric_clim
+        clim = max(abs([prctile(vals(:),plt.clim_perc(1)) prctile(vals(:),plt.clim_perc(2))]));
+        clim = [-clim clim];
+    else
+        clim = [prctile(vals(:),plt.clim_perc(1)) prctile(vals(:),plt.clim_perc(2))];
+    end
+    
+    imagesc(squeeze(tfr_grp(ch_ix,:,:)));
+    set(gca,'YDir','normal');
+    caxis(clim);
+    colorbar;
+    
+    % Plot Events
+    line([time_tick_ix(time_ticks==0) time_tick_ix(time_ticks==0)],ylim,...
+        'LineWidth',plt.evnt_width,'Color',plt.evnt_color,'LineStyle',plt.evnt_styles{1});
+    
+    % Axes and parameters
+    title([ch_lab ' TFR'], 'interpreter', 'none');
+    % title(['LFP- ' an_id], 'interpreter', 'none');
+    [~,ix1] = min(abs(time_vec-plt.plt_lim(1)));
+    [~,ix2] = min(abs(time_vec-plt.plt_lim(2)));
+    set(gca,'XLim',[ix1 ix2]);
+    set(gca,'XTick', time_tick_ix);
+    set(gca,'XTickLabels', time_tick_lab);
+    set(gca,'YLim',[1 numel(freq_vec)]);
+    set(gca,'YTick',freq_tick_ix);
+    set(gca,'YTickLabels',freq_ticks);
+    xlabel('Time (s)');
+    ylabel('Frequency (Hz)');
+    set(gca,'FontSize',font_size);
+    
+    % Plot PSDs for each SBJ
+    subplot(2,3,ch_ix*3-1); hold on;
+    psd_lines = gobjects(size(SBJs));
+    for s = 1:length(SBJs)
+        psd_lines(s) = plot(freq_vec,squeeze(nanmean(psd(s,ch_ix,:),1)),...
+            'Color',sbj_colors(s,:),'LineWidth',2);
+    end
+    %     line(xlim,[0 0],'Color','k','LineStyle','--');
+    xlabel('Frequency (Hz)');
+    ylabel('Power (z)');
+    if strcmp(an_id,'TFRmth_S1t2_madS8t0_f2t40') && ch_ix==2; ylim([0 12]); end
+    title(['Reactive PSD (' num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2)) 's)']);
+    legend(psd_lines,SBJs,'Location','northeast');
+    set(gca,'FontSize',font_size);
+    
+    % Plot theta and beta
+    subplot(2,3,ch_ix*3); hold on;
+    
+    t_line = shadedErrorBar(time_vec, squeeze(theta_grp_avg(ch_ix,:)), ...
+        squeeze(theta_grp_sem(ch_ix,:)),'lineprops',{'Color','r','LineWidth',2});
+    b_line = shadedErrorBar(time_vec, squeeze(beta_grp_avg(ch_ix,:)),...
+        squeeze(beta_grp_sem(ch_ix,:)), 'lineprops',{'Color','b','LineWidth',2});
+    ylims = ylim;
+    line([0 0],ylims,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
+        'LineStyle',plt.evnt_styles{1});
+    if plot_boxes
+        patch([an_lim(1) an_lim(1) an_lim(2) an_lim(2)],[ylims(1) ylims(2) ylims(2) ylims(1)],'k','FaceAlpha',0,...
+            'LineWidth',2,'LineStyle','--');
+    end
+    
+    % Axes and parameters
+    title([ch_lab ' Power'], 'interpreter', 'none');
+    set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
+    set(gca,'XTick', time_ticks);%plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
+    set(gca,'YLim',ylims);
+    xlabel('Time (s)');
+    ylabel('Power (z)');
+    legend([t_line.mainLine b_line.mainLine],{...
+        ['Theta (' num2str(mean(theta_lim(:,ch_ix,1))) '-' num2str(mean(theta_lim(:,ch_ix,2))) ' Hz)'],...
+        ['Beta (' num2str(mean(beta_lim(:,ch_ix,1))) '-' num2str(mean(beta_lim(:,ch_ix,2))) ' Hz)']},'Location','best');
+    set(gca,'FontSize',font_size);
+end
+
+% Save Figure
+if save_fig
     fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);

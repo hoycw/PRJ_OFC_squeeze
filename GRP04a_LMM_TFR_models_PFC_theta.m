@@ -91,6 +91,35 @@ end
 %% ========================================================================
 %   PFC THETA
 %  ========================================================================
+%% Full model
+% lme_full = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + dec_diff_cur + reward_prv + effortS_prv + dec_diff_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_noDEc = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + dec_diff_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_noDEp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + dec_diff_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_norewc = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ effortS_cur + dec_diff_cur + reward_prv + effortS_prv + dec_diff_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_norewp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + dec_diff_cur + effortS_prv + dec_diff_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_noeffc = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_noeffp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + (1|sbj_n) + (1|trl_n_cur)');
+% 
+% pfc_theta_dec = compare(lme_full_noDEc,lme_full,'CheckNesting',true)
+% pfc_theta_dep = compare(lme_full_noDEp,lme_full,'CheckNesting',true)
+% pfc_theta_rew = compare(lme_full_norewc,lme_full,'CheckNesting',true)
+% pfc_theta_rewp = compare(lme_full_norewp,lme_full,'CheckNesting',true)
+% pfc_theta_effc = compare(lme_full_noeffc,lme_full,'CheckNesting',true)
+% pfc_theta_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
+
+%% Full model no decision ease/difficulty
+lme_full = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_full_norewc = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_full_norewp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_full_noeffc = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_full_noeffp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + (1|sbj_n) + (1|trl_n_cur)');
+
+pfc_theta_rewc = compare(lme_full_norewc,lme_full,'CheckNesting',true)
+pfc_theta_rewp = compare(lme_full_norewp,lme_full,'CheckNesting',true)
+pfc_theta_effc = compare(lme_full_noeffc,lme_full,'CheckNesting',true)
+pfc_theta_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
+
+%% Compare reward + effort vs. SV
 lme_all = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
 lme_sv_curprv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_cur + SV_prv + (1|sbj_n)');
 
@@ -104,7 +133,7 @@ pfc_theta_rew_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 % lme0 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
 % lme1 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ effort_prv + (1|sbj_n)');%,'StartMethod','random');
 % lme2 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ effortS_prv + (1|sbj_n)');%,'StartMethod','random');
-% pfc_theta_eff_vs_effS_prv = compare(lme1,lme2)%,'NSim',1000)
+pfc_theta_rew_prv_vs_SV_prv = compare(lme2,lme1,'NSim',1000)
 % pfc_theta_eff_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 
 % Plot PFC theta ~ previous reward as scatter plot
