@@ -13,17 +13,21 @@ eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
 % Analysis parameters:
 %   an_id used for SBJ-specific band limits
-an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
+an_id = 'TFRmth_S1t2_madA8t1_f2t40';%'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40';% an_id = 'TFRmth_D1t1_zS8t0_f2t40';
 conn_metric = 'ampcorr';
 if contains(an_id,'_S')
     evnt_id     = 'S';
-    an_lim = [0.5 1.5];
+    if contains(an_id,'A8t1')
+        an_lim = [-0.8 0];
+    else
+        an_lim = [0.5 1.5];
+    end
 elseif contains(an_id,'_D')
     evnt_id     = 'D';
     an_lim = [-0.5 0];
 end
-freq_ch = 'PFC';    % which channel's SBJ-specific frequency band should be used? 'PFC' or 'BG'
+freq_pk_ch = 'PFC';    % which channel's SBJ-specific frequency band should be used? 'PFC' or 'BG'
 
 % Model parameters:
 norm_bhv_pred = 'zscore';%'none';%
@@ -35,9 +39,9 @@ theta_lim  = fn_compute_freq_lim(SBJs,theta_cf,'theta');
 betalo_lim = fn_compute_freq_lim(SBJs,betalo_cf,'betalo');
 betahi_lim = fn_compute_freq_lim(SBJs,betahi_cf,'betahi');
 
-if strcmp(freq_ch,'BG')
+if strcmp(freq_pk_ch,'BG')
     pk_frq_ch_ix = 1;
-elseif strcmp(freq_ch,'PFC')
+elseif strcmp(freq_pk_ch,'PFC')
     pk_frq_ch_ix = 2;
 else
     error('unknown peak frequency channel');

@@ -12,14 +12,13 @@ an_id = 'TFRmth_S1t2_zS8t0_f2t40_log';
 norm_bhv_pred = 'zscore';%'none';%
 norm_nrl_pred = 'zscore';%'none';%
 
-SBJs         = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
-sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
-sbj_bg_roi   = {'GPi','STN','GPi','STN'};
+% Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
+prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
+eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
 save_fig  = 1;
 fig_ftype = 'png';
 
-prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 addpath([prj_dir 'scripts/']);
 addpath([prj_dir 'scripts/utils/']);
 

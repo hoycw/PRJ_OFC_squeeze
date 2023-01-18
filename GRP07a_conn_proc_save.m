@@ -11,8 +11,8 @@ ft_defaults
 
 %% Parameters
 conn_metric = 'ampcorr';
-% an_ids = {'TFRmth_S1t2_madS8t0_f2t40'};%'TFRmth_S1t2_madS8t0_f2t40'};
-an_ids = {'TFRmth_D1t1_madS8t0_f2t40'};
+an_ids = {'TFRmth_S1t2_madA8t1_f2t40'};%'TFRmth_S1t2_madS8t0_f2t40'};
+% an_ids = {'TFRmth_D1t1_madS8t0_f2t40'};
 
 % Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';

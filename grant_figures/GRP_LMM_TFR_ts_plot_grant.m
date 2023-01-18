@@ -1,11 +1,10 @@
-%% Colin preprocessing script
-% Based on /Analysis/Group/Preprocess/Squeeze_preprocess_all_data_stimulus_locked.m
+%% Plots for Simon grants
 clear all
 close all
 % clc
 
-addpath(['/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/']);
-addpath(['/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/utils/']);
+addpath('/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/');
+addpath('/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/utils/');
 addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 
@@ -14,12 +13,7 @@ ft_defaults
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
-% SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
-% sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
-% sbj_bg_roi   = {'GPi','STN','GPi','STN'};
-% man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 148 149 150]};
-
-an_id = 'TFRmth_S1t2_madS8t0_f2t40';
+an_id = 'TFRmth_S1t2_madA8t1_f2t40';%'TFRmth_S1t2_madS8t0_f2t40';
 norm_bhv_pred = 'zscore';%'none';%
 norm_nrl_pred = 'zscore';%'none';%
 outlier_thresh = 4;
@@ -27,13 +21,13 @@ use_simon_tfr = 0;
 toss_same_trials = 1;
 
 if contains(an_id,'_S') || contains(an_id,'simon')
-    psd_win_lim = [0.5 1.5];
-    peak_sign = 1;
-%     an_lim = [0.5 1];
+    if contains(an_id,'A8t1')
+        an_lim = [-0.8 0];
+    else
+        an_lim = [0.5 1.5];
+    end
 elseif contains(an_id,'_D')
-    psd_win_lim = [-0.5 0];
-    peak_sign = -1;
-%     an_lim = [-0.5 0];
+    an_lim = [-0.5 0];
 end
 
 % Analysis parameters:
@@ -72,8 +66,10 @@ end
 if ~strcmp(norm_bhv_pred,'none'); norm_bhv_str = ['_bhv' norm_bhv_pred]; else; norm_bhv_str = ''; end
 if ~strcmp(norm_nrl_pred,'none'); norm_nrl_str = ['_nrl' norm_nrl_pred]; else; norm_nrl_str = ''; end
 out_thresh_str = ['_out' num2str(outlier_thresh)];
-win_lim_str = [num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2))];
-lmm_name = [an_id norm_bhv_str norm_nrl_str out_thresh_str];
+win_str = ['_' num2str(an_lim(1)) 't' num2str(an_lim(2))];
+win_str = strrep(strrep(win_str,'-','n'),'.','');
+
+lmm_name = [an_id win_str norm_bhv_str norm_nrl_str out_thresh_str];
 lmm_fname = [prj_dir 'data/GRP/GRP_' lmm_name '_LMM_ts.mat'];
 fig_dir   = [prj_dir 'results/TFR/LMM/' lmm_name '/grant_plot/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
@@ -153,7 +149,7 @@ for s = 1:length(SBJs)
     
     % Compute PSD
     cfgs = [];
-    cfgs.latency = psd_win_lim;
+    cfgs.latency = an_lim;
     psd_tfr = ft_selectdata(cfgs,tmp.tfr);
     trl_pow = nanmean(psd_tfr.powspctrm,4);
     psd(s,:,:) = squeeze(nanmean(nanmean(psd_tfr.powspctrm,1),4));
@@ -298,7 +294,7 @@ for s = 1:length(SBJs)
         xlabel('Frequency (Hz)');
         ylabel('Power (norm)');
 %         legend([lfp_line pfc_line],{'LFP',sbj_pfc_roi{s}},'Location','best');
-        title(['PSD (' num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2)) 's)']);
+        title(['PSD (' num2str(an_lim(1)) '-' num2str(an_lim(2)) 's)']);
         set(gca,'FontSize',font_size);
         
         %% Plot theta and beta
@@ -411,7 +407,7 @@ for ch_ix = 1:2
         %     line(xlim,[0 0],'Color','k','LineStyle','--');
         xlabel('Frequency (Hz)');
         ylabel('Power (z)');
-        title([ch_lab ' Reactive Power (' num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2)) 's)']);
+        title([ch_lab ' Reactive Power (' num2str(an_lim(1)) '-' num2str(an_lim(2)) 's)']);
         set(gca,'FontSize',font_size);
     end
     
@@ -665,7 +661,7 @@ for ch_ix = 1:2
     xlabel('Frequency (Hz)');
     ylabel('Power (z)');
     if strcmp(an_id,'TFRmth_S1t2_madS8t0_f2t40') && ch_ix==2; ylim([0 12]); end
-    title(['Reactive PSD (' num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2)) 's)']);
+    title(['Reactive PSD (' num2str(an_lim(1)) '-' num2str(an_lim(2)) 's)']);
     legend(psd_lines,SBJs,'Location','northeast');
     set(gca,'FontSize',font_size);
     

@@ -7,11 +7,9 @@ close all
 clear all
 
 %%
-SBJs         = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
-sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
-sbj_bg_roi   = {'GPi','STN','GPi','STN'};
-man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 148 149 150]};
-% sbj_colors = distinguishable_colors(length(SBJs));
+% Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
+prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
+eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
 % Analysis parameters:
 an_id = 'TFRmth_S1t2_zS8t0_f2t40';%'TFRmth_S1t2_zS1t0_f2t40_log';%
@@ -87,7 +85,6 @@ betahi_canon = [21 35];
 % alternatives: (1)=[17,17,13,12]; (2)=[17,22,13,13];
 
 %% Analysis Set Up
-prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 addpath([prj_dir 'scripts/']);
 addpath([prj_dir 'scripts/utils/']);
 

@@ -1,9 +1,9 @@
-plt.evnt_lab    = {'D'};
+plt.evnt_lab    = {'S'};
 plt.evnt_styles = {'-'};
 
-plt.plt_lim  = [-1.0 1.0];
+plt.plt_lim  = [-0.8 2.0];
 plt.x_step_sz  = 0.5;
-plt.xticks     = [-1:0.5:1];
+plt.xticks     = [-0.5:0.5:2];
 plt.legend     = 1;
 plt.legend_loc_S = 'northwest';
 plt.legend_loc_R = 'northeast';

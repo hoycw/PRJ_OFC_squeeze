@@ -8,9 +8,9 @@ addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 
 %% Parameters
-SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
-sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
-sbj_bg_roi   = {'GPi','STN','GPi','STN'};
+% Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
+prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
+eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
 summary_metric = 'mn'; % 'md' for median, 'mn' for mean
 
@@ -40,17 +40,11 @@ thetapk_bw = 3;
 betapk_bw = 4;
 
 % Plotting parameters
-sbj_colors = [27, 158, 119;         % teal
-              217, 95, 2;           % burnt orange
-              117, 112, 179;        % purple
-              231, 41, 138]./256;   % magenta
-
 save_fig  = 1;
 fig_ftype = 'png';
 fig_vis   = 'on';
 
 %% Prep stuff
-prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 addpath([prj_dir 'scripts/']);
 addpath([prj_dir 'scripts/utils/']);
 

@@ -11,14 +11,15 @@ addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 
 %% Parameters
-SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
-% sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
+% Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
+prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
+eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
 % an_ids = {'TFRmth_S1t2_zbtS1t0_f2t40','TFRmth_S1t2_dbS1t0_f2t40','TFRmth_S1t2_zS1t0_f2t40','TFRmth_S1t2_zS25t05_f2t40'};%'TFRw_S25t2_dbS25t05_fl2t40_c7','TFRw_D1t1_dbS25t05_fl2t40_c7'};
 % an_ids = {'TFRmth_S2t2_zS1t0_f2t40','TFRmth_S2t2_zS5t0_f2t40','TFRmth_S2t2_zS25t0_f2t40','TFRmth_S2t2_zS25t05_f2t40',...
 %           'TFRmth_D1t2_zS5t0_f2t40','TFRmth_D1t2_zS25t0_f2t40','TFRmth_D1t2_zS25t05_f2t40'};
-% an_ids = {'TFRmth_S1t2_madS8t0_f2t40'};%,'TFRmth_D1t1_zS8t0_f2t40_log'};
-an_ids = {'TFRmth_D1t1_madS8t0_f2t40'};%,'TFRmth_D1t1_zS8t0_f2t40_log'};
+an_ids = {'TFRmth_S1t2_madA8t1_f2t40'};%'TFRmth_S1t2_madS8t0_f2t40'};%,'TFRmth_D1t1_zS8t0_f2t40_log'};
+% an_ids = {'TFRmth_D1t1_madS8t0_f2t40'};%,'TFRmth_D1t1_zS8t0_f2t40_log'};
 %'TFRw_S25t2_noBsln_fl1t40_c7','TFRw_S25t2_zbtS25t05_fl1t40_c7'};%'TFRw_S25t2_noBsln_fl2t40_c7'};%
 
 %% Time Frequency analysis
@@ -49,7 +50,10 @@ for s = 1:4
         
         % Trim back down to original trial_lim_s to exclude NaNs
         cfg_trim = [];
-        if strcmp(an.event_type,'S')
+        if strcmp(an.bsln_evnt,'A')
+            cfg_trim.latency = [an.bsln_lim(1) max(sbj_data.bhv.rt)+an.bsln_lim(2)];
+            an.bsln_lim = cfg_trim.latency;
+        elseif strcmp(an.event_type,'S')
             cfg_trim.latency = an.trial_lim_s;
         elseif strcmp(an.event_type,'D') && strcmp(an.bsln_evnt,'S')
             cfg_trim.latency = [an.bsln_lim(1) max(sbj_data.bhv.rt)+an.trial_lim_s(2)];
@@ -83,7 +87,7 @@ for s = 1:4
                 error(['No baseline implemented for bsln_type: ' an.bsln_type]);
         end
         
-        % Post-baselin Log transform (shift, tranform, shift back)
+        % Post-baseline Log transform (shift, tranform, shift back)
         %   NOPE, unclear how to group these values to do the log transofmr
         %   (within frequency? per TFR point across trials?), so applying
         %   at LMM stage instead of here
@@ -101,6 +105,11 @@ for s = 1:4
         if ~strcmp(an.event_type,an.bsln_evnt)
             if strcmp(an.event_type,'D') && strcmp(an.bsln_evnt,'S')
                 [tfr] = fn_realign_tfr_s2r(tfr,sbj_data.bhv.rt,an.trial_lim_s);
+            elseif strcmp(an.event_type,'S') && strcmp(an.bsln_evnt,'A')
+                % Trim back down to analysis epoch
+                cfg_trim = [];
+                cfg_trim.latency = an.trial_lim_s;
+                tfr = ft_selectdata(cfg_trim,tfr);
             else
                 error('unknown combination of analysis and baseline events');
             end

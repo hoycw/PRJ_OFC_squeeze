@@ -5,7 +5,7 @@ close all
 clear all
 
 %%
-an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
+an_id = 'TFRmth_S1t2_madA8t1_f2t40';%'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40';%'TFRmth_D1t1_zS8t0_f2t40';%
 norm_bhv_pred = 'zscore';%'none';%
 norm_nrl_pred = 'zscore';%'none';%
@@ -15,21 +15,27 @@ n_quantiles = 5;
 save_fig = 1;
 fig_ftype = 'png';
 
-SBJs         = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
-sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
-sbj_bg_roi   = {'GPi','STN','GPi','STN'};
+if contains(an_id,'_S')
+    if contains(an_id,'A8t1')
+        an_lim = [-0.8 0];
+    else
+        an_lim = [0.5 1.5];
+    end
+elseif contains(an_id,'_D')
+    an_lim = [-0.5 0];
+end
 
-sbj_colors = [27, 158, 119;         % teal
-              217, 95, 2;           % burnt orange
-              117, 112, 179;        % purple
-              231, 41, 138]./256;   % magenta
-
+% Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
+eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
+
 if ~strcmp(norm_bhv_pred,'none'); norm_bhv_str = ['_bhv' norm_bhv_pred]; else; norm_bhv_str = ''; end
 if ~strcmp(norm_nrl_pred,'none'); norm_nrl_str = ['_nrl' norm_nrl_pred]; else; norm_nrl_str = ''; end
 out_thresh_str = ['_out' num2str(outlier_thresh)];
+win_str = ['_' num2str(an_lim(1)) 't' num2str(an_lim(2))];
+win_str = strrep(strrep(win_str,'-','n'),'.','');
 
-table_name = [an_id norm_bhv_str norm_nrl_str];
+table_name = [an_id win_str norm_bhv_str norm_nrl_str];
 fig_dir   = [prj_dir 'results/TFR/LMM/' table_name out_thresh_str '/PFC_theta/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 

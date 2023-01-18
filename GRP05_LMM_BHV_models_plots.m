@@ -21,16 +21,10 @@ end
 save_fig = 1;
 fig_ftype = 'png';
 
-SBJs         = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
-sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
-sbj_bg_roi   = {'GPi','STN','GPi','STN'};
-
-sbj_colors = [27, 158, 119;         % teal
-              217, 95, 2;           % burnt orange
-              117, 112, 179;        % purple
-              231, 41, 138]./256;   % magenta
-
+% Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
+eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
+
 if ~strcmp(norm_bhv_pred,'none'); norm_bhv_str = ['_bhv' norm_bhv_pred]; else; norm_bhv_str = ''; end
 if ~strcmp(norm_nrl_pred,'none'); norm_nrl_str = ['_nrl' norm_nrl_pred]; else; norm_nrl_str = ''; end
 out_thresh_str = ['_out' num2str(outlier_thresh)];
