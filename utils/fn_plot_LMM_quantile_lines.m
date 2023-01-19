@@ -1,4 +1,17 @@
-function fn_plot_LMM_quantile_lines(SBJs,tbl,xvar,yvar,lmm,pval,n_quantiles)
+function fn_plot_LMM_quantile_lines(SBJs,tbl,xvar,yvar,lmm,pval,n_quantiles,varargin)
+
+if ~isempty(varargin)
+    for v = 1:2:numel(varargin)
+        if strcmp(varargin{v},'continuous')
+            continuous_data = varargin{v+1};
+        else
+            error(['Unknown varargin ' num2str(v) ': ' varargin{v}]);
+        end
+    end
+end
+if ~exist('continuous_data','var')
+    continuous_data = 0;
+end
 
 %% Set up and check vaeriables
 if ~all(strcmp(SBJs,{'PFC03','PFC04','PFC05','PFC01'})); error('SBJs wrong'); end
@@ -14,7 +27,14 @@ coef_ix = strcmp(lmm.CoefficientNames,xvar);
 %% Discretize predictor into quantiles
 for s = 1:length(SBJs)
     % Get bin edges
-    qs = quantile(tbl.(xvar)(tbl.sbj_n==s),n_quantiles);
+    if continuous_data
+        qs = quantile(tbl.(xvar)(tbl.sbj_n==s),n_quantiles);
+    else
+        qs = unique(tbl.(xvar)(tbl.sbj_n==s));
+        if length(qs)~=n_quantiles
+            warning(['requested ' num2str(n_quantiles) ' quantiles but ' num2str(length(qs)) ' are in the data']);
+        end
+    end
     edges = nan([n_quantiles-1 1]);
     for i = 1:n_quantiles-1
         edges(i) = mean(qs(i:i+1));

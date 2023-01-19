@@ -13,7 +13,7 @@ eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
 
 % Analysis parameters:
-an_id = 'TFRmth_S1t2_madA8t1_f2t40';%'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
+an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_madA8t1_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40';% an_id = 'TFRmth_D1t1_zS8t0_f2t40';
 norm_bhv_pred = 'zscore';%'none';%
 norm_nrl_pred = 'zscore';%'none';%
@@ -81,7 +81,7 @@ for s = 1:length(SBJs)
     if ~strcmp(tfr.label{1},'LFP'); error('BG LFP is not first channel!'); end
     if ~any(strcmp(tfr.label{2},{'FPC','OFC'})); error('PFC is not second channel!'); end
     
-    % Compute single trial power
+    %% Compute single trial power
     for ch_ix = 1:2
         % Theta
         cfg = [];
@@ -123,6 +123,7 @@ for s = 1:length(SBJs)
     end
 end
 
+
 %% Concatenate variables (cur = current trial, prv = previous trial)
 sbj_n      = [];
 PFC_roi    = [];
@@ -157,6 +158,10 @@ SV_prv       = [];
 absSV_prv    = [];
 pAccept_prv  = [];
 dec_diff_prv = [];
+
+% Possible reward context predictors
+reward_chg   = [];
+grs          = [];
 
 for s = 1:length(SBJs)
     % Concatenate SBJ, beta, theta values
@@ -199,12 +204,17 @@ for s = 1:length(SBJs)
     absSV_prv    = [absSV_prv; fn_normalize_predictor(bhvs{s}.absSV_prv,norm_bhv_pred)];
     pAccept_prv  = [pAccept_prv; fn_normalize_predictor(bhvs{s}.p_accept_prv,norm_bhv_pred)];
     dec_diff_prv = [dec_diff_prv; fn_normalize_predictor(bhvs{s}.dec_diff_prv,norm_bhv_pred)];
+    
+    % Reward context predictors
+    reward_chg   = [reward_chg; fn_normalize_predictor(bhvs{s}.stake-bhvs{s}.stake_prv,norm_bhv_pred)];
+    grs          = [grs; fn_normalize_predictor(bhvs{s}.grs,norm_bhv_pred)];
 end
 
 %% Convert into table format suitable for LME modelling
 table_all  = table(trl_n_cur, sbj_n, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC_betahi, BG_theta, BG_betalo, BG_betahi,...
                  rt_cur, logrt_cur, reward_cur, effort_cur, effortS_cur, decision_cur, SV_cur, absSV_cur, pAccept_cur, dec_diff_cur,...
-                 rt_prv, logrt_prv, reward_prv, effort_prv, effortS_prv, decision_prv, SV_prv, absSV_prv, pAccept_prv, dec_diff_prv);
+                 rt_prv, logrt_prv, reward_prv, effort_prv, effortS_prv, decision_prv, SV_prv, absSV_prv, pAccept_prv, dec_diff_prv,...
+                 reward_chg, grs);
 
 %% Write table for R
 table_all_fname = [prj_dir 'data/GRP/GRP_' table_name '_full_table_all.csv'];

@@ -5,7 +5,7 @@ close all
 clear all
 
 %%
-an_id = 'TFRmth_S1t2_madA8t1_f2t40';%'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
+an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_madA8t1_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40';% an_id = 'TFRmth_D1t1_zS8t0_f2t40';
 conn_metric = 'ampcorr';
 if contains(an_id,'_S')
@@ -93,15 +93,29 @@ end
 all_outliers_all = unique(out_ix_all);
 fprintf(2,'Total bad trials in table_all: %d\n',length(all_outliers_all));
 
-%% Create current and previous trial tables
+%% Create previous trial and GRS tables
 % Toss NaNs from previous table
 good_tbl_prv = good_tbl_all;
+tbl_fields = good_tbl_all.(conn_vars{1}).Properties.VariableNames;
 for p = 1:length(conn_vars)
     prv_nan_idx = isnan(good_tbl_prv.(conn_vars{p}).SV_prv);
     good_tbl_prv.(conn_vars{p})(prv_nan_idx,:) = [];
-    prv_fields = good_tbl_prv.(conn_vars{p}).Properties.VariableNames;
-    for f = 1:length(prv_fields)
-        if any(isnan(good_tbl_prv.(conn_vars{p}).(prv_fields{f}))); error(['NaN is table_prv.' prv_fields{f}]); end
+    for f = 1:length(tbl_fields)
+        if any(isnan(good_tbl_prv.(conn_vars{p}).(tbl_fields{f}))) && ~strcmp(tbl_fields{f},'grs')
+            error(['NaN is table_prv.' tbl_fields{f}]);
+        end
+    end
+end
+
+% Toss NaNs from grs table
+good_tbl_grs = good_tbl_all;
+for p = 1:length(conn_vars)
+    grs_nan_idx = isnan(good_tbl_grs.(conn_vars{p}).grs);
+    good_tbl_grs.(conn_vars{p})(grs_nan_idx,:) = [];
+    for f = 1:length(tbl_fields)
+        if any(isnan(good_tbl_grs.(conn_vars{p}).(tbl_fields{f})))
+            fprintf(['%d NaNs in good_tbl_grs.' tbl_fields{f}]);
+        end
     end
 end
 
@@ -196,5 +210,13 @@ lme1 = fitlme(good_tbl_prv.betalo_conn,'betalo_conn~ effort_prv + (1|sbj_n)');
 lme2 = fitlme(good_tbl_prv.betalo_conn,'betalo_conn~ effortS_prv + (1|sbj_n)');
 betalo_conn_eff_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 betalo_conn_effS_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
+
+%% PFC beta lo and reward change and Global Reward State (GRS):
+lme0 = fitlme(good_tbl_grs.betalo_conn,'betalo_conn~ 1 + (1|sbj_n)');%,'StartMethod','random');
+lme1 = fitlme(good_tbl_grs.betalo_conn,'betalo_conn~ reward_chg + (1|sbj_n)');%,'StartMethod','random');
+lme2 = fitlme(good_tbl_grs.betalo_conn,'betalo_conn~ grs + (1|sbj_n)');
+lme3 = fitlme(good_tbl_grs.betalo_conn,'betalo_conn~ reward_prv + (1|sbj_n)');%,'StartMethod','random');
+betalo_conn_rew_chg = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+betalo_conn_grs     = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
 
 

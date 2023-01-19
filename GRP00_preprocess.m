@@ -7,9 +7,12 @@ addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 
 %% Parameters
-SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
-sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
-man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 148 149 150]};
+% Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
+prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
+eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
+% SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
+% sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
+% man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 148 149 150]};
 % These are true trl_ix after accounting for bad behavioral trials
 %   tossed trials are based on maxabs using:
 %   outlier_std_thresh = 2
@@ -20,16 +23,16 @@ man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 
 
 plot_it  = 0;           % 0/1 whether to creat plots
 evnt_lab = 'stim';      % event to time-lock segmented data {'stim' | 'dec' | 'full' = [lim(1)+S lim(2)+D]}
-trl_lim = [-2 9];       % cut trial data (in sec) relative to event
+trl_lim = [-2 9];       % cut trial data (in sec) relative to event (~1.6-1.8s post-RT to next stim onset)
 new_srate = 1000;
 trl_lim_samp = trl_lim.*new_srate;
 n_choice_trl = 75;
 
-rt_thresh = 6;              % hard threshold in sec for outlier RTs
+grs_len    = 3;             % number of trials to averaege previous reward (e.g., 3 = avereage last 3 trial rewards)
+rt_thresh  = 6;             % hard threshold in sec for outlier RTs
 amp_thresh = 100;           % hard threshold in voltage for outlier artifact trials
 outlier_std_thresh = 2;
 
-prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 fig_dir   = [prj_dir 'results/preproc/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 fig_ftype = 'png';
@@ -50,7 +53,7 @@ FileDetails = strings(2:end,:);
 SyncDetails = numbers;
 
 %% Process data
-for s=1:4
+for s = 1:length(SBJs)
 %     clearvars -except s SBJs sbj_pfc_roi evnt_lab trl_lim new_srate trl_lim_samp n_choice_trl Flnum SyncDetails FileDetails
 %     close all;
     
@@ -128,7 +131,7 @@ for s=1:4
         % Create Fieldtrip structure
         run_data{r_ix} = struct;
         % data.fsample=new_srate;
-        run_data{r_ix}.label{1,1} = 'LFP';
+        run_data{r_ix}.label{1,1} = sbj_bg_roi{s};
         run_data{r_ix}.label{2,1} = sbj_pfc_roi{s};
         run_data{r_ix}.fsample    = new_srate;
         
@@ -226,6 +229,11 @@ for s=1:4
         run_trl_prv{r_ix}(end) = [];
         run_trl_prv{r_ix} = [nan; run_trl_prv{r_ix}];
         
+        % Compute global reward state
+        grs{r_ix} = nan(size(rt{r_ix}));
+        for t_ix = grs_len:length(rt{r_ix})
+            grs{r_ix}(t_ix) = nanmean(run_stake_prv{r_ix}(t_ix-grs_len+1:t_ix));
+        end
         clear syncR1 syncR2 result signal nrl_resamp nrl_trim orig_time_ax power
 %         close all
     end
@@ -248,6 +256,7 @@ for s=1:4
     bhv.effort_prv   = [run_effort_prv{1}; run_effort_prv{2}];
     bhv.stake_prv    = [run_stake_prv{1}; run_stake_prv{2}];
     bhv.decision_prv = [run_decision_prv{1}; run_decision_prv{2}];
+    bhv.grs          = [grs{1}; grs{2}];
     
     % Combine neural data
     data = run_data{1};

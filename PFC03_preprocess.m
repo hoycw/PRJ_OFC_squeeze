@@ -7,6 +7,7 @@ addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 
 %% Parameters
+error('intention was to toss more BG trials, but never implemented and its ok without!');
 SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
 sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
 man_trl_rej_ix = {[], [71 72], [], [27 28 79 80 86 87 97 98 102 103 128 139 140 148 149 150]};
