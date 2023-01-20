@@ -7,47 +7,18 @@ clear all
 %%
 an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_madA8t1_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40';% an_id = 'TFRmth_D1t1_zS8t0_f2t40';
-conn_metric = 'ampcorr';
-if contains(an_id,'_S')
-    if contains(an_id,'A8t1')
-        an_lim = [-0.8 0];
-    else
-        an_lim = [0.5 1.5];
-    end
-elseif contains(an_id,'_D')
-    an_lim = [-0.5 0];
-end
+stat_id = 'ampcorr_S5t15_bhvz_nrlfz_out4';
 
-norm_bhv_pred = 'zscore';%'none';%
-norm_nrl_pred = 'fishz';%'none';%
-outlier_thresh = 4;
 n_quantiles = 5;
-
 save_fig = 1;
 fig_ftype = 'png';
-
-if contains(an_id,'_S')
-    if contains(an_id,'A8t1')
-        an_lim = [-0.8 0];
-    else
-        an_lim = [0.5 1.5];
-    end
-elseif contains(an_id,'_D')
-    an_lim = [-0.5 0];
-end
 
 % Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
+eval(['run ' prj_dir 'scripts/stat_vars/' stat_id '_vars.m']);
 
-if ~strcmp(norm_bhv_pred,'none'); norm_bhv_str = ['_bhv' norm_bhv_pred]; else; norm_bhv_str = ''; end
-if ~strcmp(norm_nrl_pred,'none'); norm_nrl_str = ['_nrl' norm_nrl_pred]; else; norm_nrl_str = ''; end
-out_thresh_str = ['_out' num2str(outlier_thresh)];
-win_str = ['_' num2str(an_lim(1)) 't' num2str(an_lim(2))];
-win_str = strrep(strrep(win_str,'-','n'),'.','');
-
-table_name = [conn_metric '_' an_id win_str norm_bhv_str norm_nrl_str];
-fig_dir   = [prj_dir 'results/TFR/LMM/' table_name out_thresh_str '/theta_conn/'];
+fig_dir   = [prj_dir 'results/TFR/' an_id '/LMM/' stat_id '/theta_conn/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 
 %% Load data
@@ -61,7 +32,7 @@ for s = 1:length(SBJs)
 end
 
 %% Load group model table
-table_all_fname = [prj_dir 'data/GRP/GRP_' table_name '_full_table_all.csv'];
+table_all_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_full_table_all.csv'];
 fprintf('\tLoading %s...\n',table_all_fname);
 table_all = readtable(table_all_fname);
 
@@ -72,7 +43,7 @@ out_ix_all = [];
 good_tbl_all = struct;
 for f = 1:length(conn_vars)
     % Identify outliers
-    out_idx_all.(conn_vars{f}) = abs(table_all.(conn_vars{f}))>outlier_thresh;
+    out_idx_all.(conn_vars{f}) = abs(table_all.(conn_vars{f}))>st.outlier_thresh;
     
     % Toss outlier trials for each ROI and frequency band
     good_tbl_all.(conn_vars{f}) = table_all(~out_idx_all.(conn_vars{f}),:);
@@ -85,7 +56,7 @@ for f = 1:length(conn_vars)
         fprintf(2,'%.2f, ',table_all.(conn_vars{f})(out_idx_all.(conn_vars{f})));
         fprintf('\n');
     else
-        fprintf('No bad trials for %s with threshold %d\n',conn_vars{f},outlier_thresh);
+        fprintf('No bad trials for %s with threshold %d\n',conn_vars{f},st.outlier_thresh);
     end
     fprintf('\tgood vs. all trials for %s in table_all = %d / %d\n',...
         conn_vars{f},size(good_tbl_all.(conn_vars{f}),1),size(table_all,1));
@@ -123,11 +94,11 @@ end
 %   PFC THETA
 %  ========================================================================
 %% Full model
-% lme_full = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + dec_diff_cur + reward_prv + effortS_prv + dec_diff_prv + (1|sbj_n) + (1|trl_n_cur)');
-% lme_full_noDEc = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + reward_prv + effortS_prv + dec_diff_prv + (1|sbj_n) + (1|trl_n_cur)');
-% lme_full_noDEp = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + dec_diff_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-% lme_full_norewc = fitlme(good_tbl_prv.theta_conn,'theta_conn~ effortS_cur + dec_diff_cur + reward_prv + effortS_prv + dec_diff_prv + (1|sbj_n) + (1|trl_n_cur)');
-% lme_full_norewp = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + dec_diff_cur + effortS_prv + dec_diff_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + dec_ease_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_noDEc = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_noDEp = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + dec_ease_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_norewc = fitlme(good_tbl_prv.theta_conn,'theta_conn~ effortS_cur + dec_ease_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)');
+% lme_full_norewp = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + dec_ease_cur + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)');
 % 
 % tconn_dec = compare(lme_full_noDEc,lme_full,'CheckNesting',true)
 % tconn_dep = compare(lme_full_noDEp,lme_full,'CheckNesting',true)
@@ -381,16 +352,16 @@ end
 % theta connectivity salience:
 lme0 = fitlme(good_tbl_all.theta_conn,'theta_conn~ 1 + (1|sbj_n)');
 lme1 = fitlme(good_tbl_all.theta_conn,'theta_conn~ absSV_cur + (1|sbj_n)');
-lme2 = fitlme(good_tbl_all.theta_conn,'theta_conn~ dec_diff_cur + (1|sbj_n)');
+lme2 = fitlme(good_tbl_all.theta_conn,'theta_conn~ dec_ease_cur + (1|sbj_n)');
 theta_conn_abssv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-theta_conn_dec_diff = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
+theta_conn_dec_ease = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
 
 % theta connectivity previous salience:
 lme0 = fitlme(good_tbl_prv.theta_conn,'theta_conn~ 1 + (1|sbj_n)');
 lme1 = fitlme(good_tbl_prv.theta_conn,'theta_conn~ absSV_prv + (1|sbj_n)');
-lme2 = fitlme(good_tbl_prv.theta_conn,'theta_conn~ dec_diff_prv + (1|sbj_n)');
+lme2 = fitlme(good_tbl_prv.theta_conn,'theta_conn~ dec_ease_prv + (1|sbj_n)');
 theta_conn_abssv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-theta_conn_dec_diff_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
+theta_conn_dec_ease_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
 
 % Plot theta connectivity ~ absSV as Gratton-style line plot
 fn_plot_LMM_gratton(good_tbl_prv.theta_conn,'absSV','theta_conn');
@@ -401,7 +372,7 @@ if save_fig
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
 end
-fn_plot_LMM_gratton(good_tbl_prv.theta_conn,'dec_diff','theta_conn');
+fn_plot_LMM_gratton(good_tbl_prv.theta_conn,'dec_ease','theta_conn');
 ylabel('PFC Theta (z)');
 if save_fig
     fig_name = get(gcf,'Name');

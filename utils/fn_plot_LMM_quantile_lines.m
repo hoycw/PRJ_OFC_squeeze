@@ -4,14 +4,15 @@ if ~isempty(varargin)
     for v = 1:2:numel(varargin)
         if strcmp(varargin{v},'continuous')
             continuous_data = varargin{v+1};
+        elseif strcmp(varargin{v},'logistic_fit')
+            logistic_fit = varargin{v+1};
         else
             error(['Unknown varargin ' num2str(v) ': ' varargin{v}]);
         end
     end
 end
-if ~exist('continuous_data','var')
-    continuous_data = 0;
-end
+if ~exist('continuous_data','var'); continuous_data = 0; end
+if ~exist('logistic_fit','var');   logistic_fit = 0; end
 
 %% Set up and check vaeriables
 if ~all(strcmp(SBJs,{'PFC03','PFC04','PFC05','PFC01'})); error('SBJs wrong'); end
@@ -68,6 +69,10 @@ for s = 1:length(SBJs)
         'Color',sbj_colors(s,:),'LineWidth',1.5);
 end
 yvals = lmm.Coefficients.Estimate(1) + xvals*lmm.Coefficients.Estimate(coef_ix);
+if logistic_fit % convert to sigmoid
+    yvals = 1 ./ (1+exp(-yvals));
+    warning('GLMM with binomial linking function is probably not plotted correctly!');
+end
 line(xvals,yvals,'Color','k','LineWidth',4);
 xlabel(xvar);
 ylabel(yvar);

@@ -321,14 +321,14 @@ for s = 1:length(SBJs)
     
     % Add salience regressors
     bhv.absSV = abs(bhv.SV);
-    bhv.dec_diff = abs(bhv.p_accept-0.5);
+    bhv.dec_ease = abs(bhv.p_accept-0.5);
     
     % Creat previous trial predictors (respecting tossed trials)
     bhv.SV_prv       = nan(size(bhv.trl));
     bhv.absSV_prv    = nan(size(bhv.trl));
     bhv.EFFs_prv     = nan(size(bhv.trl));
     bhv.p_accept_prv = nan(size(bhv.trl));
-    bhv.dec_diff_prv  = nan(size(bhv.trl));
+    bhv.dec_ease_prv  = nan(size(bhv.trl));
     firsttrl_ix = find(bhv.run_trl==1);
     for t_ix = 1:length(bhv.trl)
         prv_ix = find(bhv.trl==bhv.trl(t_ix)-1);
@@ -337,7 +337,7 @@ for s = 1:length(SBJs)
             bhv.absSV_prv(t_ix)    = bhv.absSV(prv_ix);
             bhv.EFFs_prv(t_ix)     = bhv.EFFs(prv_ix);
             bhv.p_accept_prv(t_ix) = bhv.p_accept(prv_ix);
-            bhv.dec_diff_prv(t_ix) = bhv.dec_diff(prv_ix);
+            bhv.dec_ease_prv(t_ix) = bhv.dec_ease(prv_ix);
         end
     end
     

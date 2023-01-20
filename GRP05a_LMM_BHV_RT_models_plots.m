@@ -13,7 +13,11 @@ outlier_thresh = 4;
 n_quantiles = 5;
 
 if contains(an_id,'_S')
-    an_lim = [0.5 1.5];
+    if contains(an_id,'A8t1')
+        an_lim = [-0.8 0];
+    else
+        an_lim = [0.5 1.5];
+    end
 elseif contains(an_id,'_D')
     an_lim = [-0.5 0];
 end
@@ -78,15 +82,29 @@ end
 all_outliers_all = unique(out_ix_all);
 fprintf(2,'Total bad trials in table_all: %d\n',length(all_outliers_all));
 
-%% Create current and previous trial tables
+%% Create previous trial and GRS tables
 % Toss NaNs from previous table
 good_tbl_prv = good_tbl_all;
-for p = 1:length(rt_vars)
-    prv_nan_idx = isnan(good_tbl_prv.(rt_vars{p}).SV_prv);
-    good_tbl_prv.(rt_vars{p})(prv_nan_idx,:) = [];
-    prv_fields = good_tbl_prv.(rt_vars{p}).Properties.VariableNames;
-    for f = 1:length(prv_fields)
-        if any(isnan(good_tbl_prv.(rt_vars{p}).(prv_fields{f}))); error(['NaN is good_tbl_prv.' prv_fields{f}]); end
+tbl_fields = good_tbl_all.(conn_vars{1}).Properties.VariableNames;
+for p = 1:length(conn_vars)
+    prv_nan_idx = isnan(good_tbl_prv.(conn_vars{p}).SV_prv);
+    good_tbl_prv.(conn_vars{p})(prv_nan_idx,:) = [];
+    for f = 1:length(tbl_fields)
+        if any(isnan(good_tbl_prv.(conn_vars{p}).(tbl_fields{f}))) && ~strcmp(tbl_fields{f},'grs')
+            error(['NaN is table_prv.' tbl_fields{f}]);
+        end
+    end
+end
+
+% Toss NaNs from grs table
+good_tbl_grs = good_tbl_all;
+for p = 1:length(conn_vars)
+    grs_nan_idx = isnan(good_tbl_grs.(conn_vars{p}).grs);
+    good_tbl_grs.(conn_vars{p})(grs_nan_idx,:) = [];
+    for f = 1:length(tbl_fields)
+        if any(isnan(good_tbl_grs.(conn_vars{p}).(tbl_fields{f})))
+            fprintf(['%d NaNs in good_tbl_grs.' tbl_fields{f}]);
+        end
     end
 end
 
@@ -132,37 +150,6 @@ for s = 1:length(SBJs)
         bhvs{s}.lrt_stake_se(i) = std(log(bhvs{s}.rt(bhvs{s}.stake==stakes(i))))./sqrt(sum(bhvs{s}.stake==stakes(i)));
     end
 end
-
-%% Test decision ~ task features
-% dec0 = fitglme(good_tbl_all.logrt_cur,'decision_cur ~ 1 + (1|sbj_n)','Distribution','binomial');
-% decr = fitglme(good_tbl_all.logrt_cur,'decision_cur ~ reward_cur + (1|sbj_n)','Distribution','binomial');
-% dec_rew = compare(dec0,decr,'CheckNesting',true)%,'NSim',1000)
-% dece  = fitglme(good_tbl_all.logrt_cur,'decision_cur ~ effort_cur + (1|sbj_n)','Distribution','binomial');
-% deceS = fitglme(good_tbl_all.logrt_cur,'decision_cur ~ effortS_cur + (1|sbj_n)','Distribution','binomial');
-% dec_eff = compare(dec0,dece,'CheckNesting',true)%,'NSim',1000)
-% dec_effS = compare(dec0,deceS,'CheckNesting',true)%,'NSim',1000)
-% % dec_effS = compare(deceS,decreS,'CheckNesting',true)%,'NSim',1000)
-% %   regular effort seems to be better predictor than subjective effort
-% decsv  = fitglme(good_tbl_all.logrt_cur,'decision_cur ~ SV_cur + (1|sbj_n)','Distribution','binomial');
-% 
-% decre  = fitglme(good_tbl_all.logrt_cur,'decision_cur ~ effort_cur + reward_cur + (1|sbj_n)','Distribution','binomial');
-% decreS = fitglme(good_tbl_all.logrt_cur,'decision_cur ~ effortS_cur + reward_cur + (1|sbj_n)','Distribution','binomial');
-% dec_re_vs_sv = compare(decsv,decre)
-% 
-% decrei = fitglme(good_tbl_all.logrt_cur,'decision_cur ~ effort_cur*reward_cur + (1|sbj_n)','Distribution','binomial');
-% dec_effS = compare(dec0,deceS,'CheckNesting',true)%,'NSim',1000)
-% 
-% % Full model
-% model_formula_full = 'decision_cur ~ effort_cur + reward_cur + dec_diff_cur + (1|sbj_n)';
-% model_formula_noE  = 'decision_cur ~ reward_cur + dec_diff_cur + (1|sbj_n)';
-% model_formula_noR  = 'decision_cur ~ effort_cur + dec_diff_cur + (1|sbj_n)';
-% model_formula_noD  = 'decision_cur ~ reward_cur + effort_cur + (1|sbj_n)';
-% decred = fitglme(good_tbl_all.logrt_cur,model_formula_full,'Distribution','binomial');
-% decrd = fitglme(good_tbl_all.logrt_cur,model_formula_noE,'Distribution','binomial');
-% deced = fitglme(good_tbl_all.logrt_cur,model_formula_noR,'Distribution','binomial');
-% decre = fitglme(good_tbl_all.logrt_cur,model_formula_noD,'Distribution','binomial');
-% dec_rew = compare(deced,decred,'CheckNesting',true)
-% dec_eff = compare(decrd,decred,'CheckNesting',true)
 
 %% Full model of everything
 lme0 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ 1 + (1|sbj_n)');
@@ -246,8 +233,8 @@ if save_fig
 end
 
 fig_name = 'GRP_lRT_LMM_results';
-figure('Name',fig_name);
-subplot(2,2,1); hold on;
+figure('Name',fig_name); hold on;
+% subplot(2,2,1); hold on;
 for s = 1:length(SBJs)
 %     scatter(good_tbl_all.logrt_cur.reward_cur(good_tbl_all.logrt_cur.sbj_n==s),good_tbl_all.logrt_cur.logrt_cur(good_tbl_all.logrt_cur.sbj_n==s),...
 %         scat_sz,sbj_colors(s,:));
@@ -515,25 +502,4 @@ end
 % effortS_effortS_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 % %   Hmmmm, seems effortS_prv predicts current trial effort (and effortS)...
 
-%% Plot a regression line %
-% SVtmp = bhvs{s}.SV;
-% 
-% figure; scatter(SVtmp,ProbAccept,'.')
-% 
-% sigparam=sigm_fit(SVtmp,ProbAccept,1)
-% 
-% [p,S,mu]  = polyfit(SVtmp,ProbAccept,12)
-% PotValues=[-10:0.1:10];
-% Pout=polyval(p,PotValues);
-% 
-% figure; plot(PotValues,Pout)
-% 
-% % Test behavioral modelling.
-% figure;
-% subplot(2,1,1);
-% scatter(bhvs{s}.stake, bhvs{s}.SV);
-% title('Reward')
-% subplot(2,1,2);
-% scatter(bhvs{s}.effort, bhvs{s}.SV);
-% title('Effort');
 

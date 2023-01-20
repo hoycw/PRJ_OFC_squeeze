@@ -6,54 +6,25 @@ ft_defaults
 close all
 clear all
 
-%%
-% Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
-prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
-eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
-
-
-% Analysis parameters:
+%% Analysis parameters:
 an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_madA8t1_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40';% an_id = 'TFRmth_D1t1_zS8t0_f2t40';
-norm_bhv_pred = 'zscore';%'none';%
-norm_nrl_pred = 'zscore';%'none';%
-
-use_simon_tfr = 0;
-toss_same_trials = 1;
-
-if contains(an_id,'_S')
-    if contains(an_id,'A8t1')
-        an_lim = [-0.8 0];
-    else
-        an_lim = [0.5 1.5];
-    end
-elseif contains(an_id,'_D')
-    an_lim = [-0.5 0];
-end
+stat_id = 'S5t15_bhvz_nrlz_out4';
 
 %% Analysis Set Up
-if ~strcmp(norm_bhv_pred,'none')
-    norm_bhv_str = ['_bhv' norm_bhv_pred];
-else
-    norm_bhv_str = '';
-end
-if ~strcmp(norm_nrl_pred,'none')
-    norm_nrl_str = ['_nrl' norm_nrl_pred];
-else
-    norm_nrl_str = '';
-end
+% Load SBJ info, stat info:
+prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
+addpath([prj_dir 'scripts/']);
+addpath([prj_dir 'scripts/utils/']);
+eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
+eval(['run ' prj_dir 'scripts/stat_vars/' stat_id '_vars.m']);
+if st.use_simon_tfr~=0; error('why use Simon TFR?'); end
 
+% Load power band info
 [theta_cf, betalo_cf, betahi_cf] = fn_get_sbj_peak_frequencies(SBJs,an_id);
 theta_lim  = fn_compute_freq_lim(SBJs,theta_cf,'theta');
 betalo_lim = fn_compute_freq_lim(SBJs,betalo_cf,'betalo');
 betahi_lim = fn_compute_freq_lim(SBJs,betahi_cf,'betahi');
-
-addpath([prj_dir 'scripts/']);
-addpath([prj_dir 'scripts/utils/']);
-
-win_str = ['_' num2str(an_lim(1)) 't' num2str(an_lim(2))];
-win_str = strrep(strrep(win_str,'-','n'),'.','');
-table_name = [an_id win_str norm_bhv_str norm_nrl_str];
 
 %% Compute Theta and Beta power
 theta_pow  = cell([numel(SBJs) 2]);
@@ -63,8 +34,8 @@ bhvs       = cell(size(SBJs));
 for s = 1:length(SBJs)
     %% Load TFR
     sbj_dir = [prj_dir 'data/' SBJs{s} '/'];
-    if use_simon_tfr
-        [tfr, bhvs{s}] = fn_load_simon_TFR(SBJs,toss_same_trials,man_trl_rej_ix);
+    if st.use_simon_tfr
+        [tfr, bhvs{s}] = fn_load_simon_TFR(SBJs,st.toss_same_trials,man_trl_rej_ix);
     else
         proc_fname = [sbj_dir SBJs{s} '_' an_id '.mat'];
         fprintf('Loading %s\n',proc_fname);
@@ -78,7 +49,7 @@ for s = 1:length(SBJs)
     freq_vec = tfr.freq;
     
     % Check channel index
-    if ~strcmp(tfr.label{1},'LFP'); error('BG LFP is not first channel!'); end
+    if ~any(strcmp(tfr.label{1},{'STN','GPi'})); error('BG is not first channel!'); end
     if ~any(strcmp(tfr.label{2},{'FPC','OFC'})); error('PFC is not second channel!'); end
     
     %% Compute single trial power
@@ -89,7 +60,7 @@ for s = 1:length(SBJs)
         cfg.avgoverfreq = 'yes';
         cfg.avgovertime = 'yes';
         cfg.avgoverrpt  = 'no';
-        cfg.latency     = an_lim;
+        cfg.latency     = st.stat_lim;
         cfg.frequency   = squeeze(theta_lim(s,ch_ix,:))';
         pow = ft_selectdata(cfg, tfr);
         theta_pow{s,ch_ix} = pow.powspctrm;
@@ -145,7 +116,7 @@ decision_cur = [];
 SV_cur       = [];
 absSV_cur    = [];
 pAccept_cur  = [];
-dec_diff_cur = [];
+dec_ease_cur = [];
 
 trl_n_prv    = [];
 rt_prv       = [];
@@ -157,7 +128,7 @@ decision_prv = [];
 SV_prv       = [];
 absSV_prv    = [];
 pAccept_prv  = [];
-dec_diff_prv = [];
+dec_ease_prv = [];
 
 % Possible reward context predictors
 reward_chg   = [];
@@ -173,51 +144,51 @@ for s = 1:length(SBJs)
     if strcmp(sbj_bg_roi{s},'STN'); bg_roi_ix = 1; else; bg_roi_ix = 2; end
     BG_roi = [BG_roi; num2str(ones(trl_n,1).*bg_roi_ix)];
     
-    PFC_theta  = [PFC_theta; fn_normalize_predictor(theta_pow{s,2},norm_nrl_pred)];
-    PFC_betalo = [PFC_betalo; fn_normalize_predictor(betalo_pow{s,2},norm_nrl_pred)];
-    PFC_betahi = [PFC_betahi; fn_normalize_predictor(betahi_pow{s,2},norm_nrl_pred)];
-    BG_theta   = [BG_theta; fn_normalize_predictor(theta_pow{s,1},norm_nrl_pred)];
-    BG_betalo  = [BG_betalo; fn_normalize_predictor(betalo_pow{s,1},norm_nrl_pred)];
-    BG_betahi  = [BG_betahi; fn_normalize_predictor(betahi_pow{s,1},norm_nrl_pred)];
+    PFC_theta  = [PFC_theta; fn_normalize_predictor(theta_pow{s,2},st.norm_nrl_pred)];
+    PFC_betalo = [PFC_betalo; fn_normalize_predictor(betalo_pow{s,2},st.norm_nrl_pred)];
+    PFC_betahi = [PFC_betahi; fn_normalize_predictor(betahi_pow{s,2},st.norm_nrl_pred)];
+    BG_theta   = [BG_theta; fn_normalize_predictor(theta_pow{s,1},st.norm_nrl_pred)];
+    BG_betalo  = [BG_betalo; fn_normalize_predictor(betalo_pow{s,1},st.norm_nrl_pred)];
+    BG_betahi  = [BG_betahi; fn_normalize_predictor(betahi_pow{s,1},st.norm_nrl_pred)];
     
     % Add behavioral variables
-    rt_cur       = [rt_cur; fn_normalize_predictor(bhvs{s}.rt,norm_bhv_pred)];
-    logrt_cur    = [logrt_cur; fn_normalize_predictor(log(bhvs{s}.rt),norm_bhv_pred)];
-    reward_cur   = [reward_cur; fn_normalize_predictor(bhvs{s}.stake,norm_bhv_pred)];
-    effort_cur   = [effort_cur; fn_normalize_predictor(bhvs{s}.effort,norm_bhv_pred)];
-    effortS_cur  = [effortS_cur; fn_normalize_predictor(bhvs{s}.EFFs,norm_bhv_pred)];
+    rt_cur       = [rt_cur; fn_normalize_predictor(bhvs{s}.rt,st.norm_bhv_pred)];
+    logrt_cur    = [logrt_cur; fn_normalize_predictor(log(bhvs{s}.rt),st.norm_bhv_pred)];
+    reward_cur   = [reward_cur; fn_normalize_predictor(bhvs{s}.stake,st.norm_bhv_pred)];
+    effort_cur   = [effort_cur; fn_normalize_predictor(bhvs{s}.effort,st.norm_bhv_pred)];
+    effortS_cur  = [effortS_cur; fn_normalize_predictor(bhvs{s}.EFFs,st.norm_bhv_pred)];
     decision_cur = [decision_cur; fn_normalize_predictor(bhvs{s}.decision,'none')];
-    SV_cur       = [SV_cur; fn_normalize_predictor(bhvs{s}.SV,norm_bhv_pred)];
-    absSV_cur    = [absSV_cur; fn_normalize_predictor(bhvs{s}.absSV,norm_bhv_pred)];
-    pAccept_cur  = [pAccept_cur; fn_normalize_predictor(bhvs{s}.p_accept,norm_bhv_pred)];
-    dec_diff_cur = [dec_diff_cur; fn_normalize_predictor(bhvs{s}.dec_diff,norm_bhv_pred)]; % abs(p_accept - 0.5)
+    SV_cur       = [SV_cur; fn_normalize_predictor(bhvs{s}.SV,st.norm_bhv_pred)];
+    absSV_cur    = [absSV_cur; fn_normalize_predictor(bhvs{s}.absSV,st.norm_bhv_pred)];
+    pAccept_cur  = [pAccept_cur; fn_normalize_predictor(bhvs{s}.p_accept,st.norm_bhv_pred)];
+    dec_ease_cur = [dec_ease_cur; fn_normalize_predictor(bhvs{s}.dec_ease,st.norm_bhv_pred)]; % abs(p_accept - 0.5)
     
     % Add previous trial variables
     trl_n_prv    = [trl_n_prv; bhvs{s}.trl_prv];
-    rt_prv       = [rt_prv; fn_normalize_predictor(bhvs{s}.rt_prv,norm_bhv_pred)];
-    logrt_prv    = [logrt_prv; fn_normalize_predictor(log(bhvs{s}.rt_prv),norm_bhv_pred)];
-    reward_prv   = [reward_prv; fn_normalize_predictor(bhvs{s}.stake_prv,norm_bhv_pred)];
-    effort_prv   = [effort_prv; fn_normalize_predictor(bhvs{s}.effort_prv,norm_bhv_pred)];
-    effortS_prv  = [effortS_prv; fn_normalize_predictor(bhvs{s}.EFFs_prv,norm_bhv_pred)];
+    rt_prv       = [rt_prv; fn_normalize_predictor(bhvs{s}.rt_prv,st.norm_bhv_pred)];
+    logrt_prv    = [logrt_prv; fn_normalize_predictor(log(bhvs{s}.rt_prv),st.norm_bhv_pred)];
+    reward_prv   = [reward_prv; fn_normalize_predictor(bhvs{s}.stake_prv,st.norm_bhv_pred)];
+    effort_prv   = [effort_prv; fn_normalize_predictor(bhvs{s}.effort_prv,st.norm_bhv_pred)];
+    effortS_prv  = [effortS_prv; fn_normalize_predictor(bhvs{s}.EFFs_prv,st.norm_bhv_pred)];
     decision_prv = [decision_prv; fn_normalize_predictor(bhvs{s}.decision_prv,'none')];
-    SV_prv       = [SV_prv; fn_normalize_predictor(bhvs{s}.SV_prv,norm_bhv_pred)];
-    absSV_prv    = [absSV_prv; fn_normalize_predictor(bhvs{s}.absSV_prv,norm_bhv_pred)];
-    pAccept_prv  = [pAccept_prv; fn_normalize_predictor(bhvs{s}.p_accept_prv,norm_bhv_pred)];
-    dec_diff_prv = [dec_diff_prv; fn_normalize_predictor(bhvs{s}.dec_diff_prv,norm_bhv_pred)];
+    SV_prv       = [SV_prv; fn_normalize_predictor(bhvs{s}.SV_prv,st.norm_bhv_pred)];
+    absSV_prv    = [absSV_prv; fn_normalize_predictor(bhvs{s}.absSV_prv,st.norm_bhv_pred)];
+    pAccept_prv  = [pAccept_prv; fn_normalize_predictor(bhvs{s}.p_accept_prv,st.norm_bhv_pred)];
+    dec_ease_prv = [dec_ease_prv; fn_normalize_predictor(bhvs{s}.dec_ease_prv,st.norm_bhv_pred)];
     
     % Reward context predictors
-    reward_chg   = [reward_chg; fn_normalize_predictor(bhvs{s}.stake-bhvs{s}.stake_prv,norm_bhv_pred)];
-    grs          = [grs; fn_normalize_predictor(bhvs{s}.grs,norm_bhv_pred)];
+    reward_chg   = [reward_chg; fn_normalize_predictor(bhvs{s}.stake-bhvs{s}.stake_prv,st.norm_bhv_pred)];
+    grs          = [grs; fn_normalize_predictor(bhvs{s}.grs,st.norm_bhv_pred)];
 end
 
 %% Convert into table format suitable for LME modelling
 table_all  = table(trl_n_cur, sbj_n, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC_betahi, BG_theta, BG_betalo, BG_betahi,...
-                 rt_cur, logrt_cur, reward_cur, effort_cur, effortS_cur, decision_cur, SV_cur, absSV_cur, pAccept_cur, dec_diff_cur,...
-                 rt_prv, logrt_prv, reward_prv, effort_prv, effortS_prv, decision_prv, SV_prv, absSV_prv, pAccept_prv, dec_diff_prv,...
+                 rt_cur, logrt_cur, reward_cur, effort_cur, effortS_cur, decision_cur, SV_cur, absSV_cur, pAccept_cur, dec_ease_cur,...
+                 rt_prv, logrt_prv, reward_prv, effort_prv, effortS_prv, decision_prv, SV_prv, absSV_prv, pAccept_prv, dec_ease_prv,...
                  reward_chg, grs);
 
 %% Write table for R
-table_all_fname = [prj_dir 'data/GRP/GRP_' table_name '_full_table_all.csv'];
+table_all_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_full_table_all.csv'];
 fprintf('\tSaving %s...\n',table_all_fname);
 writetable(table_all,table_all_fname);
 
