@@ -5,9 +5,15 @@ close all
 clear all
 
 %%
-an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_madA8t1_f2t40';%'TFRmth_S1t2_zS8t0_f2t40';%
-% an_id = 'TFRmth_D1t1_madS8t0_f2t40';%'TFRmth_D1t1_zS8t0_f2t40';%
-stat_id = 'S5t15_bhvz_nrlz_out4';
+% Baseline/ITI:
+% an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'Sn8t0_bhvz_nrlz_out4';
+% Stimulus decision phase:
+% an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
+% an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
+% Pre-decision:
+% an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
+% Post-decision/feedback:
+an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'D0t1_bhvz_nrlz_out4';% stat_id = 'D0t5_bhvz_nrlz_out4';%
 
 n_quantiles = 5;
 save_fig = 1;
@@ -32,7 +38,7 @@ for s = 1:length(SBJs)
 end
 
 %% Load group model table
-table_all_fname = [prj_dir 'data/GRP/GRP_' table_name '_full_table_all.csv'];
+table_all_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_full_table_all.csv'];
 fprintf('\tLoading %s...\n',table_all_fname);
 table_all = readtable(table_all_fname);
 

@@ -6,37 +6,19 @@ close all
 clear all
 
 %%
-an_id = 'TFRmth_S1t2_madS8t0_f2t40';
-norm_bhv_pred = 'zscore';%'none';%
-norm_nrl_pred = 'zscore';%'none';%
-outlier_thresh = 4;
+% Stimulus decision phase:
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
+
 n_quantiles = 5;
-
-if contains(an_id,'_S')
-    if contains(an_id,'A8t1')
-        an_lim = [-0.8 0];
-    else
-        an_lim = [0.5 1.5];
-    end
-elseif contains(an_id,'_D')
-    an_lim = [-0.5 0];
-end
-
 save_fig = 1;
 fig_ftype = 'png';
 
 % Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
+eval(['run ' prj_dir 'scripts/stat_vars/' stat_id '_vars.m']);
 
-if ~strcmp(norm_bhv_pred,'none'); norm_bhv_str = ['_bhv' norm_bhv_pred]; else; norm_bhv_str = ''; end
-if ~strcmp(norm_nrl_pred,'none'); norm_nrl_str = ['_nrl' norm_nrl_pred]; else; norm_nrl_str = ''; end
-out_thresh_str = ['_out' num2str(outlier_thresh)];
-
-win_str = ['_' num2str(an_lim(1)) 't' num2str(an_lim(2))];
-win_str = strrep(strrep(win_str,'-','n'),'.','');
-table_name = [an_id win_str norm_bhv_str norm_nrl_str];
-fig_dir   = [prj_dir 'results/bhv/LMM/' table_name out_thresh_str '/lRT/'];
+fig_dir   = [prj_dir 'results/bhv/LMM/' an_id '/' stat_id '/lRT/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 
 %% Load data
@@ -50,7 +32,7 @@ for s = 1:length(SBJs)
 end
 
 %% Load group model tables
-table_all_fname = [prj_dir 'data/GRP/GRP_' table_name '_full_table_all.csv'];
+table_all_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_full_table_all.csv'];
 fprintf('\tLoading %s...\n',table_all_fname);
 table_all = readtable(table_all_fname);
 
@@ -61,7 +43,7 @@ out_ix_all = [];
 good_tbl_all = struct;
 for f = 1:length(rt_vars)
     % Identify outliers
-    out_idx_all.(rt_vars{f}) = abs(table_all.(rt_vars{f}))>outlier_thresh;
+    out_idx_all.(rt_vars{f}) = abs(table_all.(rt_vars{f}))>st.outlier_thresh;
     
     % Toss outlier trials for each ROI and frequency band
     good_tbl_all.(rt_vars{f}) = table_all(~out_idx_all.(rt_vars{f}),:);
@@ -74,7 +56,7 @@ for f = 1:length(rt_vars)
         fprintf(2,'%.2f, ',table_all.(rt_vars{f})(out_idx_all.(rt_vars{f})));
         fprintf('\n');
     else
-        fprintf('No bad trials for %s with threshold %d\n',rt_vars{f},outlier_thresh);
+        fprintf('No bad trials for %s with threshold %d\n',rt_vars{f},st.outlier_thresh);
     end
     fprintf('\tgood vs. all trials for %s in table_all = %d / %d\n',...
         rt_vars{f},size(good_tbl_all.(rt_vars{f}),1),size(table_all,1));
