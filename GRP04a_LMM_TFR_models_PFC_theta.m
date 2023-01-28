@@ -8,12 +8,12 @@ clear all
 % Baseline/ITI:
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'Sn8t0_bhvz_nrlz_out4';
 % Stimulus decision phase:
-% an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % Pre-decision:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
 % Post-decision/feedback:
-an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'D0t1_bhvz_nrlz_out4';% stat_id = 'D0t5_bhvz_nrlz_out4';%
+% an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'D0t1_bhvz_nrlz_out4';% stat_id = 'D0t5_bhvz_nrlz_out4';%
 
 n_quantiles = 5;
 save_fig = 1;
@@ -218,6 +218,13 @@ end
 %     fprintf('Saving %s\n',fig_fname);
 %     saveas(gcf,fig_fname);
 % end
+
+%% PFC theta and decision:
+% lme0 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
+% lme1 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ decision_cur + (1|sbj_n)');%,'StartMethod','random');
+% lme2 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ decision_prv + (1|sbj_n)');%,'StartMethod','random');
+% pfc_theta_dec_cur = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+% pfc_theta_dec_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
 
 %% PFC theta and reward change and Global Reward State (GRS):
 lme0 = fitlme(good_tbl_grs.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');

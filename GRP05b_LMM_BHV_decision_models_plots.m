@@ -133,13 +133,17 @@ for s = 1:length(SBJs)
     end
 end
 
+%% Neural power predict decision
+% lme_fullpow = fitglme(good_tbl_all.decision_cur,...
+%     'decision_cur~ PFC_theta + BG_theta + PFC_betalo + BG_betalo + (1|sbj_n) + (1|trl_n_cur)','Distribution','binomial');
+
 %% Full model including difficulty
-lme_full = fitlme(good_tbl_grs.decision_cur,...
-    'decision_cur~ reward_cur + effortS_cur + dec_ease_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_noDEc = fitlme(good_tbl_grs.decision_cur,'decision_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_noDEp = fitlme(good_tbl_grs.decision_cur,'decision_cur~ reward_cur + effortS_cur + dec_ease_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_norewcur = fitlme(good_tbl_grs.decision_cur,'decision_cur~ effortS_cur + dec_ease_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_noeffScur = fitlme(good_tbl_grs.decision_cur,'decision_cur~ reward_cur + dec_ease_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_full = fitglme(good_tbl_grs.decision_cur,...
+    'decision_cur~ reward_cur + effortS_cur + dec_ease_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)','Distribution','binomial');
+lme_full_noDEc = fitglme(good_tbl_grs.decision_cur,'decision_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)','Distribution','binomial');
+lme_full_noDEp = fitglme(good_tbl_grs.decision_cur,'decision_cur~ reward_cur + effortS_cur + dec_ease_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)','Distribution','binomial');
+lme_full_norewcur = fitglme(good_tbl_grs.decision_cur,'decision_cur~ effortS_cur + dec_ease_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)','Distribution','binomial');
+lme_full_noeffScur = fitglme(good_tbl_grs.decision_cur,'decision_cur~ reward_cur + dec_ease_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)','Distribution','binomial');
 
 dec_dezc = compare(lme_full_noDEc,lme_full,'CheckNesting',true) % adding reward to decision ease is not significantly better
 dec_dezp = compare(lme_full_noDEp,lme_full,'CheckNesting',true) % adding reward to decision ease is not significantly better
@@ -217,6 +221,7 @@ dec_rewez = compare(lme_rewc,lme_rewdezc,'CheckNesting',true) % adding decision 
 dec_ezrew = compare(lme_dezc,lme_rewdezc,'CheckNesting',true) % adding reward to decision ease is not significantly better
 
 lme_decp = fitglme(good_tbl_prv.decision_cur,'decision_cur ~ decision_prv + (1|sbj_n)','Distribution','binomial');
+lme_pAccp = fitglme(good_tbl_prv.decision_prv,'decision_cur ~ pAccept_prv + (1|sbj_n)','Distribution','binomial');
 % LRT has error, but p value for coefficeint isn't close
 % dec_decp = compare(lme0,lme_decp,'CheckNesting',true)%,'NSim',1000)
 
@@ -250,6 +255,75 @@ dec_rew = compare(lme0,lme_rewc,'CheckNesting',true)%,'NSim',1000)
 dec_ease = compare(lme0,lme_dezc,'CheckNesting',true)
 dec_rewez = compare(lme_rewc,lme_rewdezc,'CheckNesting',true) % adding decision ease to reward improves model fit
 dec_ezrew = compare(lme_dezc,lme_rewdezc,'CheckNesting',true) % adding reward to decision ease is not significantly better
+
+%% Plot decision as a funciton of previous trial p_accept
+prv_pAcchi = good_tbl_prv.decision_prv.pAccept_prv<0;
+mn_pAcchi = mean(good_tbl_prv.decision_cur.decision_cur(prv_pAcchi));
+mn_pAcclo = mean(good_tbl_prv.decision_cur.decision_cur(~prv_pAcchi));
+se_pAcchi = std(good_tbl_prv.decision_cur.decision_cur(prv_pAcchi))./sqrt(sum(prv_pAcchi));
+se_pAcclo = std(good_tbl_prv.decision_cur.decision_cur(~prv_pAcchi))./sqrt(sum(~prv_pAcchi));
+[~,pAcc_pval] = ttest2(good_tbl_prv.decision_cur.decision_cur(prv_pAcchi),good_tbl_prv.decision_cur.decision_cur(~prv_pAcchi));
+
+prv_rewhi = good_tbl_prv.decision_prv.reward_prv<0;
+mn_rewhi = mean(good_tbl_prv.decision_cur.decision_cur(prv_rewhi));
+mn_rewlo = mean(good_tbl_prv.decision_cur.decision_cur(~prv_rewhi));
+se_rewhi = std(good_tbl_prv.decision_cur.decision_cur(prv_rewhi))./sqrt(sum(prv_rewhi));
+se_rewlo = std(good_tbl_prv.decision_cur.decision_cur(~prv_rewhi))./sqrt(sum(~prv_rewhi));
+[~,rew_pval] = ttest2(good_tbl_prv.decision_cur.decision_cur(prv_rewhi),good_tbl_prv.decision_cur.decision_cur(~prv_rewhi));
+
+prv_effhi = good_tbl_prv.decision_prv.effortS_prv<0;
+mn_effhi = mean(good_tbl_prv.decision_cur.decision_cur(prv_effhi));
+mn_efflo = mean(good_tbl_prv.decision_cur.decision_cur(~prv_effhi));
+se_effhi = std(good_tbl_prv.decision_cur.decision_cur(prv_effhi))./sqrt(sum(prv_effhi));
+se_efflo = std(good_tbl_prv.decision_cur.decision_cur(~prv_effhi))./sqrt(sum(~prv_effhi));
+[~,eff_pval] = ttest2(good_tbl_prv.decision_cur.decision_cur(prv_effhi),good_tbl_prv.decision_cur.decision_cur(~prv_effhi));
+
+prv_SVhi = good_tbl_prv.decision_prv.SV_prv<0;
+mn_SVhi = mean(good_tbl_prv.decision_cur.decision_cur(prv_SVhi));
+mn_SVlo = mean(good_tbl_prv.decision_cur.decision_cur(~prv_SVhi));
+se_SVhi = std(good_tbl_prv.decision_cur.decision_cur(prv_SVhi))./sqrt(sum(prv_SVhi));
+se_SVlo = std(good_tbl_prv.decision_cur.decision_cur(~prv_SVhi))./sqrt(sum(~prv_SVhi));
+[~,SV_pval] = ttest2(good_tbl_prv.decision_cur.decision_cur(prv_SVhi),good_tbl_prv.decision_cur.decision_cur(~prv_SVhi));
+
+% Plot current decision relative to previous reward, effort, decision,
+% pAccept, SV
+fig_name = '';
+figure('Name',fig_name,'units','norm','outerposition',[0 0 1 0.5]);
+subplot(1,4,1);
+errorbar([1 2],[mn_pAcclo mn_pAcchi],[se_pAcclo se_pAcchi]);
+xticks([1 2]); xlim([0 3]);
+xticklabels({'Low prev.','High prev.'});
+ylim([0.55 0.75]);
+ylabel('% Accept');
+title(['pAccept p=' num2str(pAcc_pval)]);
+set(gca,'FontSize',16);
+
+subplot(1,4,2);
+errorbar([1 2],[mn_rewlo mn_rewhi],[se_rewlo se_rewhi]);
+xticks([1 2]); xlim([0 3]);
+xticklabels({'Low prev.','High prev.'});
+ylim([0.55 0.75]);
+ylabel('% Accept');
+title(['Reward p=' num2str(rew_pval)]);
+set(gca,'FontSize',16);
+
+subplot(1,4,3);
+errorbar([1 2],[mn_efflo mn_effhi],[se_efflo se_effhi]);
+xticks([1 2]); xlim([0 3]);
+xticklabels({'Low prev.','High prev.'});
+ylim([0.55 0.75]);
+ylabel('% Accept');
+title(['EffortS p=' num2str(eff_pval)]);
+set(gca,'FontSize',16);
+
+subplot(1,4,4);
+errorbar([1 2],[mn_SVlo mn_SVhi],[se_SVlo se_SVhi]);
+xticks([1 2]); xlim([0 3]);
+xticklabels({'Low prev.','High prev.'});
+ylim([0.55 0.75]);
+ylabel('% Accept');
+title(['SV p=' num2str(SV_pval)]);
+set(gca,'FontSize',16);
 
 %% Test log(RT) vs. RT modeling
 % % Reward model (this result holds for effort and SV too)
