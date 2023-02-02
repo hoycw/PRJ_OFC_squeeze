@@ -130,6 +130,7 @@ pfc_theta_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
 %% Compare reward + effort vs. SV
 lme_all = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
 lme_sv_curprv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_cur + SV_prv + (1|sbj_n)');
+pfc_theta_full_vs_SV = compare(lme_sv_curprv,lme_all,'NSim',1000)
 
 %% PFC theta and previous reward:
 lme0 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');

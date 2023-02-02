@@ -11,9 +11,9 @@ clear all
 % an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % Pre-decision:
-% an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
+an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
 % Post-decision/feedback:
-an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'D0t1_bhvz_nrlz_out4';% stat_id = 'D0t5_bhvz_nrlz_out4';%
+% an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'D0t1_bhvz_nrlz_out4';% stat_id = 'D0t5_bhvz_nrlz_out4';%
 
 n_quantiles = 5;
 save_fig = 1;
@@ -130,6 +130,7 @@ bg_betalo_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
 %% Compare reward + effort vs. SV
 lme_all = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ reward_cur + effortS_cur + reward_prv + effortS_prv + BG_roi + (1|sbj_n)');
 lme_sv_curprv = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ SV_cur + SV_prv + BG_roi + (1|sbj_n)');
+bg_betalo_full_vs_SV = compare(lme_sv_curprv,lme_all,'NSim',1000)
 
 %% Plot BG beta low by ROI
 bg_roi_idx_all = good_tbl_all.BG_betalo.BG_roi;

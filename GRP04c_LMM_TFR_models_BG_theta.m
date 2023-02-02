@@ -8,12 +8,12 @@ clear all
 % Baseline/ITI:
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'Sn8t0_bhvz_nrlz_out4';
 % Stimulus decision phase:
-% an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % Pre-decision:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
 % Post-decision/feedback:
-an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'D0t1_bhvz_nrlz_out4';% stat_id = 'D0t5_bhvz_nrlz_out4';%
+% an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'D0t1_bhvz_nrlz_out4';% stat_id = 'D0t5_bhvz_nrlz_out4';%
 
 n_quantiles = 5;
 save_fig = 1;
@@ -130,6 +130,7 @@ bg_theta_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
 %% Compare reward + effort vs. SV
 lme_all = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
 lme_sv_curprv = fitlme(good_tbl_prv.BG_theta,'BG_theta~ SV_cur + SV_prv + (1|sbj_n)');
+bg_theta_full_vs_SV = compare(lme_sv_curprv,lme_all,'NSim',1000)
 
 %% Plot BG theta by ROI
 bg_roi_idx_all = good_tbl_all.BG_theta.BG_roi;
@@ -166,6 +167,11 @@ bg_theta_rew_prv_vs_SV_prv = compare(lme1,lme2,'NSim',1000)
 % lme0_roi = fitlme(good_tbl_prv.BG_theta,'BG_theta~ BG_roi + (1|sbj_n)');
 % lme1_roi = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_prv + BG_roi + (1|sbj_n)');
 % bg_theta_roi_rew_prv = compare(lme0_roi,lme1_roi,'CheckNesting',true)%,'NSim',1000)
+
+% BG theta and effort:
+lme0 = fitlme(good_tbl_all.BG_theta,'BG_theta~ 1 + (1|sbj_n)');
+lme1 = fitlme(good_tbl_all.BG_theta,'BG_theta~ effortS_cur + (1|sbj_n)');
+bg_theta_effS = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 
 % Plot BG theta ~ previous reward as scatter plot
 fn_plot_LMM_scatter(SBJs,good_tbl_prv.BG_theta,'reward_prv','BG_theta',lme1,bg_theta_rew_prv.pValue(2));

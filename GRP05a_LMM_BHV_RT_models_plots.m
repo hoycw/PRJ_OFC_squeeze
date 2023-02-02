@@ -133,6 +133,13 @@ for s = 1:length(SBJs)
     end
 end
 
+%% Beta
+lme0 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ 1 + (1|sbj_n)');
+lme1 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ PFC_betalo + (1|sbj_n)');
+lme2 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ BG_betalo + (1|sbj_n)');
+lrt_pfcbeta = compare(lme0,lme1)%,'NSim',1000)
+lrt_bgbeta = compare(lme0,lme2)%,'NSim',1000)
+
 %% Full model of everything
 lme0 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ 1 + (1|sbj_n)');
 lme1 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ reward_cur + (1|sbj_n)');

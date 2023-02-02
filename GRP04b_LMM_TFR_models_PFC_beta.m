@@ -8,12 +8,12 @@ clear all
 % Baseline/ITI:
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'Sn8t0_bhvz_nrlz_out4';
 % Stimulus decision phase:
-% an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % Pre-decision:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
 % Post-decision/feedback:
-an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'D0t1_bhvz_nrlz_out4';% stat_id = 'D0t5_bhvz_nrlz_out4';%
+% an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'D0t1_bhvz_nrlz_out4';% stat_id = 'D0t5_bhvz_nrlz_out4';%
 
 n_quantiles = 5;
 save_fig = 1;
@@ -130,6 +130,7 @@ pfc_betalo_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
 %% Compare reward + effort vs. SV
 lme_all = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
 lme_sv_curprv = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ SV_cur + SV_prv + (1|sbj_n)');
+pfc_betalo_full_vs_SV = compare(lme_sv_curprv,lme_all,'NSim',1000)
 
 %% PFC Beta and Reward vs. Effort models:
 % PFC beta low and reward:
@@ -144,6 +145,7 @@ lme2 = fitlme(good_tbl_all.PFC_betalo,'PFC_betalo~ effortS_cur + (1|sbj_n)');
 lme3 = fitlme(good_tbl_all.PFC_betalo,'PFC_betalo~ SV_cur + (1|sbj_n)');
 pfc_betalo_eff = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 pfc_betalo_effS = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
+pfc_betalo_SVc = compare(lme0,lme3,'CheckNesting',true)%,'NSim',1000)
 pfc_betalo_effS_vs_SV = compare(lme3,lme2,'NSim',1000)
 %   effortS is better model than effort
 %   effort and effort S are better models than SV

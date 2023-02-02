@@ -24,7 +24,7 @@ stim_bhv_fname = '/Users/colinhoy/Code/PRJ_OFC_squeeze/data/PFC05/Session2_withS
 load(stim_bhv_fname);
 
 data = Reg2;
-col_names = {'Effort','Stake','Decision','Block','TrialCum','BlkCum','Stim'};
+col_names = {'Effort','Stake','Decision','Block','TrialCum','BlkCum','Stim','p_accept'};
 
 %% BEHAVIORAL MODELLING %%
 effort_ix = strcmp(col_names,'Effort');
@@ -69,14 +69,11 @@ SV_on   = SV_fn_on(par_on(2));
 [~,SV_on_sort_idx] = sort(SV_on);
 
 %% Fit a Generalised linear model and look for an interaction term %%
-zReg = [zscore(data(:,effort_ix)) zscore(data(:,stake_ix)) data(:,3:7)];
-if model_p_acc
-    zReg = [zReg zscore([p_accept_off; p_accept_on])];
-    col_names = [col_names 'p_accept'];
-end
+p_accept_all = [p_accept_off; p_accept_on];
+ease_all = abs(p_accept_all - 0.5);
+zReg = [zscore(data(:,effort_ix)) zscore(data(:,stake_ix)) data(:,3:7) zscore(p_accept_all)];
 % T = array2table(data, 'VariableNames', col_names);
 zT = array2table(zReg, 'VariableNames', col_names);
-
 
 % GLMs
 % modelspec = 'Decision ~ Effort*Stake*Stim - Effort:Stake:Stim';
@@ -84,36 +81,21 @@ zT = array2table(zReg, 'VariableNames', col_names);
 % zmdl = fitglm(zT,modelspec,'Distribution','binomial')
 
 % GLMMs
-modelspec = 'Decision ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block)';% + (1|TrialCum) + (1|BlkCum)';
+modelspec = 'Decision ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block) + (1|TrialCum) + (1|BlkCum)';
 % mdl = fitglme(T,modelspec,'Distribution','binomial')
 zmdl = fitglme(zT,modelspec,'Distribution','binomial')
 
 % GLMMs
 if model_p_acc
     modelspec = 'p_accept ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block)';% + (1|TrialCum) + (1|BlkCum)';
-    zmdl_pacc = fitglme(zT,modelspec)
-    
-    % Check mid-range stakes where difference is most pronounced
-%     stake_val = 4;
-%     stake_idx = data(:,stake_ix)==stake_val;
-%     modelspec = 'p_accept ~ Stim*Effort + (1|Block)';% + (1|TrialCum) + (1|BlkCum)';
-%     zmdl_pacc_stake4 = fitglme(zT(stake_idx,:),modelspec)
-%     
-%     stake_val = 7;
-%     stake_idx = data(:,stake_ix)==stake_val;
-%     modelspec = 'p_accept ~ Stim*Effort + (1|Block)';% + (1|TrialCum) + (1|BlkCum)';
-%     zmdl_pacc_stake4 = fitglme(zT(stake_idx,:),modelspec)
-%     
-%     stake_idx = data(:,stake_ix)==4 | data(:,stake_ix)==7;
-%     modelspec = 'p_accept ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block)';% + (1|TrialCum) + (1|BlkCum)';
-%     zmdl_pacc_stake4 = fitglme(zT(stake_idx,:),modelspec)
+    zmdl_pacc = fitlme(zT,modelspec)
 end
 
 % mdl2 = stepwiselm(T,'interactions')
-b1=[];
-beta=zmdl.Coefficients.Estimate
+% b1=[];
+% beta=zmdl.Coefficients.Estimate
 
-b1=beta(6:7)
+% b1=beta(6:7)
 
 % addpath('E:\Box Sync\Research\Resources & References\Software\Matlab\General_Code');
 
@@ -129,6 +111,9 @@ p_dec_mn_off = nan([length(stakes) length(efforts)]);
 p_acc_mn     = nan([length(stakes) length(efforts)]);
 p_acc_mn_on  = nan([length(stakes) length(efforts)]);
 p_acc_mn_off = nan([length(stakes) length(efforts)]);
+ez_mn     = nan([length(stakes) length(efforts)]);
+ez_mn_on  = nan([length(stakes) length(efforts)]);
+ez_mn_off = nan([length(stakes) length(efforts)]);
 dec_stake_off_mn = nan([length(stakes) 1]);
 dec_stake_off_se = nan([length(stakes) 1]);
 dec_stake_on_mn  = nan([length(stakes) 1]);
@@ -163,20 +148,24 @@ for stk_i = 1:5
         % Average over all data
         p_dec_mn(stk_i,eff_i) = mean(data(cond_idx,dec_ix));
         p_acc_mn(stk_i,eff_i) = mean(p_accept(cond_idx));
+        ez_mn(stk_i,eff_i) = mean(ease_all(cond_idx));
         % Average over OFF data
         trl_idx = cond_idx(off_idx);
         p_dec_mn_off(stk_i,eff_i) = mean(data(cond_idx & off_idx,dec_ix));
         p_acc_mn_off(stk_i,eff_i) = mean(p_accept_off(trl_idx));
+        ez_mn_off(stk_i,eff_i) = mean(ease_all(cond_idx & off_idx));
         % Average over ON data
         trl_idx = cond_idx(on_idx);
         p_dec_mn_on(stk_i,eff_i) = mean(data(cond_idx & on_idx,dec_ix));
         p_acc_mn_on(stk_i,eff_i) = mean(p_accept_on(trl_idx));
+        ez_mn_on(stk_i,eff_i) = mean(ease_all(cond_idx & on_idx));
     end
 end
 
 % Prob accept ON - OFF
 p_acc_mn_diff = p_acc_mn_on-p_acc_mn_off;
 p_dec_mn_diff = p_dec_mn_on-p_dec_mn_off;
+ez_mn_diff = ez_mn_on-ez_mn_off;
 
 % Average decision by stim condition
 stim_cond = {'Stim. OFF','Stim. ON'};
@@ -250,9 +239,6 @@ if save_fig
     fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
-%     fig_fname = [fig_dir fig_name '.fig'];
-%     fprintf('Saving %s\n',fig_fname);
-%     saveas(gcf,fig_fname);
 end
 
 %% Line plot for SV vs. decision function
@@ -274,9 +260,6 @@ if save_fig
     fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
-%     fig_fname = [fig_dir fig_name '.fig'];
-%     fprintf('Saving %s\n',fig_fname);
-%     saveas(gcf,fig_fname);
 end
 
 %% 3D bar plot of subjective value landscape
@@ -410,6 +393,54 @@ if save_fig
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
 end
+
+%% Model behavior in difficult decision range
+low_ez_idx = ease_all<median(ease_all);
+% Redo zscore with only relevant data
+zReg_lowez = [zscore(data(low_ez_idx,effort_ix)) zscore(data(low_ez_idx,stake_ix)) data(low_ez_idx,3:7) zscore(p_accept_all(low_ez_idx))];
+zT_lowez = array2table(zReg_midrew, 'VariableNames', col_names);
+
+modelspec = 'p_accept ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block) + (1|TrialCum) + (1|BlkCum)';
+zmdl_pacc_lowez = fitlme(zT_lowez,modelspec)
+
+% Compare to a model with only ease
+zReg_lowez = [zscore(data(low_ez_idx,effort_ix)) zscore(data(low_ez_idx,stake_ix)) data(low_ez_idx,3:7) zscore(p_accept_all(low_ez_idx))];
+zT_lowez = array2table(zReg_midrew, 'VariableNames', col_names);
+
+modelspec = 'p_accept ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block) + (1|TrialCum) + (1|BlkCum)';
+zmdl_pacc_lowez = fitlme(zT_lowez,modelspec)
+
+% Plot correlation between p accept ON-OFF and decision difficuty
+
+figure;
+scatter(sv_mn(:),p_acc_mn_diff(:));
+xlabel('SV');
+ylabel('Prob. Accept ON-OFF');
+
+%% Model behavior in middle reward range
+midstake_idx = data(:,stake_ix)==4 | data(:,stake_ix)==7;
+% Redo zscore with only relevant data
+zReg_midrew = [zscore(data(midstake_idx,effort_ix)) zscore(data(midstake_idx,stake_ix)) data(midstake_idx,3:7) zscore(p_accept_all(midstake_idx))];
+zReg_midrew_ease = [zscore(data(midstake_idx,effort_ix)) zscore(data(midstake_idx,stake_ix)) data(midstake_idx,3:7) zscore(p_accept_all(midstake_idx)) zscore(ease_all(midstake_idx))];
+% T = array2table(data, 'VariableNames', col_names);
+zT_midrew = array2table(zReg_midrew, 'VariableNames', col_names);
+zT_midrew_ease = array2table(zReg_midrew_ease, 'VariableNames', [col_names 'ease']);
+
+modelspec = 'p_accept ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block) + (1|TrialCum) + (1|BlkCum)';
+zmdl_pacc_stakeeff47 = fitlme(zT_midrew,modelspec)
+modelspec_ez = 'p_accept ~ ease*Stim + (1|Block) + (1|TrialCum) + (1|BlkCum)';
+zmdl_pacc_ez47 = fitlme(zT_midrew_ease,modelspec_ez)
+
+% Check mid-range stakes where difference is most pronounced
+% stake_val = 4;
+% stake_idx = data(:,stake_ix)==stake_val;
+% modelspec = 'p_accept ~ Stim*Effort + (1|Block)';% + (1|TrialCum) + (1|BlkCum)';
+% zmdl_pacc_stake4 = fitlme(zT(stake_idx,:),modelspec)
+% 
+% stake_val = 7;
+% stake_idx = data(:,stake_ix)==stake_val;
+% modelspec = 'p_accept ~ Stim*Effort + (1|Block)';% + (1|TrialCum) + (1|BlkCum)';
+% zmdl_pacc_stake7 = fitlme(zT(stake_idx,:),modelspec)
 
 %% define function for 3D bar plot
 function [bars] = fn_3d_decision_landscape(stakes,efforts,zvals,font_sz)
