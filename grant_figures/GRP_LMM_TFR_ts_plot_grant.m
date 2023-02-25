@@ -13,7 +13,7 @@ ft_defaults
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
-an_id = 'TFRmth_S1t2_madA8t1_f2t40';%'TFRmth_S1t2_madS8t0_f2t40';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_madA8t1_f2t40';%
 norm_bhv_pred = 'zscore';%'none';%
 norm_nrl_pred = 'zscore';%'none';%
 outlier_thresh = 4;
@@ -180,10 +180,13 @@ load(lme_fname);
 lme_time_vec = plt_time_vec;
 lme_time_idx = nan(size(lme_time_vec));
 
+%% Extract plotting LME data
 theta_coef = nan([2 numel(lme_time_vec)]);
+theta_ci   = nan([2 2 numel(lme_time_vec)]);
 theta_pval = nan([2 numel(lme_time_vec)]);
 theta_sig  = nan([2 numel(lme_time_vec)]);
 beta_coef  = nan([2 numel(lme_time_vec)]);
+beta_ci    = nan([2 2 numel(lme_time_vec)]);
 beta_pval  = nan([2 numel(lme_time_vec)]);
 beta_sig   = nan([2 numel(lme_time_vec)]);
 for ch_ix = 1:2
@@ -194,10 +197,17 @@ for ch_ix = 1:2
         
         theta_coef(ch_ix,t_ix) = theta_lme{ch_ix,t_ix}.Coefficients.Estimate(theta_coef_ix);
         theta_pval(ch_ix,t_ix) = theta_stat{ch_ix,t_ix}.pValue(2);
+        % Remove coef to get deviation for shaddedErrorBar:
+        theta_ci(ch_ix,1,t_ix) = theta_lme{ch_ix,t_ix}.Coefficients.Upper(theta_coef_ix)-theta_coef(ch_ix,t_ix);
+        theta_ci(ch_ix,2,t_ix) = theta_lme{ch_ix,t_ix}.Coefficients.Lower(theta_coef_ix)+theta_coef(ch_ix,t_ix);
         
         beta_coef(ch_ix,t_ix) = beta_lme{ch_ix,t_ix}.Coefficients.Estimate(beta_coef_ix);
         beta_pval(ch_ix,t_ix) = beta_stat{ch_ix,t_ix}.pValue(2);
+        % Remove coef to get deviation for shaddedErrorBar:
+        beta_ci(ch_ix,1,t_ix) = theta_lme{ch_ix,t_ix}.Coefficients.Upper(theta_coef_ix)-beta_coef(ch_ix,t_ix);
+        beta_ci(ch_ix,2,t_ix) = theta_lme{ch_ix,t_ix}.Coefficients.Lower(theta_coef_ix)+beta_coef(ch_ix,t_ix);
     end
+    
     
     % Correct for time points
     %     [h, crit_p, adj_ci_cvrg, adj_p]=fdr_bh(pvals,q,method,report);
@@ -444,8 +454,12 @@ for ch_ix = 1:2
     else
         subplot(2,3,ch_ix*3); hold on;
     end
-    t_line = plot(lme_time_vec, squeeze(theta_coef(ch_ix,:)),'Color','r','LineWidth',2);
-    b_line = plot(lme_time_vec, squeeze(beta_coef(ch_ix,:)),'Color','b','LineWidth',2);
+%     t_line = plot(lme_time_vec, squeeze(theta_coef(ch_ix,:)),'Color','r','LineWidth',2);
+%     b_line = plot(lme_time_vec, squeeze(beta_coef(ch_ix,:)),'Color','b','LineWidth',2);
+    t_line = shadedErrorBar(lme_time_vec, squeeze(theta_coef(ch_ix,:)), ...
+        squeeze(theta_ci(ch_ix,:,:)),'lineprops',{'Color','r','LineWidth',2});
+    b_line = shadedErrorBar(lme_time_vec, squeeze(beta_coef(ch_ix,:)),...
+        squeeze(beta_ci(ch_ix,:,:)), 'lineprops',{'Color','b','LineWidth',2});
     ylims = ylim;
     line([0 0],ylims,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
         'LineStyle',plt.evnt_styles{1});
@@ -457,7 +471,7 @@ for ch_ix = 1:2
     set(gca,'YLim',ylims);
     xlabel('Time (s)');
     ylabel('Fixed Effect Coefficient');
-    legend([t_line b_line],{...
+    legend([t_line.mainLine b_line.mainLine],{...
         ['Theta ~ previous reward'],...
         ['Beta ~ effort']},'Location','best');
     set(gca,'FontSize',font_size);

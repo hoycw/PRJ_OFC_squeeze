@@ -35,7 +35,7 @@ blk_ix    = strcmp(col_names,'Block');
 % Fit all behavior. Minimise the difference between the probability and the decision
 decisionfun=@(p) norm( (exp(p(1)*(data(:,stake_ix)-(p(2)*(data(:,effort_ix)).^2))) ./ ...
     (exp(p(1)) + exp(p(1)*(data(:,stake_ix)-(p(2)*(data(:,effort_ix)).^2))))) - data(:,dec_ix));
-[par_all, fit]=fminsearch(decisionfun, [1,1]);
+[par_all, fit_all]=fminsearch(decisionfun, [1,1]);
 
 SV_fn_all    = @(k) data(:,stake_ix)-(k*(data(:,effort_ix)).^2);
 EFF_fn_all   = @(k) (k*(data(:,effort_ix)).^2);
@@ -48,7 +48,7 @@ p_accept = (exp(par_all(1)*(data(:,stake_ix)-(par_all(2)*(data(:,effort_ix)).^2)
 off_idx = data(:,stim_ix)==0;
 decisionfun=@(p) norm( (exp(p(1)*(data(off_idx,stake_ix)-(p(2)*(data(off_idx,effort_ix)).^2))) ./ ...
     (exp(p(1)) + exp(p(1)*(data(off_idx,stake_ix)-(p(2)*(data(off_idx,effort_ix)).^2))))) - data(off_idx,dec_ix));
-[par_off, fit]=fminsearch(decisionfun, [1,1]);
+[par_off, fit_off]=fminsearch(decisionfun, [1,1]);
 
 p_accept_off = (exp(par_off(1)*(data(off_idx,stake_ix)-(par_off(2)*(data(off_idx,effort_ix)).^2))) ./...
     (exp(par_off(1)) + exp(par_off(1)*(data(off_idx,stake_ix)-(par_off(2)*(data(off_idx,effort_ix)).^2)))));
@@ -60,7 +60,7 @@ SV_off   = SV_fn_off(par_off(2));
 on_idx = data(:,stim_ix)==1;
 decisionfun=@(p) norm( (exp(p(1)*(data(on_idx,stake_ix)-(p(2)*(data(on_idx,effort_ix)).^2))) ./ ...
     (exp(p(1)) + exp(p(1)*(data(on_idx,stake_ix)-(p(2)*(data(on_idx,effort_ix)).^2))))) - data(on_idx,dec_ix));
-[par_on, fit]=fminsearch(decisionfun, [1,1]);
+[par_on, fit_on]=fminsearch(decisionfun, [1,1]);
 
 p_accept_on = (exp(par_on(1)*(data(on_idx,stake_ix)-(par_on(2)*(data(on_idx,effort_ix)).^2))) ./...
     (exp(par_on(1)) + exp(par_on(1)*(data(on_idx,stake_ix)-(par_on(2)*(data(on_idx,effort_ix)).^2)))));
@@ -364,6 +364,30 @@ title('PFC05 Decision Model Landscape: ON-OFF');
 rb_cmap = redblue();
 colormap(rb_cmap);
 caxis([-max(abs(p_acc_mn_diff(:))) max(abs(p_acc_mn_diff(:)))]);
+if save_fig
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
+% 2D matrix of ON-OFF behavior
+fig_name = ['PFC05_stim_ON-OFF_p_acc_mat'];
+figure('Name',fig_name);
+imagesc(1:length(stakes),1:length(efforts),p_acc_mn_diff);
+set(gca,'YDir','normal');
+yticks(1:length(efforts));
+yticklabels(stakes);
+xticks(1:length(stakes));
+xlabel('Effort (% Max)');
+xticklabels(efforts*100);
+cbar = colorbar;
+ylabel(cbar,'Diff. Prob. Accept (ON-OFF)','Rotation',270);
+rb_cmap = redblue();
+colormap(rb_cmap);
+caxis([-max(abs(p_acc_mn_diff(:))) max(abs(p_acc_mn_diff(:)))]);
+set(gca,'FontSize',font_sz);
+title('PFC05 Decision Model Landscape: ON-OFF');
+cbar.Label.Position(1) = 4;
 if save_fig
     fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);

@@ -8,10 +8,10 @@ clear all
 % Baseline/ITI:
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'Sn8t0_bhvz_nrlz_out4';
 % Stimulus decision phase:
-% an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % Pre-decision:
-an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
+% an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
 % Post-decision/feedback:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'D0t1_bhvz_nrlz_out4';% stat_id = 'D0t5_bhvz_nrlz_out4';%
 
@@ -43,7 +43,7 @@ fprintf('\tLoading %s...\n',table_all_fname);
 table_all = readtable(table_all_fname);
 
 %% Toss outliers
-pow_vars = {'PFC_theta','PFC_betalo','PFC_betahi','BG_theta','BG_betalo','BG_betahi'};
+pow_vars = {'BG_betalo'};
 out_idx_all = struct;
 out_ix_all = [];
 good_tbl_all = struct;
@@ -128,9 +128,14 @@ bg_betalo_effc = compare(lme_full_noeffc,lme_full,'CheckNesting',true)
 bg_betalo_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
 
 %% Compare reward + effort vs. SV
-lme_all = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ reward_cur + effortS_cur + reward_prv + effortS_prv + BG_roi + (1|sbj_n)');
-lme_sv_curprv = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ SV_cur + SV_prv + BG_roi + (1|sbj_n)');
+lme_all = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
+lme_sv_curprv = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ SV_cur + SV_prv + (1|sbj_n)');
 bg_betalo_full_vs_SV = compare(lme_sv_curprv,lme_all,'NSim',1000)
+
+lme_all_BG = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ reward_cur + effortS_cur + reward_prv + effortS_prv + BG_roi + (1|sbj_n)');
+lme_sv_curprv_BG = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ SV_cur + SV_prv + BG_roi + (1|sbj_n)');
+bg_betalo_full_vs_BG = compare(lme_all,lme_all_BG,'CheckNesting',true)
+bg_betalo_sv_vs_BG = compare(lme_sv_curprv,lme_sv_curprv_BG,'CheckNesting',true)
 
 %% Plot BG beta low by ROI
 bg_roi_idx_all = good_tbl_all.BG_betalo.BG_roi;
@@ -148,6 +153,11 @@ set(gca,'FontSize',16);
 lme0 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ BG_roi + (1|sbj_n)');
 lme1 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ SV_cur + BG_roi + (1|sbj_n)');
 bg_betalo_sv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+
+% BG beta and effort (without BG ROI):
+lme0 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ effort_cur + (1|sbj_n)');
+lme1 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ effort_cur + BG_roi + (1|sbj_n)');
+bg_betalo_BG = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 
 % BG beta low and effort:
 lme0 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ BG_roi + (1|sbj_n)');

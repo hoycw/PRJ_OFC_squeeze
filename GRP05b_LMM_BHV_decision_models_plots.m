@@ -172,10 +172,13 @@ end
 model_formula_full = 'decision_cur ~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)';
 model_formula_noefSc  = 'decision_cur ~ reward_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)';
 model_formula_norewc  = 'decision_cur ~ effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)';
+model_formula_norewp  = 'decision_cur ~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n) + (1|trl_n_cur)';
 dec_full = fitglme(good_tbl_all.decision_cur,model_formula_full,'Distribution','binomial');
 decrd = fitglme(good_tbl_all.decision_cur,model_formula_noefSc,'Distribution','binomial');
 deced = fitglme(good_tbl_all.decision_cur,model_formula_norewc,'Distribution','binomial');
+deced_norp = fitglme(good_tbl_all.decision_cur,model_formula_norewp,'Distribution','binomial');
 dec_rew = compare(deced,dec_full,'CheckNesting',true)
+dec_rewp = compare(dec_full,deced_norp)
 dec_eff = compare(decrd,dec_full,'CheckNesting',true)
 
 %% Compare SV vs. reward + effort

@@ -8,12 +8,12 @@ clear all
 % Baseline/ITI:
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'Sn8t0_bhvz_nrlz_out4';
 % Stimulus decision phase:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
+% an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % Pre-decision:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
 % Post-decision/feedback:
-% an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'D0t1_bhvz_nrlz_out4';% stat_id = 'D0t5_bhvz_nrlz_out4';%
+an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'D0t1_bhvz_nrlz_out4';% stat_id = 'D0t5_bhvz_nrlz_out4';%
 
 n_quantiles = 5;
 save_fig = 1;
@@ -43,7 +43,7 @@ fprintf('\tLoading %s...\n',table_all_fname);
 table_all = readtable(table_all_fname);
 
 %% Toss outliers
-pow_vars = {'PFC_theta','PFC_betalo','PFC_betahi','BG_theta','BG_betalo','BG_betahi'};
+pow_vars = {'PFC_theta'};
 out_idx_all = struct;
 out_ix_all = [];
 good_tbl_all = struct;
@@ -128,13 +128,16 @@ pfc_theta_effc = compare(lme_full_noeffc,lme_full,'CheckNesting',true)
 pfc_theta_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
 
 %% Compare reward + effort vs. SV
-lme_all = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
-lme_sv_curprv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_cur + SV_prv + (1|sbj_n)');
+lme_all = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_sv_curprv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_cur + SV_prv + (1|sbj_n) + (1|trl_n_cur)');
 pfc_theta_full_vs_SV = compare(lme_sv_curprv,lme_all,'NSim',1000)
+
+lme_ez_curprv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ dec_ease_cur + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)');
 
 %% PFC theta and previous reward:
 lme0 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
 lme1 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_prv + (1|sbj_n)');%,'StartMethod','random');
+lme1rs = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_prv + (1 + reward_prv|sbj_n)');%,'StartMethod','random');
 lme2 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_prv + (1|sbj_n)');%,'StartMethod','random');
 lme3 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_prv + SV_prv + (1|sbj_n)');
 pfc_theta_rew_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)

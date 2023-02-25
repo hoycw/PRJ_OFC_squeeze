@@ -43,7 +43,7 @@ fprintf('\tLoading %s...\n',table_all_fname);
 table_all = readtable(table_all_fname);
 
 %% Toss outliers
-pow_vars = {'PFC_theta','PFC_betalo','PFC_betahi','BG_theta','BG_betalo','BG_betahi'};
+pow_vars = {'BG_theta'};
 out_idx_all = struct;
 out_ix_all = [];
 good_tbl_all = struct;
@@ -128,9 +128,16 @@ bg_theta_effc = compare(lme_full_noeffc,lme_full,'CheckNesting',true)
 bg_theta_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
 
 %% Compare reward + effort vs. SV
-lme_all = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
-lme_sv_curprv = fitlme(good_tbl_prv.BG_theta,'BG_theta~ SV_cur + SV_prv + (1|sbj_n)');
+lme_all = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_sv_curprv = fitlme(good_tbl_prv.BG_theta,'BG_theta~ SV_cur + SV_prv + (1|sbj_n)');% + (1|trl_n_cur)');
 bg_theta_full_vs_SV = compare(lme_sv_curprv,lme_all,'NSim',1000)
+
+lme_ez_curprv = fitlme(good_tbl_prv.BG_theta,'BG_theta~ dec_ease_cur + dec_ease_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+
+lme_all_BG = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + BG_roi + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_sv_curprv_BG = fitlme(good_tbl_prv.BG_theta,'BG_theta~ SV_cur + SV_prv + BG_roi + (1|sbj_n)');% + (1|trl_n_cur)');
+bg_betalo_full_vs_BG = compare(lme_all,lme_all_BG,'CheckNesting',true)
+bg_betalo_SV_vs_BG = compare(lme_sv_curprv,lme_sv_curprv_BG,'CheckNesting',true)
 
 %% Plot BG theta by ROI
 bg_roi_idx_all = good_tbl_all.BG_theta.BG_roi;

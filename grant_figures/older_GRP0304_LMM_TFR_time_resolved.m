@@ -12,9 +12,9 @@ prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
 % Analysis parameters:
-an_id = 'TFRmth_S1t2_zS8t0_f2t40';%'TFRmth_S1t2_zS1t0_f2t40_log';%
+an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_zS1t0_f2t40_log';%
 norm_bhv_pred = 'zscore';%'none';%
-norm_nrl_pred = 'logz';%'none';%
+norm_nrl_pred = 'zscore';%'none';%
 outlier_thresh = 4;
 % an_id = 'TFRmth_D1t1_zS8t0_f2t40';
 use_simon_tfr = 0;
@@ -189,7 +189,7 @@ for s = 1:length(SBJs)
     freq_vec = tfr.freq;
     
     % Check channel index
-    if ~strcmp(tfr.label{1},'LFP'); error('BG LFP is not first channel!'); end
+    if ~any(strcmp(tfr.label{1},{'STN','GPi'})); error('BG LFP is not first channel!'); end
     if ~any(strcmp(tfr.label{2},{'FPC','OFC'})); error('PFC is not second channel!'); end
     
     % Compute single trial power
@@ -250,7 +250,7 @@ decision_cur = [];
 SV_cur       = [];
 absSV_cur    = [];
 pAccept_cur  = [];
-dec_diff_cur = [];
+dec_ease_cur = [];
 
 trl_n_prv    = [];
 rt_prv       = [];
@@ -262,7 +262,7 @@ decision_prv = [];
 SV_prv       = [];
 absSV_prv    = [];
 pAccept_prv  = [];
-dec_diff_prv = [];
+dec_ease_prv = [];
 
 for s = 1:length(SBJs)
     % Concatenate SBJ, beta, theta values
@@ -284,7 +284,7 @@ for s = 1:length(SBJs)
     SV_cur       = [SV_cur; fn_normalize_predictor(bhvs{s}.SV,norm_bhv_pred)];
     absSV_cur    = [absSV_cur; fn_normalize_predictor(bhvs{s}.absSV,norm_bhv_pred)];
     pAccept_cur  = [pAccept_cur; fn_normalize_predictor(bhvs{s}.p_accept,norm_bhv_pred)];
-    dec_diff_cur = [dec_diff_cur; fn_normalize_predictor(bhvs{s}.dec_diff,norm_bhv_pred)]; % abs(p_accept - 0.5)
+    dec_ease_cur = [dec_ease_cur; fn_normalize_predictor(bhvs{s}.dec_ease,norm_bhv_pred)]; % abs(p_accept - 0.5)
     
     % Add previous trial variables
     trl_n_prv    = [trl_n_prv; bhvs{s}.trl_prv];
@@ -297,7 +297,7 @@ for s = 1:length(SBJs)
     SV_prv       = [SV_prv; fn_normalize_predictor(bhvs{s}.SV_prv,norm_bhv_pred)];
     absSV_prv    = [absSV_prv; fn_normalize_predictor(bhvs{s}.absSV_prv,norm_bhv_pred)];
     pAccept_prv  = [pAccept_prv; fn_normalize_predictor(bhvs{s}.p_accept_prv,norm_bhv_pred)];
-    dec_diff_prv = [dec_diff_prv; fn_normalize_predictor(bhvs{s}.dec_diff_prv,norm_bhv_pred)];
+    dec_ease_prv = [dec_ease_prv; fn_normalize_predictor(bhvs{s}.dec_ease_prv,norm_bhv_pred)];
 end
 
 %% Find outliers across all time points
@@ -378,8 +378,8 @@ for t_ix = 1:numel(plt_time_vec)
     
     %% Convert into table format suitable for LME modelling
     table_all  = table(trl_n_cur, sbj_n, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC_betahi, BG_theta, BG_betalo, BG_betahi,...
-        rt_cur, logrt_cur, reward_cur, effort_cur, effortS_cur, decision_cur, SV_cur, absSV_cur, pAccept_cur, dec_diff_cur,...
-        rt_prv, logrt_prv, reward_prv, effort_prv, effortS_prv, decision_prv, SV_prv, absSV_prv, pAccept_prv, dec_diff_prv);
+        rt_cur, logrt_cur, reward_cur, effort_cur, effortS_cur, decision_cur, SV_cur, absSV_cur, pAccept_cur, dec_ease_cur,...
+        rt_prv, logrt_prv, reward_prv, effort_prv, effortS_prv, decision_prv, SV_prv, absSV_prv, pAccept_prv, dec_ease_prv);
     
     %% Toss outliers
     good_tbl_all = struct;

@@ -102,7 +102,7 @@ for s = 1:length(SBJs)
         theta_sem(s,ch_ix,:) = squeeze(nanstd(theta_pow.powspctrm,[],1))./sqrt(size(theta_pow.powspctrm,1));
         theta_avg(s,ch_ix,:) = squeeze(nanmean(theta_pow.powspctrm,1));
         
-        cfg.frequency = beta_lim;
+        cfg.frequency = squeeze(beta_lim(s,ch_ix,:))';
         beta_pow = ft_selectdata(cfg, tmp.tfr);
         beta_sem(s,ch_ix,:) = squeeze(nanstd(beta_pow.powspctrm,[],1))./sqrt(size(beta_pow.powspctrm,1));
         beta_avg(s,ch_ix,:) = squeeze(nanmean(beta_pow.powspctrm,1));
