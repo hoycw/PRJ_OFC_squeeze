@@ -24,7 +24,7 @@ prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 eval(['run ' prj_dir 'scripts/stat_vars/' stat_id '_vars.m']);
 
-fig_dir   = [prj_dir 'results/TFR/' an_id '/LMM/' stat_id '/PFC_theta/'];
+fig_dir   = [prj_dir 'results/TFR/' an_id '/LMM/' stat_id '/BG_theta/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 
 %% Load data

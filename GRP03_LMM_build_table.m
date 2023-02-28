@@ -69,7 +69,7 @@ for s = 1:length(SBJs)
         cfg.frequency   = squeeze(theta_lim(s,ch_ix,:))';
         pow = ft_selectdata(cfg, tfr);
         theta_pow{s,ch_ix} = pow.powspctrm;
-        theta_cf(s,ch_ix) = pow.freq;
+        theta_cf(ch_ix,s) = pow.freq;
         if pow.freq-mean(theta_lim(s,ch_ix,:)) > 0.4
             fprintf(2,'\tWARNING: %s theta center freq is off: aim = %.02f, actual = %.02f; recomputing with 2-6 Hz...\n',...
                 SBJs{s},mean(theta_lim(s,ch_ix,:)),pow.freq);

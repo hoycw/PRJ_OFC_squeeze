@@ -7,7 +7,7 @@ close all
 clear all
 
 %% Analysis parameters:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S0t2ts_bhvz_nrlz_out4main';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S0t2ts_wl2s025_bhvz_nrlz_out4main';
 lmm_vars = {'PFC_theta','reward_prv';
             'PFC_betalo','effortS_cur';
             'BG_theta','reward_prv';
@@ -31,7 +31,6 @@ betalo_lim = fn_compute_freq_lim(SBJs,betalo_cf,'betalo');
 %% Compute Theta and Beta power
 theta_pow  = cell([numel(SBJs) 2]);
 betalo_pow = cell([numel(SBJs) 2]);
-betahi_pow = cell([numel(SBJs) 2]);
 bhvs       = cell(size(SBJs));
 for s = 1:length(SBJs)
     %% Load TFR
@@ -46,57 +45,50 @@ for s = 1:length(SBJs)
         bhvs{s} = sbj_data.bhv;
     end
     
-    % Initialize data
-    time_vec = tfr.time;
-    freq_vec = tfr.freq;
-    
     % Check channel index
     if ~any(strcmp(tfr.label{1},{'STN','GPi'})); error('BG is not first channel!'); end
     if ~any(strcmp(tfr.label{2},{'FPC','OFC'})); error('PFC is not second channel!'); end
     
     %% Compute single trial power
+    cfg = [];
+    cfg.avgoverfreq = 'yes';
+    cfg.avgoverrpt  = 'no';
     for ch_ix = 1:2
-        % Theta
-        cfg = [];
         cfg.channel = tfr.label(ch_ix);
-        cfg.avgoverfreq = 'yes';
-        cfg.avgovertime = 'no';
-        cfg.avgoverrpt  = 'no';
-        cfg.latency     = st.stat_lim;
-        cfg.frequency   = squeeze(theta_lim(s,ch_ix,:))';
-        pow = ft_selectdata(cfg, tfr);
-        plt_time_vec = pow.time;
-        theta_pow{s,ch_ix} = squeeze(pow.powspctrm);
-        theta_cf(s,ch_ix) = pow.freq;
-        if pow.freq-mean(theta_lim(s,ch_ix,:)) > 0.4
-            fprintf(2,'\tWARNING: %s theta center freq is off: aim = %.02f, actual = %.02f; recomputing with 2-6 Hz...\n',...
-                SBJs{s},mean(theta_lim(s,ch_ix,:)),pow.freq);
-%             cfg.frequency = [2 2+theta_bw];
-%             pow = ft_selectdata(cfg, tfr);
-%             thetapk_pow{s,ch_ix} = pow.powspctrm;
-%             theta_cf(s,ch_ix) = pow.freq;
+        if isfield(st,'win_len')
+            % Average within windows
+            win_lim = fn_get_win_lim_from_center(tfr.time,st.win_center,st.win_len);
+            plt_time_vec = mean(tfr.time(win_lim),2)';
+            cfg.avgovertime = 'yes';
+            theta_pow{s,ch_ix}  = nan([size(tfr.powspctrm,1) size(win_lim,1)]);
+            betalo_pow{s,ch_ix} = nan([size(tfr.powspctrm,1) size(win_lim,1)]);
+            for w_ix = 1:size(win_lim,1)
+                cfg.latency     = tfr.time(win_lim(w_ix,:));
+                % Theta
+                cfg.frequency   = squeeze(theta_lim(s,ch_ix,:))';
+                pow = ft_selectdata(cfg, tfr);
+                theta_pow{s,ch_ix}(:,w_ix) = pow.powspctrm;
+                % Beta Low
+                cfg.frequency = squeeze(betalo_lim(s,ch_ix,:))';
+                pow = ft_selectdata(cfg, tfr);
+                betalo_pow{s,ch_ix}(:,w_ix) = pow.powspctrm;
+            end
+        else
+            % Use entire time series
+            cfg.avgovertime = 'no';
+            cfg.latency     = st.stat_lim;
+            % Theta
+            cfg.frequency   = squeeze(theta_lim(s,ch_ix,:))';
+            pow = ft_selectdata(cfg, tfr);
+            plt_time_vec = pow.time;
+            theta_pow{s,ch_ix} = squeeze(pow.powspctrm);
+            % Beta Low
+            cfg.frequency = squeeze(betalo_lim(s,ch_ix,:))';
+            pow = ft_selectdata(cfg, tfr);
+            betalo_pow{s,ch_ix} = squeeze(pow.powspctrm);
         end
-        
-        % Beta Low
-        cfg.frequency = squeeze(betalo_lim(s,ch_ix,:))';
-        pow = ft_selectdata(cfg, tfr);
-        betalo_pow{s,ch_ix} = squeeze(pow.powspctrm);
-        if pow.freq-mean(betalo_lim(s,ch_ix,:)) > 0.4
-            fprintf(2,'\tWARNING: %s beta low center freq is off: aim = %.02f, actual = %.02f\n',...
-                SBJs{s},mean(betalo_lim(s,ch_ix,:)),pow.freq);
-        end
-        
-%         % Beta High
-%         cfg.frequency = squeeze(betahi_lim(s,ch_ix,:))';
-%         pow = ft_selectdata(cfg, tfr);
-%         betahi_pow{s,ch_ix} = pow.powspctrm;
-%         if pow.freq-mean(betahi_lim(s,ch_ix,:)) > 0.4
-%             fprintf(2,'\tWARNING: %s beta high center freq is off: aim = %.02f, actual = %.02f\n',...
-%                 SBJs{s},mean(betahi_lim(s,ch_ix,:)),pow.freq);
-%         end
     end
 end
-
 
 %% Concatenate behavioral variables (cur = current trial, prv = previous trial)
 sbj_n      = [];
@@ -191,17 +183,17 @@ lmm_ts      = cell([size(lmm_vars,1) length(plt_time_vec)]);
 lmm_stat_ts = cell([size(lmm_vars,1) length(plt_time_vec)]);
 for m_ix = 1:size(lmm_vars,1)
     fprintf('Running %d/%d LMMs: (total = %d)\n\t',m_ix,size(lmm_vars,1),length(plt_time_vec));
-    for t_ix = 1:numel(plt_time_vec)
+    for t_ix = 1:length(plt_time_vec)
         %% Create time-specific neural table
-        PFC_theta  = [];
-        PFC_betalo = [];
         BG_theta   = [];
         BG_betalo  = [];
+        PFC_theta  = [];
+        PFC_betalo = [];
         for s = 1:length(SBJs)
-            PFC_theta  = [PFC_theta; fn_normalize_predictor(theta_pow{s,2}(:,t_ix),st.norm_nrl_pred)];
-            PFC_betalo = [PFC_betalo; fn_normalize_predictor(betalo_pow{s,2}(:,t_ix),st.norm_nrl_pred)];
             BG_theta   = [BG_theta; fn_normalize_predictor(theta_pow{s,1}(:,t_ix),st.norm_nrl_pred)];
             BG_betalo  = [BG_betalo; fn_normalize_predictor(betalo_pow{s,1}(:,t_ix),st.norm_nrl_pred)];
+            PFC_theta  = [PFC_theta; fn_normalize_predictor(theta_pow{s,2}(:,t_ix),st.norm_nrl_pred)];
+            PFC_betalo = [PFC_betalo; fn_normalize_predictor(betalo_pow{s,2}(:,t_ix),st.norm_nrl_pred)];
         end
         
         %% Convert into table format suitable for LME modelling
