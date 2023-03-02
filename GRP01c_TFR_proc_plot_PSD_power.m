@@ -316,8 +316,8 @@ for ch_ix = 1:2
     xlabel('Time (s)');
     ylabel('Power (z)');
     legend([t_line.mainLine b_line.mainLine],{...
-        ['Theta (' num2str(mean(theta_lim(:,ch_ix,1))) '-' num2str(mean(theta_lim(:,ch_ix,2))) ' Hz)'],...
-        ['Beta (' num2str(mean(beta_lim(:,ch_ix,1))) '-' num2str(mean(beta_lim(:,ch_ix,2))) ' Hz)']},'Location','best');
+        ['Theta'],...% (' num2str(mean(theta_lim(:,ch_ix,1))) '-' num2str(mean(theta_lim(:,ch_ix,2))) ' Hz)
+        ['Beta']},'Location','best');% (' num2str(mean(beta_lim(:,ch_ix,1))) '-' num2str(mean(beta_lim(:,ch_ix,2))) ' Hz)
     set(gca,'FontSize',font_size);
 end
 

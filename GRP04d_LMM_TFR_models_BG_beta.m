@@ -116,11 +116,11 @@ end
 % bg_betalo_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
 
 %% Full model no decision ease/difficulty
-lme_full = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ reward_cur + effortS_cur + reward_prv + effortS_prv + BG_roi + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_norewc = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ effortS_cur + reward_prv + effortS_prv + BG_roi + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_norewp = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ reward_cur + effortS_cur + effortS_prv + BG_roi + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_noeffc = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ reward_cur + reward_prv + effortS_prv + BG_roi + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_noeffp = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ reward_cur + effortS_cur + reward_prv + BG_roi + (1|sbj_n) + (1|trl_n_cur)');
+lme_full = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');%+ BG_roi  + (1|trl_n_cur)');
+lme_full_norewc = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');%+ BG_roi  + (1|trl_n_cur)');
+lme_full_norewp = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n)');%+ BG_roi  + (1|trl_n_cur)');
+lme_full_noeffc = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ reward_cur + reward_prv + effortS_prv + (1|sbj_n)');%+ BG_roi  + (1|trl_n_cur)');
+lme_full_noeffp = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ reward_cur + effortS_cur + reward_prv + (1|sbj_n)');%+ BG_roi  + (1|trl_n_cur)');
 
 bg_betalo_rewc = compare(lme_full_norewc,lme_full,'CheckNesting',true)
 bg_betalo_rewp = compare(lme_full_norewp,lme_full,'CheckNesting',true)
@@ -160,10 +160,10 @@ lme1 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ effort_cur + BG_roi + (1|sbj_n)
 bg_betalo_BG = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 
 % BG beta low and effort:
-lme0 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ BG_roi + (1|sbj_n)');
-lme1 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ effort_cur + BG_roi + (1|sbj_n)');
-lme2 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ effortS_cur + BG_roi + (1|sbj_n)');
-lme3 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ SV_cur + BG_roi + (1|sbj_n)');
+lme0 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ 1 + (1|sbj_n)');
+lme1 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ effort_cur + (1|sbj_n)');
+lme2 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ effortS_cur + (1|sbj_n)');
+lme3 = fitlme(good_tbl_all.BG_betalo,'BG_betalo~ SV_cur + (1|sbj_n)');
 bg_betalo_eff = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 bg_betalo_effS = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
 bg_betalo_effS_cur_vs_SV_cur = compare(lme3,lme2,'NSim',1000)

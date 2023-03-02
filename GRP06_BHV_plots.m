@@ -8,16 +8,12 @@ close all
 clear all
 
 %%
-an_id = 'TFRmth_S1t2_zS8t0_f2t40_log';
-norm_bhv_pred = 'zscore';%'none';%
-norm_nrl_pred = 'zscore';%'none';%
-
 % Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
 save_fig  = 1;
-fig_ftype = 'png';
+fig_ftype = 'svg';%'png';
 
 addpath([prj_dir 'scripts/']);
 addpath([prj_dir 'scripts/utils/']);
@@ -247,7 +243,7 @@ if save_fig
     saveas(gcf,fig_fname);
 end
 
-%% Characterize behavior
+%% Characterize behavior: Reward, subejctive ffort, SV decision fn, abs(SV)
 scat_sz = 40;
 mdl_x = -15:0.001:15;
 fig_name = ['GRP_bhv_model_scatter'];
@@ -296,6 +292,31 @@ for s = 1:length(SBJs)
     xlabel('abs(SV)'); ylabel('Probabilty of acceptance');
     title('Absolute Subjective Value');
     set(gca,'FontSize',16);
+end
+
+if save_fig
+    fig_dir   = [prj_dir 'results/bhv/'];
+    if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
+%% Clean plot of subjective value decision function
+fig_name = ['GRP_bhv_model_SV_decision_fn'];
+figure('Name',fig_name,'units','norm','OuterPosition',[0 0 0.3 0.4]);
+hold on;
+for s = 1:length(SBJs)
+    [~,SV_sort_idx] = sort(bhvs{s}.SV);
+    
+    line(bhvs{s}.SV(SV_sort_idx),bhvs{s}.p_accept(SV_sort_idx),...
+        'Color',sbj_colors(s,:),'LineWidth',3);
+%     scatter(bhvs{s}.SV,bhvs{s}.p_accept,scat_sz,sbj_colors(s,:));
+%     line(mdl_x,mdl_y,'Color','k');
+    line(xlim,[0.5 0.5],'Color','k','LineStyle','--');
+    xlabel('Subjective Value'); ylabel('Probabilty Accept');
+    title('Subjective Value Decision Function');
+    set(gca,'FontSize',18);
 end
 
 if save_fig

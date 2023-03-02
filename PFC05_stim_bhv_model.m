@@ -12,7 +12,7 @@ font_sz = 18;
 
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 save_fig = 1;
-fig_ftype = 'png';
+fig_ftype = 'svg';%'png';
 
 %% Prepare the regression %
 % This loads a 200x7 matrix derived from Behavioral_Summary.xlsx

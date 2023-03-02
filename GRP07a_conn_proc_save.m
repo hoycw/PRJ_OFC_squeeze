@@ -10,8 +10,8 @@ addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 
 %% Parameters
-conn_metric = 'ampcorr';
-an_ids = {'TFRmth_S1t2_madS8t0_f2t40'};%'TFRmth_S1t2_madA8t1_f2t40'};%
+conn_metric = 'PLV';%'ampcorr';
+an_ids = {'TFRmth_S1t2_f2t40_fourier'};%'TFRmth_S1t2_madS8t0_f2t40'};%'TFRmth_S1t2_madA8t1_f2t40'};%
 % an_ids = {'TFRmth_D1t1_madS8t0_f2t40'};
 
 % Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
@@ -59,7 +59,13 @@ for s = 1:4
         end
         
         % Compute connectivity
-        conn = fn_connectivity_TFR(tfr,conn_metric);
+        if strcmp(conn_metric,'coh')
+            cfg = [];
+            cfg.method = conn_metric;
+            conn = ft_connectivityanalysis(cfg,tfr);
+        else
+            conn = fn_connectivity_TFR(tfr,conn_metric);
+        end
         
         % SAVE data
         conn_fname = [sbj_dir SBJs{s} '_' an_ids{an_ix} '_' conn_metric '.mat'];
