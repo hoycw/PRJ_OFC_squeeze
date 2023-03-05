@@ -10,9 +10,9 @@ addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 
 %% Parameters
-conn_metric = 'ampcorr';
-% an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_madS8t0_f2t40';
-an_id = 'TFRmth_D1t1_madS8t0_f2t40';
+conn_metric = 'coh';%'ampcorr';
+an_id = 'TFRmth_S1t2_f2t40_fourier';%'TFRmth_S1t2_madS8t0_f2t40';
+% an_id = 'TFRmth_D1t1_madS8t0_f2t40';
 freq_ch = 'PFC';    % which channel's SBJ-specific frequency band should be used? 'PFC' or 'BG'
 
 % Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
@@ -45,7 +45,7 @@ end
 % win_lim_str = [num2str(psd_win_lim(1)) '-' num2str(psd_win_lim(2))];
 % lmm_name = [an_id norm_bhv_str norm_nrl_str out_thresh_str];
 % lmm_fname = [prj_dir 'data/GRP/GRP_' lmm_name '_LMM_ts.mat'];
-fig_dir   = [prj_dir 'results/TFR/' conn_metric '_' an_id '/grant_plot/'];
+fig_dir   = [prj_dir 'results/TFR/' conn_metric '_' an_id '/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 
 % an_vars_cmd = ['run ' prj_dir '/scripts/an_vars/' an_id '_vars.m'];
@@ -73,6 +73,8 @@ if strcmp(conn_metric,'ampcorr')
     conn_metric_name = 'Amplitude Correlation (r)';
 elseif strcmp(conn_metric,'PLV')
     conn_metric_name = 'Phase Locking Value';
+elseif strcmp(conn_metric,'coh')
+    conn_metric_name = 'Coherence';
 else
     error(['unknown conn_metric: ' conn_metric]);
 end
@@ -98,20 +100,27 @@ for s = 1:length(SBJs)
         conn      = nan([length(SBJs) numel(tmp.conn.freq) numel(tmp.conn.time)]);
     end
     
-    % Average across trials
-    conn(s,:,:) = tmp.conn.(conn_metric);
+    % Find frequency range
+    [~,t_lo_ix] = min(abs(freq_vec-theta_lim(s,pk_frq_ch_ix,1)));
+    [~,t_hi_ix] = min(abs(freq_vec-theta_lim(s,pk_frq_ch_ix,2)));
+    [~,b_lo_ix] = min(abs(freq_vec-betalo_lim(s,pk_frq_ch_ix,1)));
+    [~,b_hi_ix] = min(abs(freq_vec-betalo_lim(s,pk_frq_ch_ix,2)));
     
-    % Compute connectivity within frequency bands
-    [~,lo_ix] = min(abs(freq_vec-theta_lim(s,pk_frq_ch_ix,1)));
-    [~,hi_ix] = min(abs(freq_vec-theta_lim(s,pk_frq_ch_ix,2)));
-%     theta_sem(s,:) = squeeze(nanstd(tmp.conn.(conn_metric)(lo_ix:hi_ix,:),[],1)) ...
-%               ./sqrt(size(tmp.conn.(conn_metric)(lo_ix:hi_ix,:),1));
-    theta_avg(s,:) = squeeze(nanmean(tmp.conn.(conn_metric)(lo_ix:hi_ix,:),1));
+    % Average across trials and compute connectivity within frequency bands
+    if strcmp(conn_metric,'coh')
+        conn(s,:,:) = squeeze(tmp.conn.cohspctrm(1,2,:,:));
+        theta_avg(s,:) = squeeze(nanmean(tmp.conn.cohspctrm(1,2,t_lo_ix:t_hi_ix,:),3));
+        beta_avg(s,:)  = squeeze(nanmean(tmp.conn.cohspctrm(1,2,b_lo_ix:b_hi_ix,:),3));
+    else
+        conn(s,:,:) = tmp.conn.(conn_metric);
+%         theta_sem(s,:) = squeeze(nanstd(tmp.conn.(conn_metric)(lo_ix:hi_ix,:),[],1)) ...
+%             ./sqrt(size(tmp.conn.(conn_metric)(lo_ix:hi_ix,:),1));
+        theta_avg(s,:) = squeeze(nanmean(tmp.conn.(conn_metric)(t_lo_ix:t_hi_ix,:),1));
+        
+%         beta_sem(s,:) = squeeze(nanstd(beta_pow.powspctrm,[],1))./sqrt(size(beta_pow.powspctrm,1));
+        beta_avg(s,:) = squeeze(nanmean(tmp.conn.(conn_metric)(b_lo_ix:b_hi_ix,:),1));
+    end
     
-    [~,lo_ix] = min(abs(freq_vec-betalo_lim(s,pk_frq_ch_ix,1)));
-    [~,hi_ix] = min(abs(freq_vec-betalo_lim(s,pk_frq_ch_ix,2)));
-%     beta_sem(s,:) = squeeze(nanstd(beta_pow.powspctrm,[],1))./sqrt(size(beta_pow.powspctrm,1));
-    beta_avg(s,:) = squeeze(nanmean(tmp.conn.(conn_metric)(lo_ix:hi_ix,:),1));
 end
 
 %% Plot SBJ connectivity TFRs
@@ -154,7 +163,7 @@ for s = 1:length(SBJs)
         'LineWidth',plt.evnt_width,'Color',plt.evnt_color,'LineStyle',plt.evnt_styles{1});
     
     % Axes and parameters
-    title([ch_labs{s} ' Connectivity: ' conn_metric_name], 'interpreter', 'none');
+    title([strjoin(ch_labs{s},'-') ' Connectivity: ' conn_metric_name], 'interpreter', 'none');
     [~,ix1] = min(abs(time_vec-plt.plt_lim(1)));
     [~,ix2] = min(abs(time_vec-plt.plt_lim(2)));
     set(gca,'XLim',[ix1 ix2]);
@@ -180,7 +189,7 @@ for s = 1:length(SBJs)
         'LineStyle',plt.evnt_styles{1});
     
     % Axes and parameters
-    title([ch_labs{s} ' Mean Connectivity'], 'interpreter', 'none');
+    title([strjoin(ch_labs{s},'-') ' Mean Connectivity'], 'interpreter', 'none');
     set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
     set(gca,'XTick', plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
     set(gca,'YLim',ylims);

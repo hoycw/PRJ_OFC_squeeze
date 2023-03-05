@@ -10,7 +10,7 @@ addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 
 %% Parameters
-conn_metric = 'PLV';%'ampcorr';
+conn_metric = 'PLVft';%'coh';%'PLV';%'ampcorr';
 an_ids = {'TFRmth_S1t2_f2t40_fourier'};%'TFRmth_S1t2_madS8t0_f2t40'};%'TFRmth_S1t2_madA8t1_f2t40'};%
 % an_ids = {'TFRmth_D1t1_madS8t0_f2t40'};
 
@@ -61,6 +61,7 @@ for s = 1:4
         % Compute connectivity
         if strcmp(conn_metric,'coh')
             cfg = [];
+            cfg.channelcmb = tfr.label';
             cfg.method = conn_metric;
             conn = ft_connectivityanalysis(cfg,tfr);
         else

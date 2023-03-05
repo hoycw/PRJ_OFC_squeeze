@@ -4,42 +4,47 @@ clear all
 close all
 clc
 
+addpath('/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/');
+addpath('/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/utils/');
 addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 
 %% Parameters
-error('TFR y lim not corrected!');
-SBJs = {'PFC03','PFC04','PFC05','PFC01'}; % 'PMC10'
-sbj_pfc_roi  = {'FPC', 'OFC', 'OFC', 'FPC'};
-sbj_bg_roi   = {'GPi','STN','GPi','STN'};
+% Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
+prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
+eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
-an_id = 'TFRw_S25t2_zbtS25t05_f2t40_c7';%'TFRw_D1t1_zbtS25t05_fl2t40_c7';%
+an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_madA8t1_f2t40';%
 
-freq_ticks = 5:5:35;
-if contains(an_id,'_S')
-    psd_win_lim = [0 2];
+% Plotting parameters
+symmetric_clim = 1;
+font_size  = 24;
+save_fig   = 1;
+fig_ftype  = 'png';
+fig_vis    = 'on';
+
+if contains(an_id,'_S') || contains(an_id,'simon')
+    if contains(an_id,'A8t1')
+        an_lim = [-0.8 0];
+    else
+        an_lim = [0.5 1.5];
+    end
 elseif contains(an_id,'_D')
-    psd_win_lim = [-0.5 0];
+    an_lim = [-0.5 0];
 end
 
 % Analysis parameters:
-theta_lim  = [4 7];
-beta_lim   = [13 30];    
-sbj_beta_pk = [10,17,13,12]; % PFC03, PFC04, PFC05, PFC01
-% alternatives: (1)=[17,17,13,12]; (2)=[17,22,13,13];
-betapk_bw = 4;
-
-% Plotting parameters
-save_fig  = 1;
-fig_ftype = 'png';
-fig_vis   = 'on';
+[theta_cf, betalo_cf, betahi_cf] = fn_get_sbj_peak_frequencies(SBJs,an_id);
+theta_lim  = fn_compute_freq_lim(SBJs,theta_cf,'theta');
+beta_lim   = fn_compute_freq_lim(SBJs,betalo_cf,'betalo');
+% betahi_lim = fn_compute_freq_lim(SBJs,betahi_cf,'betahi');
 
 %% Prep stuff
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
-addpath([prj_dir 'scripts/']);
-addpath([prj_dir 'scripts/utils/']);
-
-if contains(an_id,'_S') || contains(an_id,'simon')
+freq_ticks = 5:5:35;
+if contains(an_id,'A8t1')
+    plt_id = 'ts_S8t2_evnts_sigLine';
+elseif contains(an_id,'_S') || contains(an_id,'simon')
     plt_id = 'ts_S2t2_evnts_sigLine';
 elseif contains(an_id,'_D')
     plt_id = 'ts_D1t1_evnts_sigLine';
@@ -48,20 +53,14 @@ else
 end
 fig_dir   = [prj_dir 'results/TFR/' an_id '/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
+if symmetric_clim; clim_str = '_sym'; else; clim_str = ''; end
 
 an_vars_cmd = ['run ' prj_dir '/scripts/an_vars/' an_id '_vars.m'];
 eval(an_vars_cmd);
 plt_vars_cmd = ['run ' prj_dir 'scripts/plt_vars/' plt_id '_vars.m'];
 eval(plt_vars_cmd);
 
-betapk_lim = nan(length(SBJs),2);
-for s = 1:length(sbj_beta_pk)
-    betapk_lim(s,:) = [sbj_beta_pk(s)-betapk_bw/2 sbj_beta_pk(s)+betapk_bw/2];
-end
-
 %% Load TFR data
-theta_pk = nan([length(SBJs) 2]);
-beta_pk = nan([length(SBJs) 2]);
 for s = 1:length(SBJs)
     %% Load data
     sbj_dir = [prj_dir 'data/' SBJs{s} '/'];
@@ -73,10 +72,8 @@ for s = 1:length(SBJs)
     if s==1
         theta_avg  = nan([length(SBJs) 2 numel(tmp.tfr.time)]);
         beta_avg   = nan([length(SBJs) 2 numel(tmp.tfr.time)]);
-        betapk_avg = nan([length(SBJs) 2 numel(tmp.tfr.time)]);
         theta_sem  = nan([length(SBJs) 2 numel(tmp.tfr.time)]);
         beta_sem   = nan([length(SBJs) 2 numel(tmp.tfr.time)]);
-        betapk_sem = nan([length(SBJs) 2 numel(tmp.tfr.time)]);
         time_vec = tmp.tfr.time;
         freq_vec = tmp.tfr.freq;
         tfr      = nan([length(SBJs) 2 numel(tmp.tfr.freq) numel(tmp.tfr.time)]);
@@ -88,68 +85,43 @@ for s = 1:length(SBJs)
     
     % Compute PSD
     cfgs = [];
-    cfgs.latency = psd_win_lim;
+    cfgs.latency = an_lim;
     psd_tfr = ft_selectdata(cfgs,tmp.tfr);
     psd(s,:,:) = squeeze(nanmean(nanmean(psd_tfr.powspctrm,1),4));
     
     % Compute power bands
-    cfg = [];
-    cfg.avgoverfreq = 'yes';
-    cfg.avgoverrpt  = 'no';
-    cfg.frequency = theta_lim;
-    theta_pow = ft_selectdata(cfg, tmp.tfr);
-    theta_sem(s,:,:) = squeeze(nanstd(theta_pow.powspctrm,[],1))./sqrt(size(theta_pow.powspctrm,1));
-    theta_avg(s,:,:) = squeeze(nanmean(theta_pow.powspctrm,1));
-    
-    cfg.frequency = beta_lim;
-    beta_pow = ft_selectdata(cfg, tmp.tfr);
-    beta_sem(s,:,:) = squeeze(nanstd(beta_pow.powspctrm,[],1))./sqrt(size(beta_pow.powspctrm,1));
-    beta_avg(s,:,:) = squeeze(nanmean(beta_pow.powspctrm,1));
-    
-    cfg.frequency = betapk_lim(s,:);
-    betapk_pow = ft_selectdata(cfg, tmp.tfr);
-    betapk_sem(s,:,:) = squeeze(nanstd(betapk_pow.powspctrm,[],1))./sqrt(size(betapk_pow.powspctrm,1));
-    betapk_avg(s,:,:) = squeeze(nanmean(betapk_pow.powspctrm,1));
+    for ch_ix = 1:2
+        cfg = [];
+        cfg.channel = tmp.tfr.label(ch_ix);
+        cfg.avgoverfreq = 'yes';
+        cfg.avgoverrpt  = 'no';
+        cfg.frequency = squeeze(theta_lim(s,ch_ix,:))';
+        theta_pow = ft_selectdata(cfg, tmp.tfr);
+        theta_sem(s,ch_ix,:) = squeeze(nanstd(theta_pow.powspctrm,[],1))./sqrt(size(theta_pow.powspctrm,1));
+        theta_avg(s,ch_ix,:) = squeeze(nanmean(theta_pow.powspctrm,1));
+        
+        cfg.frequency = squeeze(beta_lim(s,ch_ix,:))';
+        beta_pow = ft_selectdata(cfg, tmp.tfr);
+        beta_sem(s,ch_ix,:) = squeeze(nanstd(beta_pow.powspctrm,[],1))./sqrt(size(beta_pow.powspctrm,1));
+        beta_avg(s,ch_ix,:) = squeeze(nanmean(beta_pow.powspctrm,1));
+    end
 end
 
-%% Average at group level
-lfp_tfr_grp        = squeeze(nanmean(tfr(:,1,:,:),1));
-lfp_theta_grp_avg  = squeeze(mean(theta_avg(:,1,:),1));
-lfp_theta_grp_sem  = squeeze(std(theta_avg(:,1,:),[],1)./sqrt(size(theta_avg(:,1,:),1)));
-lfp_beta_grp_avg   = squeeze(mean(beta_avg(:,1,:),1));
-lfp_beta_grp_sem   = squeeze(std(beta_avg(:,1,:),[],1)./sqrt(size(beta_avg(:,1,:),1)));
-lfp_betapk_grp_avg = squeeze(mean(betapk_avg(:,1,:),1));
-lfp_betapk_grp_sem = squeeze(std(betapk_avg(:,1,:),[],1)./sqrt(size(betapk_avg(:,1,:),1)));
-
-fpc_tfr_grp        = squeeze(nanmean(tfr(strcmp(sbj_pfc_roi,'FPC'),2,:,:),1));
-fpc_theta_grp_avg  = squeeze(mean(theta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
-fpc_theta_grp_sem  = squeeze(std(theta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)./sqrt(size(theta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1)));
-fpc_beta_grp_avg   = squeeze(mean(beta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
-fpc_beta_grp_sem   = squeeze(std(beta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)./sqrt(size(beta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1)));
-fpc_betapk_grp_avg = squeeze(mean(betapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
-fpc_betapk_grp_sem = squeeze(std(betapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)./sqrt(size(betapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1)));
-
-ofc_tfr_grp        = squeeze(nanmean(tfr(strcmp(sbj_pfc_roi,'OFC'),2,:,:),1));
-ofc_theta_grp_avg  = squeeze(mean(theta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
-ofc_theta_grp_sem  = squeeze(std(theta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(theta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
-ofc_beta_grp_avg   = squeeze(mean(beta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
-ofc_beta_grp_sem   = squeeze(std(beta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(beta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
-ofc_betapk_grp_avg = squeeze(mean(betapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
-ofc_betapk_grp_sem = squeeze(std(betapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(betapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
-
-%% Plot SBJ TFRs
-% Get frequency and time ticks
+%% Get frequency and time ticks
 freq_tick_ix = nan(size(freq_ticks));
 for f = 1:numel(freq_ticks)
     [~,freq_tick_ix(f)] = min(abs(freq_vec-freq_ticks(f)));
 end
-time_ticks = plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2);
+time_ticks = plt.xticks;%plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2);
 time_tick_ix = nan(size(time_ticks));
+time_tick_lab = cell(size(time_ticks));
 for t = 1:numel(time_ticks)
     [~,time_tick_ix(t)] = min(abs(time_vec-time_ticks(t)));
+    time_tick_lab{t} = ['' num2str(time_ticks(t))];
 end
 if ~any(time_ticks==0); error('cant plot event with no tick at 0'); end
 
+%% Plot SBJ TFRs
 for s = 1:length(SBJs)
     %% Plot TFRs for each SBJ
     fig_name = [SBJs{s} '_TFR_theta_beta_' an_id];
@@ -237,6 +209,31 @@ for s = 1:length(SBJs)
         saveas(gcf,fig_fname);
     end
 end
+
+%% Average at group level
+lfp_tfr_grp        = squeeze(nanmean(tfr(:,1,:,:),1));
+lfp_theta_grp_avg  = squeeze(mean(theta_avg(:,1,:),1));
+lfp_theta_grp_sem  = squeeze(std(theta_avg(:,1,:),[],1)./sqrt(size(theta_avg(:,1,:),1)));
+lfp_beta_grp_avg   = squeeze(mean(beta_avg(:,1,:),1));
+lfp_beta_grp_sem   = squeeze(std(beta_avg(:,1,:),[],1)./sqrt(size(beta_avg(:,1,:),1)));
+lfp_betapk_grp_avg = squeeze(mean(betapk_avg(:,1,:),1));
+lfp_betapk_grp_sem = squeeze(std(betapk_avg(:,1,:),[],1)./sqrt(size(betapk_avg(:,1,:),1)));
+
+fpc_tfr_grp        = squeeze(nanmean(tfr(strcmp(sbj_pfc_roi,'FPC'),2,:,:),1));
+fpc_theta_grp_avg  = squeeze(mean(theta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
+fpc_theta_grp_sem  = squeeze(std(theta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)./sqrt(size(theta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1)));
+fpc_beta_grp_avg   = squeeze(mean(beta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
+fpc_beta_grp_sem   = squeeze(std(beta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)./sqrt(size(beta_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1)));
+fpc_betapk_grp_avg = squeeze(mean(betapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1));
+fpc_betapk_grp_sem = squeeze(std(betapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),[],1)./sqrt(size(betapk_avg(strcmp(sbj_pfc_roi,'FPC'),2,:),1)));
+
+ofc_tfr_grp        = squeeze(nanmean(tfr(strcmp(sbj_pfc_roi,'OFC'),2,:,:),1));
+ofc_theta_grp_avg  = squeeze(mean(theta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
+ofc_theta_grp_sem  = squeeze(std(theta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(theta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
+ofc_beta_grp_avg   = squeeze(mean(beta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
+ofc_beta_grp_sem   = squeeze(std(beta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(beta_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
+ofc_betapk_grp_avg = squeeze(mean(betapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1));
+ofc_betapk_grp_sem = squeeze(std(betapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),[],1)./sqrt(size(betapk_avg(strcmp(sbj_pfc_roi,'OFC'),2,:),1)));
 
 %% Plot TFRs for the GROUP
 fig_name = ['GRP_TFR_theta_beta_' an_id];

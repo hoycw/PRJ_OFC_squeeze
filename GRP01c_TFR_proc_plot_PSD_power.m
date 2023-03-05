@@ -88,7 +88,6 @@ for s = 1:length(SBJs)
     cfgs = [];
     cfgs.latency = an_lim;
     psd_tfr = ft_selectdata(cfgs,tmp.tfr);
-    trl_pow = nanmean(psd_tfr.powspctrm,4);
     psd(s,:,:) = squeeze(nanmean(nanmean(psd_tfr.powspctrm,1),4));
     
     % Compute power bands
