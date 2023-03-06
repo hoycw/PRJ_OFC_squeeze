@@ -16,7 +16,7 @@ prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
 % an_ids = {'TFRmth_S1t2_madS8t0_f2t40', 'TFRmth_D1t1_madS8t0_f2t40', 'TFRmth_S1t2_madA8t1_f2t40'};
-an_ids = {'TFRmth_S1t2_f2t40_pncsd'};
+an_ids = {'TFRmth_S03t2_f2t30_fourier'};
 
 % OLD VERSIONS:
 % an_ids = {'TFRmth_S1t2_zbtS1t0_f2t40','TFRmth_S1t2_dbS1t0_f2t40','TFRmth_S1t2_zS1t0_f2t40','TFRmth_S1t2_zS25t05_f2t40'};%'TFRw_S25t2_dbS25t05_fl2t40_c7','TFRw_D1t1_dbS25t05_fl2t40_c7'};

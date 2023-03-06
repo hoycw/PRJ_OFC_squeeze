@@ -11,7 +11,7 @@ ft_defaults
 
 %% Parameters
 conn_metric = 'cohjk';%'PLVft';%'coh';%'PLV';%'ampcorr';
-an_ids = {'TFRmth_S03t2_f2t30_fourier'};%'TFRmth_S1t2_madS8t0_f2t40'};%'TFRmth_S1t2_madA8t1_f2t40'};%
+an_ids = {'TFRmth_S1t2_f2t40_fourier'};%'TFRmth_S1t2_madS8t0_f2t40'};%'TFRmth_S1t2_madA8t1_f2t40'};%
 % an_ids = {'TFRmth_D1t1_madS8t0_f2t40'};
 
 % Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
@@ -31,7 +31,7 @@ for s = 1:4
             fprintf('Loading %s\n',tfr_fname);
             load(tfr_fname,'tfr');
         catch
-            error(['TFR for ampcorr does not exist, run GRP01a for ' an_id ' in ' SBJs{s}]);
+            error(['TFR for ampcorr does not exist, run GRP01a for ' an_id ']);
         end
         if ~strcmp(conn_metric,'ampcorr') && ~strcmp(cfg_tfr.output,'fourier')
             error(['TFR output should be fourier for metric ' conn_metric]);

@@ -1,3 +1,4 @@
+
 function [theta_peak_freqs, betalo_peak_freqs, betahi_peak_freqs] = fn_get_sbj_peak_frequencies(SBJs,an_id)
 %% Returns the center (peak) frequency for theta and low beta for PFC squeeze SBJs
 %   based on the analysis parameters; if no SBJ specific peak, then -1
@@ -29,7 +30,7 @@ if contains(an_id,'_S')
         betalo_peak_freqs  = [-1 -1 -1 -1; -1 -1 -1 -1];
     else
         theta_peak_freqs = [-1 -1 -1 -1; -1 -1 -1 -1];
-        betalo_peak_freqs = [-1 -1 -1 -1; 10 17 13 12];
+        betalo_peak_freqs  = [11 13 17 13; 12 16 12 12]; % D-locked: [-1 -1 -1 -1; 11 19 12 12];
         % As of GRP_TFR_peak_find on 0.25-1.5 from 7/5/22
         %   Use -1 for canonical bands
 %         theta_peak_freqs = [2.5 3 3.5 5; 5 3.5 3.5 3]; % BG (row1) then PFC (row2)

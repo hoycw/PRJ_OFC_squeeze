@@ -16,10 +16,10 @@ eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
 an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_madA8t1_f2t40';%
 
-reds = cbrewer('seq','RdPu',5);
-rew_colors = reds([2 5],:);
-blues = cbrewer('seq','GnBu',5);
-eff_colors = blues([2 5],:);
+reds = cbrewer('seq','RdPu',11);
+rew_colors = reds([3 5 7 9 11],:);
+blues = cbrewer('seq','GnBu',11);
+eff_colors = blues([3 5 7 9 11],:);
 
 % Plotting parameters
 plot_boxes = 0;
@@ -58,7 +58,7 @@ elseif contains(an_id,'_D')
 else
     error('couldnt pick plt_id based on an_id');
 end
-fig_dir   = [prj_dir 'results/TFR/' an_id '/'];
+fig_dir   = [prj_dir 'results/TFR/' an_id '/quantile_split/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 if symmetric_clim; clim_str = '_sym'; else; clim_str = ''; end
 
@@ -78,16 +78,16 @@ for s = 1:length(SBJs)
     
     % Initialize data
     if s==1
-        theta_avg = nan([length(SBJs) 2 2 numel(tmp.tfr.time)]);
-        beta_avg  = nan([length(SBJs) 2 2 numel(tmp.tfr.time)]);
-        theta_sem = nan([length(SBJs) 2 2 numel(tmp.tfr.time)]);
-        beta_sem  = nan([length(SBJs) 2 2 numel(tmp.tfr.time)]);
+        theta_avg = nan([length(SBJs) 2 5 numel(tmp.tfr.time)]);
+        beta_avg  = nan([length(SBJs) 2 5 numel(tmp.tfr.time)]);
+        theta_sem = nan([length(SBJs) 2 5 numel(tmp.tfr.time)]);
+        beta_sem  = nan([length(SBJs) 2 5 numel(tmp.tfr.time)]);
         time_vec = tmp.tfr.time;
     end
     
-    % Get stake and effort splitd (0 = low, 1 = high)
-    stake_idx = sbj_data.bhv.stake>=median(sbj_data.bhv.stake);
-    eff_idx   = sbj_data.bhv.effort>=median(sbj_data.bhv.effort);
+    % Get stake and effort bins
+    stakes = unique(sbj_data.bhv.stake);
+    effs   = unique(sbj_data.bhv.effort);
     
     % Compute theta power per stake level
     for ch_ix = 1:2
@@ -96,16 +96,16 @@ for s = 1:length(SBJs)
         cfg.avgoverfreq = 'yes';
         cfg.avgoverrpt  = 'no';
         cfg.frequency = squeeze(theta_lim(s,ch_ix,:))';
-        for stk_ix = 1:2
-            cfg.trials = find(stake_idx==stk_ix-1);
+        for stk_ix = 1:length(stakes)
+            cfg.trials = find(sbj_data.bhv.stake_prv==stakes(stk_ix));
             theta_pow = ft_selectdata(cfg, tmp.tfr);
             theta_sem(s,ch_ix,stk_ix,:) = squeeze(nanstd(theta_pow.powspctrm,[],1))./sqrt(size(theta_pow.powspctrm,1));
             theta_avg(s,ch_ix,stk_ix,:) = squeeze(nanmean(theta_pow.powspctrm,1));
         end
         
         cfg.frequency = squeeze(theta_lim(s,ch_ix,:))';
-        for eff_ix = 1:2
-            cfg.trials = find(eff_idx==eff_ix-1);
+        for eff_ix = 1:length(effs)
+            cfg.trials = find(sbj_data.bhv.EFFs==effs(eff_ix));
             beta_pow = ft_selectdata(cfg, tmp.tfr);
             beta_sem(s,ch_ix,eff_ix,:) = squeeze(nanstd(beta_pow.powspctrm,[],1))./sqrt(size(beta_pow.powspctrm,1));
             beta_avg(s,ch_ix,eff_ix,:) = squeeze(nanmean(beta_pow.powspctrm,1));
@@ -123,13 +123,18 @@ for t = 1:numel(time_ticks)
 end
 if ~any(time_ticks==0); error('cant plot event with no tick at 0'); end
 
-rew_lab = {'Low Prev. Reward','High Prev. Reward'};
-eff_lab = {'Low Effort','High Effort'};
+rew_lab = cell([5 1]);
+eff_lab = cell([5 1]);
+for q = 1:5
+    rew_lab{q} = [num2str(stakes(q)) ' apples'];
+    eff_lab{q} = [num2str(effs(q)) '% effort'];
+end
+rew_lab{1} = rew_lab{1}(1:end-1); % strip the s off single apple
 
 %% Plot SBJ TFRs
 for s = 1:length(SBJs)
     %% Plot TFRs for each SBJ
-    fig_name = [SBJs{s} '_TFR_median_theta_rewPrv_beta_effS'];
+    fig_name = [SBJs{s} '_TFR_quant_theta_rewPrv_beta_effS'];
     figure('Name',fig_name,'units','normalized',...
         'outerposition',[0 0 1 1],'Visible',fig_vis);
     
@@ -142,8 +147,8 @@ for s = 1:length(SBJs)
             ch_lab = sbj_pfc_roi{s};
         end
         
-        r_lines = gobjects([1 2]);
-        for stk_ix = 1:2
+        r_lines = gobjects([1 5]);
+        for stk_ix = 1:5
 %             tmp = shadedErrorBar(time_vec, squeeze(theta_avg(s,ch_ix,stk_ix,:)),...
 %                 squeeze(theta_sem(s,ch_ix,stk_ix,:)),'lineprops',{'Color',rew_colors(stk_ix,:)});
 %             r_lines(stk_ix) = tmp.mainLine;
@@ -166,8 +171,8 @@ for s = 1:length(SBJs)
         
         %% Plot beta per effort level
         subplot(2,2,ch_ix*2); hold on;
-        e_lines = gobjects([1 2]);
-        for eff_ix = 1:2
+        e_lines = gobjects([1 5]);
+        for eff_ix = 1:5
 %             tmp = shadedErrorBar(time_vec, squeeze(beta_avg(s,ch_ix,eff_ix,:)),...
 %                 squeeze(beta_sem(s,ch_ix,eff_ix,:)),'lineprops',{'Color',eff_colors(eff_ix,:)});
 %             e_lines(eff_ix) = tmp.mainLine;
@@ -199,14 +204,20 @@ for s = 1:length(SBJs)
 end
 
 %% Average at group level
-theta_grp_avg = squeeze(mean(theta_avg,1));
-theta_grp_sem = squeeze(mean(theta_sem,1));
-beta_grp_avg  = squeeze(mean(beta_avg,1));
-beta_grp_sem  = squeeze(mean(beta_sem,1));
+theta_grp_avg = nan([2 5 numel(time_vec)]);
+theta_grp_sem = nan([2 5 numel(time_vec)]);
+beta_grp_avg  = nan([2 5 numel(time_vec)]);
+beta_grp_sem  = nan([2 5 numel(time_vec)]);
+for ch_ix = 1:2
+    theta_grp_avg(ch_ix,:,:) = squeeze(mean(theta_avg(:,ch_ix,:,:),1));
+    theta_grp_sem(ch_ix,:,:) = squeeze(mean(theta_sem(:,ch_ix,:,:),1));
+    beta_grp_avg(ch_ix,:,:)  = squeeze(mean(beta_avg(:,ch_ix,:,:),1));
+    beta_grp_sem(ch_ix,:,:)  = squeeze(mean(beta_sem(:,ch_ix,:,:),1));
+end
 
 %% Plot TFRs for the GROUP with SBJ PSDs
 if plot_boxes; box_str = '_boxes'; else; box_str = ''; end
-fig_name = ['GRP_TFR_median_theta_rewPrv_beta_effS_' an_id box_str];
+fig_name = ['GRP_TFR_theta_rewPrv_beta_effS_' an_id box_str];
 figure('Name',fig_name,'units','normalized',...
     'outerposition',[0 0 1 1],'Visible',fig_vis);
 for ch_ix = 1:2
@@ -219,14 +230,10 @@ for ch_ix = 1:2
     % Plot theta by previous reward
     subplot(2,2,ch_ix*2-1); hold on;
     
-    r_lines = gobjects([1 2]);
-    for stk_ix = 1:2
+    r_lines = gobjects([1 5]);
+    for stk_ix = 1:5
         r_lines(stk_ix) = plot(time_vec, squeeze(theta_grp_avg(ch_ix,stk_ix,:)), ...
             'Color',rew_colors(stk_ix,:),'LineWidth',2);
-        p = patch([time_vec flip(time_vec)],[squeeze(theta_grp_avg(ch_ix,stk_ix,:)+theta_grp_sem(ch_ix,stk_ix,:))'...
-            flip(squeeze(theta_grp_avg(ch_ix,stk_ix,:)-theta_grp_sem(ch_ix,stk_ix,:)))'],...
-            rew_colors(stk_ix,:),'FaceAlpha',0.1);
-        p.EdgeColor = rew_colors(stk_ix,:);
     end
     ylims = ylim;
     line([0 0],ylims,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
@@ -249,14 +256,10 @@ for ch_ix = 1:2
     % Plot beta by effort
     subplot(2,2,ch_ix*2); hold on;
     
-    e_lines = gobjects([1 2]);
-    for eff_ix = 1:2
+    e_lines = gobjects([1 5]);
+    for eff_ix = 1:5
         e_lines(eff_ix) = plot(time_vec, squeeze(beta_grp_avg(ch_ix,eff_ix,:)), ...
             'Color',eff_colors(eff_ix,:),'LineWidth',2);
-        p = patch([time_vec flip(time_vec)],[squeeze(beta_grp_avg(ch_ix,eff_ix,:)+beta_grp_sem(ch_ix,eff_ix,:))' ...
-            flip(squeeze(beta_grp_avg(ch_ix,eff_ix,:)-beta_grp_sem(ch_ix,eff_ix,:)))'],...
-            eff_colors(eff_ix,:),'FaceAlpha',0.1);
-        p.EdgeColor = eff_colors(eff_ix,:);
     end
     ylims = ylim;
     line([0 0],ylims,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
