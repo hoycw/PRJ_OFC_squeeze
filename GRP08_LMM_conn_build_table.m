@@ -12,9 +12,15 @@ clear all
 % Stimulus decision phase:
 % an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'ampcorr_S5t15_bhvz_nrlfz_out4';
 % Pre-decision:
-an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'ampcorr_Dn5t0_bhvz_nrlfz_out4';
+% an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'ampcorr_Dn5t0_bhvz_nrlfz_out4';
 % Post-decision/feedback:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'ampcorr_D0t5_bhvz_nrlfz_out4';
+
+% Phase-locking value
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'PLV_S5t15_bhvz_nrlz_out4';
+
+% Jackknife coherence
+% an_id = 'TFRmth_S03t2_f2t30_fourier'; stat_id = 'cohjk_S5t15_bhvz_nrlz';
 
 %% Analysis Set Up
 % Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
@@ -25,7 +31,6 @@ eval(['run ' prj_dir 'scripts/stat_vars/' stat_id '_vars.m']);
 [theta_cf, betalo_cf, betahi_cf] = fn_get_sbj_peak_frequencies(SBJs,an_id);
 theta_lim  = fn_compute_freq_lim(SBJs,theta_cf,'theta');
 betalo_lim = fn_compute_freq_lim(SBJs,betalo_cf,'betalo');
-betahi_lim = fn_compute_freq_lim(SBJs,betahi_cf,'betahi');
 
 if strcmp(st.freq_pk_ch,'BG')
     pk_frq_ch_ix = 1;
@@ -38,14 +43,10 @@ end
 %% Compute Theta and Beta power
 theta_conn_sbj  = cell(size(SBJs));
 betalo_conn_sbj = cell(size(SBJs));
-betahi_conn_sbj = cell(size(SBJs));
 bhvs        = cell(size(SBJs));
 for s = 1:length(SBJs)
     %% Load TFR
     sbj_dir = [prj_dir 'data/' SBJs{s} '/'];
-%     proc_fname = [sbj_dir SBJs{s} '_' an_id '.mat'];
-%     fprintf('Loading %s\n',proc_fname);
-%     load(proc_fname,'tfr');
     load([sbj_dir SBJs{s} '_stim_preproc.mat']);
     bhvs{s} = sbj_data.bhv;
     
@@ -53,52 +54,72 @@ for s = 1:length(SBJs)
     if ~any(strcmp(sbj_data.ts.label{1},{'STN','GPi'})); error('BG is not first channel!'); end
     if ~any(strcmp(sbj_data.ts.label{2},{'FPC','OFC'})); error('PFC is not second channel!'); end
     
-    % For decision-locked, re-align to button press
-    if strcmp(st.stat_evnt,'D')
-        cfg_realign = [];
-        cfg_realign.offset = round(-bhvs{s}.rt*sbj_data.ts.fsample);
-        input = ft_redefinetrial(cfg_realign, sbj_data.ts);
+    if strcmp(st.conn_metric,'cohjk')
+        proc_fname = [sbj_dir SBJs{s} '_' an_id '_' st.conn_metric '.mat'];
+        fprintf('Loading %s\n',proc_fname);
+        load(proc_fname,'conn');
+        
+        % Check channel index
+        if ~any(strcmp(conn.label{1},{'STN','GPi'})); error('BG is not first channel!'); end
+        if ~any(strcmp(conn.label{2},{'FPC','OFC'})); error('PFC is not second channel!'); end
+        
+        % Find frequency range
+        [~,t_lo_ix] = min(abs(conn.freq-theta_lim(s,pk_frq_ch_ix,1)));
+        [~,t_hi_ix] = min(abs(conn.freq-theta_lim(s,pk_frq_ch_ix,2)));
+        [~,b_lo_ix] = min(abs(conn.freq-betalo_lim(s,pk_frq_ch_ix,1)));
+        [~,b_hi_ix] = min(abs(conn.freq-betalo_lim(s,pk_frq_ch_ix,2)));
+        
+        % Average across frequencies then time
+        theta_conn_sbj{s}  = squeeze(nanmean(nanmean(conn.cohspctrm(:,1,2,t_lo_ix:t_hi_ix,:),4),5));
+        betalo_conn_sbj{s} = squeeze(nanmean(nanmean(conn.cohspctrm(:,1,2,b_lo_ix:b_hi_ix,:),4),5));
     else
-        input = sbj_data.ts;
+        % For decision-locked, re-align to button press
+        if strcmp(st.stat_evnt,'D')
+            cfg_realign = [];
+            cfg_realign.offset = round(-bhvs{s}.rt*sbj_data.ts.fsample);
+            input = ft_redefinetrial(cfg_realign, sbj_data.ts);
+        else
+            input = sbj_data.ts;
+        end
+        
+        % Bandpass filter data and extract power, angle, or complex data
+        cfgpp = [];
+        cfgpp.demean      = 'yes';
+        cfgpp.hpfilter    = 'yes';
+        cfgpp.hpfreq      = theta_lim(s,pk_frq_ch_ix,1);
+        cfgpp.lpfilter    = 'yes';
+        cfgpp.lpfreq      = theta_lim(s,pk_frq_ch_ix,2);
+        if strcmp(st.conn_metric,'ampcorr')
+            cfgpp.hilbert = 'abs';
+        elseif strcmp(st.conn_metric,'PLV')
+            cfgpp.hilbert = 'angle';
+        elseif strcmp(st.conn_metric,'coh')
+            cfgpp.hilbert = 'complex';
+        end
+        filt_data = ft_preprocessing(cfgpp, input);
+        
+        % Trim to analysis limits (after filtering to avoid edge effects)
+        cfgs = [];
+        cfgs.latency = st.stat_lim;
+        conn_data = ft_selectdata(cfgs,filt_data);
+        
+        % Compute theta connectivity
+        theta_conn_sbj{s} = fn_connectivity_single_trial(conn_data,st.conn_metric);
+        
+        % Repeat for low beta
+        cfgpp.lpfreq      = betalo_lim(s,pk_frq_ch_ix,1);
+        cfgpp.hpfreq      = betalo_lim(s,pk_frq_ch_ix,2);
+        filt_data = ft_preprocessing(cfgpp, sbj_data.ts);
+        conn_data = ft_selectdata(cfgs, filt_data);
+        betalo_conn_sbj{s} = fn_connectivity_single_trial(conn_data,st.conn_metric);
+        
+%         % Repeat for high beta
+%         cfgpp.lpfreq      = betahi_lim(s,pk_frq_ch_ix,1);
+%         cfgpp.hpfreq      = betahi_lim(s,pk_frq_ch_ix,2);
+%         filt_data = ft_preprocessing(cfgpp, sbj_data.ts);
+%         conn_data = ft_selectdata(cfgs, filt_data);
+%         betahi_conn_sbj{s} = fn_connectivity_single_trial(conn_data,st.conn_metric);
     end
-    
-    % Bandpass filter data and extract power, angle, or complex data
-    cfgpp = [];
-    cfgpp.demean      = 'yes';
-    cfgpp.hpfilter    = 'yes';
-    cfgpp.hpfreq      = theta_lim(s,pk_frq_ch_ix,1);
-    cfgpp.lpfilter    = 'yes';
-    cfgpp.lpfreq      = theta_lim(s,pk_frq_ch_ix,2);
-    if strcmp(st.conn_metric,'ampcorr')
-        cfgpp.hilbert = 'abs';
-    elseif strcmp(st.conn_metric,'PLV')
-        cfgpp.hilbert = 'angle';
-    elseif strcmp(st.conn_metric,'coh')
-        cfgpp.hilbert = 'complex';
-    end
-    filt_data = ft_preprocessing(cfgpp, input);
-    
-    % Trim to analysis limits (after filtering to avoid edge effects)
-    cfgs = [];
-    cfgs.latency = st.stat_lim;
-    conn_data = ft_selectdata(cfgs,filt_data);
-    
-    % Compute theta connectivity
-    theta_conn_sbj{s} = fn_connectivity_single_trial(conn_data,st.conn_metric);
-    
-    % Repeat for low beta
-    cfgpp.lpfreq      = betalo_lim(s,pk_frq_ch_ix,1);
-    cfgpp.hpfreq      = betalo_lim(s,pk_frq_ch_ix,2);
-    filt_data = ft_preprocessing(cfgpp, sbj_data.ts);
-    conn_data = ft_selectdata(cfgs, filt_data);
-    betalo_conn_sbj{s} = fn_connectivity_single_trial(conn_data,st.conn_metric);
-    
-    % Repeat for high beta
-    cfgpp.lpfreq      = betahi_lim(s,pk_frq_ch_ix,1);
-    cfgpp.hpfreq      = betahi_lim(s,pk_frq_ch_ix,2);
-    filt_data = ft_preprocessing(cfgpp, sbj_data.ts);
-    conn_data = ft_selectdata(cfgs, filt_data);
-    betahi_conn_sbj{s} = fn_connectivity_single_trial(conn_data,st.conn_metric);
 end
 
 %% Concatenate variables (cur = current trial, prv = previous trial)
@@ -108,7 +129,6 @@ BG_roi     = [];
 trl_n_cur  = [];
 theta_conn  = [];
 betalo_conn = [];
-betahi_conn = [];
 
 rt_cur       = [];
 logrt_cur    = [];
@@ -149,7 +169,6 @@ for s = 1:length(SBJs)
     
     theta_conn  = [theta_conn; fn_normalize_predictor(theta_conn_sbj{s},st.norm_nrl_pred)];
     betalo_conn = [betalo_conn; fn_normalize_predictor(betalo_conn_sbj{s},st.norm_nrl_pred)];
-    betahi_conn = [betahi_conn; fn_normalize_predictor(betahi_conn_sbj{s},st.norm_nrl_pred)];
     
     % Add behavioral variables
     rt_cur       = [rt_cur; fn_normalize_predictor(bhvs{s}.rt,st.norm_bhv_pred)];
@@ -182,7 +201,7 @@ for s = 1:length(SBJs)
 end
 
 %% Convert into table format suitable for LME modelling
-table_all  = table(trl_n_cur, sbj_n, PFC_roi, BG_roi, theta_conn, betalo_conn, betahi_conn,...
+table_all  = table(trl_n_cur, sbj_n, PFC_roi, BG_roi, theta_conn, betalo_conn,...
                  rt_cur, logrt_cur, reward_cur, effort_cur, effortS_cur, decision_cur, SV_cur, absSV_cur, pAccept_cur, dec_ease_cur,...
                  rt_prv, logrt_prv, reward_prv, effort_prv, effortS_prv, decision_prv, SV_prv, absSV_prv, pAccept_prv, dec_ease_prv,...
                  reward_chg, grs);

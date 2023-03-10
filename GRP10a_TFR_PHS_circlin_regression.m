@@ -1,15 +1,22 @@
-%% Mixed modelling on the Processed data %%
+%% Run Circular-Linear regression on single-trial phase at each time-frequency point
+% across all SBJ, separately for each regressor to predict sine and cosine
+%   Uses CircularRegression from FMAtoolbox (Copyright (C) 2012 by Michaël Zugaro)
+%   No random intercept for SBJ because circular phase data ranges 0 to 2*pi,
+%       and the aim is to see consistent phase across SBJs
 addpath('/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/');
 addpath('/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/utils/');
 addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
+addpath('/Users/colinhoy/Code/Apps/FMAtoolbox/');
 close all
 clear all
 
 %% Analysis parameters:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S0t2ts_wl2s025_bhvz_nrlz_out4main';
-lmm_vars = {'PFC_theta','reward_prv';
+an_id = 'TFRmth_S03t2_f2t30_fourier'; stat_id = 'S5t15_bhvz_nrlphs';
+reg_vars = {'PFC_theta','reward_cur';       % follow up on PFC-BG PLV ~ reward_cur finding
+            'PFC_theta','reward_prv';
             'PFC_betalo','effortS_cur';
+            'BG_theta','reward_cur';        % follow up on PFC-BG PLV ~ reward_cur finding
             'BG_theta','reward_prv';
             'BG_betalo','effortS_cur'};
         
@@ -20,75 +27,59 @@ addpath([prj_dir 'scripts/']);
 addpath([prj_dir 'scripts/utils/']);
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 eval(['run ' prj_dir 'scripts/stat_vars/' stat_id '_vars.m']);
-if ~isfield(st,'time_resolved') || ~st.time_resolved; error('only use time resovled stat_ids!'); end
 if st.use_simon_tfr~=0; error('why use Simon TFR?'); end
 
 % Load power band info
 [theta_cf, betalo_cf, ~] = fn_get_sbj_peak_frequencies(SBJs,an_id);
 theta_lim  = fn_compute_freq_lim(SBJs,theta_cf,'theta');
-betalo_lim = fn_compute_freq_lim(SBJs,betalo_cf,'betalo');
+beta_lim = fn_compute_freq_lim(SBJs,betalo_cf,'betalo');
 
-%% Compute Theta and Beta power
-theta_pow  = cell([numel(SBJs) 2]);
-betalo_pow = cell([numel(SBJs) 2]);
-bhvs       = cell(size(SBJs));
+%% Load behavioral and phase data
+ang       = cell(size(SBJs));
+theta_ang = cell([length(SBJs) 2]);
+beta_ang  = cell([length(SBJs) 2]);
+bhvs      = cell(size(SBJs));
 for s = 1:length(SBJs)
-    %% Load TFR
+    %% Load behavior and TFR
     sbj_dir = [prj_dir 'data/' SBJs{s} '/'];
-    if st.use_simon_tfr
-        [tfr, bhvs{s}] = fn_load_simon_TFR(SBJs,st.toss_same_trials,man_trl_rej_ix);
-    else
-        proc_fname = [sbj_dir SBJs{s} '_' an_id '.mat'];
-        fprintf('Loading %s\n',proc_fname);
-        load(proc_fname,'tfr');
-        load([sbj_dir SBJs{s} '_stim_preproc.mat']);
-        bhvs{s} = sbj_data.bhv;
-    end
+    proc_fname = [sbj_dir SBJs{s} '_' an_id '.mat'];
+    fprintf('Loading %s\n',proc_fname);
+    load(proc_fname,'tfr');
+    load([sbj_dir SBJs{s} '_stim_preproc.mat']);
+    bhvs{s} = sbj_data.bhv;
     
     % Check channel index
     if ~any(strcmp(tfr.label{1},{'STN','GPi'})); error('BG is not first channel!'); end
     if ~any(strcmp(tfr.label{2},{'FPC','OFC'})); error('PFC is not second channel!'); end
     
-    %% Compute single trial power
-    cfg = [];
-    cfg.avgoverfreq = 'yes';
-    cfg.avgoverrpt  = 'no';
+    % Initialize data
+    if s==1
+        time_vec = tfr.time;
+        freq_vec = tfr.freq;
+    end
+    
+    %% Angle Extraction
+    ang{s} = angle(tfr.fourierspctrm);
+    
+    cfg_ang = [];
+    cfg_ang.avgoverfreq = 'yes';
+    cfg_ang.avgovertime = 'yes';
+    cfg_ang.latency     = st.stat_lim;
     for ch_ix = 1:2
-        cfg.channel = tfr.label(ch_ix);
-        if isfield(st,'win_len')
-            % Average within windows
-            win_lim = fn_get_win_lim_from_center(tfr.time,st.win_center,st.win_len);
-            plt_time_vec = mean(tfr.time(win_lim),2)';
-            cfg.avgovertime = 'yes';
-            theta_pow{s,ch_ix}  = nan([size(tfr.powspctrm,1) size(win_lim,1)]);
-            betalo_pow{s,ch_ix} = nan([size(tfr.powspctrm,1) size(win_lim,1)]);
-            for w_ix = 1:size(win_lim,1)
-                cfg.latency     = tfr.time(win_lim(w_ix,:));
-                % Theta
-                cfg.frequency   = squeeze(theta_lim(s,ch_ix,:))';
-                pow = ft_selectdata(cfg, tfr);
-                theta_pow{s,ch_ix}(:,w_ix) = pow.powspctrm;
-                % Beta Low
-                cfg.frequency = squeeze(betalo_lim(s,ch_ix,:))';
-                pow = ft_selectdata(cfg, tfr);
-                betalo_pow{s,ch_ix}(:,w_ix) = pow.powspctrm;
-            end
-        else
-            % Use entire time series
-            cfg.avgovertime = 'no';
-            cfg.latency     = st.stat_lim;
-            % Theta
-            cfg.frequency   = squeeze(theta_lim(s,ch_ix,:))';
-            pow = ft_selectdata(cfg, tfr);
-            plt_time_vec = pow.time;
-            theta_pow{s,ch_ix} = squeeze(pow.powspctrm);
-            % Beta Low
-            cfg.frequency = squeeze(betalo_lim(s,ch_ix,:))';
-            pow = ft_selectdata(cfg, tfr);
-            betalo_pow{s,ch_ix} = squeeze(pow.powspctrm);
-        end
+        % Compute mean phase angle in T-F window
+        cfg_ang.channel = tfr.label(ch_ix);
+        cfg_ang.frequency = squeeze(theta_lim(s,ch_ix,:))';
+        complex = ft_selectdata(cfg_ang,tfr);
+        theta_ang{s,ch_ix} = squeeze(angle(complex.fourierspctrm));
+        
+        cfg_ang.frequency = squeeze(beta_lim(s,ch_ix,:))';
+        complex = ft_selectdata(cfg_ang,tfr);
+        beta_ang{s,ch_ix} = squeeze(angle(complex.fourierspctrm));
     end
 end
+
+% Concatenate angles across subjects
+ang_grp = vertcat(ang{:});
 
 %% Concatenate behavioral variables (cur = current trial, prv = previous trial)
 sbj_n      = [];
@@ -163,62 +154,65 @@ for s = 1:length(SBJs)
     grs          = [grs; fn_normalize_predictor(bhvs{s}.grs,st.norm_bhv_pred)];
 end
 
+%% Convert into table format suitable for LME modelling
+table_all  = table(trl_n_cur, sbj_n, PFC_roi, BG_roi, ...
+    rt_cur, logrt_cur, reward_cur, effort_cur, effortS_cur, decision_cur, SV_cur, absSV_cur, pAccept_cur, dec_ease_cur,...
+    rt_prv, logrt_prv, reward_prv, effort_prv, effortS_prv, decision_prv, SV_prv, absSV_prv, pAccept_prv, dec_ease_prv,...
+    reward_chg, grs);
+
 %% Find outliers tossed from main time-averaged analysis
-% Load group model table
-table_all_fname = [prj_dir 'data/GRP/GRP_' an_id '_' st.outlier_stat_id '_full_table_all.csv'];
-fprintf('\tLoading %s...\n',table_all_fname);
-table_all_avg = readtable(table_all_fname);
+% % Load group model table
+% table_all_fname = [prj_dir 'data/GRP/GRP_' an_id '_' st.outlier_stat_id '_full_table_all.csv'];
+% fprintf('\tLoading %s...\n',table_all_fname);
+% table_all_avg = readtable(table_all_fname);
+% 
+% % Identify outliers
+% pow_vars = {'PFC_theta','PFC_betalo','BG_theta','BG_betalo'};
+% out_idx_all = struct;
+% for f = 1:length(pow_vars)
+%     % Identify outliers
+%     out_idx_all.(pow_vars{f}) = abs(table_all_avg.(pow_vars{f}))>st.outlier_thresh;
+%     fprintf(2,'Bad trials in table_all for %s: %d\n',pow_vars{f},sum(out_idx_all.(pow_vars{f})));
+% end
 
-% Identify outliers
-pow_vars = {'PFC_theta','PFC_betalo','BG_theta','BG_betalo'};
-out_idx_all = struct;
-for f = 1:length(pow_vars)
-    % Identify outliers
-    out_idx_all.(pow_vars{f}) = abs(table_all_avg.(pow_vars{f}))>st.outlier_thresh;
-    fprintf(2,'Bad trials in table_all for %s: %d\n',pow_vars{f},sum(out_idx_all.(pow_vars{f})));
-end
+%% Run group-level circular-linear regression at each time-frequency phase value
+% Stats for each regressor and TFR point
+betas     = nan([size(reg_vars,1) length(freq_vec) length(time_vec)]);
+r2s       = nan([size(reg_vars,1) length(freq_vec) length(time_vec)]);
+pvals     = nan([size(reg_vars,1) length(freq_vec) length(time_vec)]);
 
-%% Run model per time point, tossing outliers
-lmm_ts      = cell([size(lmm_vars,1) length(plt_time_vec)]);
-lmm_stat_ts = cell([size(lmm_vars,1) length(plt_time_vec)]);
-for m_ix = 1:size(lmm_vars,1)
-    fprintf('Running %d/%d LMMs: (total = %d)\n\t',m_ix,size(lmm_vars,1),length(plt_time_vec));
-    for t_ix = 1:length(plt_time_vec)
-        %% Create time-specific neural table
-        BG_theta   = [];
-        BG_betalo  = [];
-        PFC_theta  = [];
-        PFC_betalo = [];
-        for s = 1:length(SBJs)
-            BG_theta   = [BG_theta; fn_normalize_predictor(theta_pow{s,1}(:,t_ix),st.norm_nrl_pred)];
-            BG_betalo  = [BG_betalo; fn_normalize_predictor(betalo_pow{s,1}(:,t_ix),st.norm_nrl_pred)];
-            PFC_theta  = [PFC_theta; fn_normalize_predictor(theta_pow{s,2}(:,t_ix),st.norm_nrl_pred)];
-            PFC_betalo = [PFC_betalo; fn_normalize_predictor(betalo_pow{s,2}(:,t_ix),st.norm_nrl_pred)];
+% Phase-Model Regression
+%   CircularRegression can't do multiple regression, so one at a time
+for reg_ix = 1:size(reg_vars,1)
+    % Select channel and good trials
+    if contains(reg_vars{reg_ix,1},'PFC'); ch_ix = 2;
+    elseif contains(reg_vars{reg_ix,1},'BG'); ch_ix = 1;
+    else error('must be PFC or BG'); end
+    % Toss outliers and NaNs
+    nan_idx = isnan(table_all.(reg_vars{reg_ix,2}));
+    good_tbl = table_all(~nan_idx,:);%~out_idx_all.(reg_vars{m_ix,1}) & 
+    
+    fprintf('%s ~ %s (%d/%d) freq: ',reg_vars{reg_ix,1},reg_vars{reg_ix,2},reg_ix,size(reg_vars,1));
+    for f_ix = 1:length(freq_vec)
+        fprintf('%.3f..',freq_vec(f_ix));
+        for t_ix = 1:length(time_vec)
+            % function: [beta,R2,p] = CircularRegression(x,angles,p,varargin)
+            %   beta = [slope, intercept]
+            [slope_int, r2s(reg_ix,f_ix,t_ix), pvals(reg_ix,f_ix,t_ix)] = ...
+                CircularRegression(good_tbl.(reg_vars{reg_ix,2}), ang_grp(~nan_idx,ch_ix,f_ix,t_ix));
+            % Take the slope
+            betas(reg_ix,f_ix,t_ix) = slope_int(1);
         end
-        
-        %% Convert into table format suitable for LME modelling
-        table_all  = table(trl_n_cur, sbj_n, PFC_roi, BG_roi, PFC_theta, PFC_betalo, BG_theta, BG_betalo,...
-            rt_cur, logrt_cur, reward_cur, effort_cur, effortS_cur, decision_cur, SV_cur, absSV_cur, pAccept_cur, dec_ease_cur,...
-            rt_prv, logrt_prv, reward_prv, effort_prv, effortS_prv, decision_prv, SV_prv, absSV_prv, pAccept_prv, dec_ease_prv,...
-            reward_chg, grs);
-        
-        %% Compute all desired LMMs
-        % Toss outliers and NaNs
-        nan_idx = isnan(table_all.(lmm_vars{m_ix,2}));
-        good_tbl = table_all(~out_idx_all.(lmm_vars{m_ix,1}) & ~nan_idx,:);
-        
-        % Run LMM
-        lme0 = fitlme(good_tbl,[lmm_vars{m_ix,1} '~ 1 + (1|sbj_n)']);
-        lmm_ts{m_ix,t_ix} = fitlme(good_tbl,[lmm_vars{m_ix,1} '~ 1 + ' lmm_vars{m_ix,2} ' + (1|sbj_n)']);
-        lmm_stat_ts{m_ix,t_ix} = compare(lme0,lmm_ts{m_ix,t_ix},'CheckNesting',true);%,'NSim',1000)
-        
-        if mod(t_ix,10)==0; fprintf('%.02f..',plt_time_vec(t_ix)); end
     end
     fprintf('\n');
 end
-fprintf('\n');
 
-%% Save LMEs
-lmm_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_LMM_timeresolved.mat'];
-fprintf('Saving %s\n',lmm_fname);
-save(lmm_fname,'-v7.3','lmm_vars','lmm_ts','lmm_stat_ts','plt_time_vec');
+% Correct for Multiple Comparisons (regressors, times, frequencies)
+[~, ~, ~, qvals] = fdr_bh(reshape(pvals,[size(pvals,1)*size(pvals,2)*size(pvals,3) 1]));
+qvals = reshape(qvals,[size(pvals,1) size(pvals,2) size(pvals,3)]);
+fprintf('\t\t Group stats complete:');
+
+%% Save group-level Results
+grp_out_fname = [prj_dir 'data/GRP/GRP_CLreg_' an_id '_' stat_id '.mat'];
+fprintf('\tSaving %s...\n',grp_out_fname);
+save(grp_out_fname,'-v7.3','betas','r2s','qvals','pvals','reg_vars','time_vec','freq_vec');

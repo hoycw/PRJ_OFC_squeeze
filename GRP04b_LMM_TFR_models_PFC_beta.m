@@ -193,6 +193,17 @@ lme2 = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ effortS_prv + (1|sbj_n)');
 pfc_betalo_eff_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 pfc_betalo_effS_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
 
+%% PFC beta and decision:
+lme0 = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ 1 + (1|sbj_n)');%,'StartMethod','random');
+lme1 = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ decision_cur + (1|sbj_n)');%,'StartMethod','random');
+lme2 = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ decision_prv + (1|sbj_n)');%,'StartMethod','random');
+pfc_betalo_dec_cur = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+pfc_betalo_dec_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
+
+lme0 = fitglme(good_tbl_prv.PFC_betalo,'decision_cur ~ 1 + (1|sbj_n)','Distribution','binomial');
+lme1 = fitglme(good_tbl_prv.PFC_betalo,'decision_cur ~ PFC_betalo + (1|sbj_n)','Distribution','binomial');
+dec_cur_pfc_betalo = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+
 %% PFC beta and reward change and Global Reward State (GRS):
 lme0 = fitlme(good_tbl_grs.PFC_betalo,'PFC_betalo~ 1 + (1|sbj_n)');%,'StartMethod','random');
 lme1 = fitlme(good_tbl_grs.PFC_betalo,'PFC_betalo~ reward_chg + (1|sbj_n)');%,'StartMethod','random');

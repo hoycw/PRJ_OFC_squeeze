@@ -12,7 +12,13 @@ clear all
 % Pre-decision:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'ampcorr_Dn5t0_bhvz_nrlfz_out4';
 % Post-decision/feedback:
-an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'ampcorr_D0t5_bhvz_nrlfz_out4';
+% an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'ampcorr_D0t5_bhvz_nrlfz_out4';
+
+% Phase-locking value
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'PLV_S5t15_bhvz_nrlz_out4';
+
+% Jackknife coherence
+% an_id = 'TFRmth_S03t2_f2t30_fourier'; stat_id = 'cohjk_S5t15_bhvz_nrlz';
 
 n_quantiles = 5;
 save_fig = 1;
@@ -42,7 +48,7 @@ fprintf('\tLoading %s...\n',table_all_fname);
 table_all = readtable(table_all_fname);
 
 %% Toss outliers
-conn_vars = {'theta_conn','betalo_conn','betahi_conn'};
+conn_vars = {'betalo_conn'};
 out_idx_all = struct;
 out_ix_all = [];
 good_tbl_all = struct;
@@ -115,16 +121,30 @@ end
 % bconn_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
 
 %% Full model no decision ease/difficulty
-lme_full = fitlme(good_tbl_prv.betalo_conn,'betalo_conn~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_norewc = fitlme(good_tbl_prv.betalo_conn,'betalo_conn~ effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_norewp = fitlme(good_tbl_prv.betalo_conn,'betalo_conn~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_noeffc = fitlme(good_tbl_prv.betalo_conn,'betalo_conn~ reward_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_noeffp = fitlme(good_tbl_prv.betalo_conn,'betalo_conn~ reward_cur + effortS_cur + reward_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_full = fitlme(good_tbl_prv.betalo_conn,'betalo_conn~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
+lme_full_norewc = fitlme(good_tbl_prv.betalo_conn,'betalo_conn~ effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
+lme_full_norewp = fitlme(good_tbl_prv.betalo_conn,'betalo_conn~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n)');
+lme_full_noeffc = fitlme(good_tbl_prv.betalo_conn,'betalo_conn~ reward_cur + reward_prv + effortS_prv + (1|sbj_n)');
+lme_full_noeffp = fitlme(good_tbl_prv.betalo_conn,'betalo_conn~ reward_cur + effortS_cur + reward_prv + (1|sbj_n)');
+lme_full_bg_roi = fitlme(good_tbl_prv.betalo_conn,'betalo_conn~ reward_cur + effortS_cur + reward_prv + effortS_prv + BG_roi + (1|sbj_n)');
 
 bconn_rewc = compare(lme_full_norewc,lme_full,'CheckNesting',true)
 bconn_rewp = compare(lme_full_norewp,lme_full,'CheckNesting',true)
 bconn_effc = compare(lme_full_noeffc,lme_full,'CheckNesting',true)
 bconn_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
+
+bconn_full_bg_roi = compare(lme_full,lme_full_bg_roi,'CheckNesting',true)
+
+%% Compare reward + effort vs. SV
+lme_all = fitlme(good_tbl_prv.betalo_conn,'betalo_conn~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
+lme_sv_curprv = fitlme(good_tbl_prv.betalo_conn,'betalo_conn~ SV_cur + SV_prv + (1|sbj_n)');
+betalo_conn_full_vs_SV = compare(lme_sv_curprv,lme_all,'NSim',1000)
+
+lme_ez_curprv = fitlme(good_tbl_prv.betalo_conn,'betalo_conn~ dec_ease_cur + dec_ease_prv + (1|sbj_n)');
+
+%% Check ROI effects
+lme_bg_roi = fitlme(good_tbl_all.betalo_conn,'betalo_conn~ BG_roi + (1|sbj_n)');
+lme_pfc_roi = fitlme(good_tbl_all.betalo_conn,'betalo_conn~ PFC_roi + (1|sbj_n)');
 
 %% Low Beta connectivity and Reward vs. Effort models:
 % Low beta connectivity low and reward:

@@ -8,11 +8,17 @@ clear all
 % Baseline/ITI:
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'ampcorr_Sn8t0_bhvz_nrlfz_out4';
 % Stimulus decision phase:
-% an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'ampcorr_S5t15_bhvz_nrlfz_out4';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'ampcorr_S5t15_bhvz_nrlfz_out4';
 % Pre-decision:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'ampcorr_Dn5t0_bhvz_nrlfz_out4';
 % Post-decision/feedback:
-an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'ampcorr_D0t5_bhvz_nrlfz_out4';
+% an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'ampcorr_D0t5_bhvz_nrlfz_out4';
+
+% Phase-locking value
+% an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'PLV_S5t15_bhvz_nrlz_out4';
+
+% Jackknife coherence
+% an_id = 'TFRmth_S03t2_f2t30_fourier'; stat_id = 'cohjk_S5t15_bhvz_nrlz';
 
 n_quantiles = 5;
 save_fig = 1;
@@ -42,7 +48,7 @@ fprintf('\tLoading %s...\n',table_all_fname);
 table_all = readtable(table_all_fname);
 
 %% Toss outliers
-conn_vars = {'theta_conn','betalo_conn','betahi_conn'};
+conn_vars = {'theta_conn'};
 out_idx_all = struct;
 out_ix_all = [];
 good_tbl_all = struct;
@@ -111,16 +117,30 @@ end
 % tconn_rewp = compare(lme_full_norewp,lme_full,'CheckNesting',true)
 
 %% Full model no decision ease/difficulty
-lme_full = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_norewc = fitlme(good_tbl_prv.theta_conn,'theta_conn~ effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_norewp = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_noeffc = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_noeffp = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + reward_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_full = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
+lme_full_norewc = fitlme(good_tbl_prv.theta_conn,'theta_conn~ effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
+lme_full_norewp = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n)');
+lme_full_noeffc = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + reward_prv + effortS_prv + (1|sbj_n)');
+lme_full_noeffp = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + reward_prv + (1|sbj_n)');
+lme_full_bg_roi = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + reward_prv + effortS_prv + BG_roi + (1|sbj_n)');
 
 tconn_rewc = compare(lme_full_norewc,lme_full,'CheckNesting',true)
 tconn_rewp = compare(lme_full_norewp,lme_full,'CheckNesting',true)
 tconn_effc = compare(lme_full_noeffc,lme_full,'CheckNesting',true)
 tconn_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
+
+tconn_full_bg_roi = compare(lme_full,lme_full_bg_roi,'CheckNesting',true)
+
+%% Compare reward + effort vs. SV
+lme_all = fitlme(good_tbl_prv.theta_conn,'theta_conn~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
+lme_sv_curprv = fitlme(good_tbl_prv.theta_conn,'theta_conn~ SV_cur + SV_prv + (1|sbj_n)');
+theta_conn_full_vs_SV = compare(lme_sv_curprv,lme_all,'NSim',1000)
+
+lme_ez_curprv = fitlme(good_tbl_prv.theta_conn,'theta_conn~ dec_ease_cur + dec_ease_prv + (1|sbj_n)');
+
+%% Check ROI effects
+lme_bg_roi = fitlme(good_tbl_all.theta_conn,'theta_conn~ BG_roi + (1|sbj_n)');
+lme_pfc_roi = fitlme(good_tbl_all.theta_conn,'theta_conn~ PFC_roi + (1|sbj_n)');
 
 %% Full model testing reward_chg
 lme_full_rewchg = fitlme(good_tbl_grs.theta_conn,'theta_conn~ reward_chg + effortS_cur + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
@@ -169,7 +189,7 @@ end
 
 % Plot theta connectivity ~ SV_prv as Gratton-style line plot
 fn_plot_LMM_gratton(good_tbl_prv.theta_conn,'reward','theta_conn');
-ylabel('PFC Theta (z)');
+ylabel('PFC-BG Theta connectivity (z)');
 if save_fig
     fig_name = get(gcf,'Name');
     fig_fname = [fig_dir fig_name '.' fig_ftype];
@@ -218,6 +238,46 @@ end
 %     fprintf('Saving %s\n',fig_fname);
 %     saveas(gcf,fig_fname);
 % end
+
+%% theta connectivity and current reward:
+lme0 = fitlme(good_tbl_all.theta_conn,'theta_conn~ 1 + (1|sbj_n)');%,'StartMethod','random');
+lme1 = fitlme(good_tbl_all.theta_conn,'theta_conn~ reward_cur + (1|sbj_n)');%,'StartMethod','random');
+lme2 = fitlme(good_tbl_all.theta_conn,'theta_conn~ SV_cur + (1|sbj_n)');%,'StartMethod','random');
+theta_conn_rew_cur = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+theta_conn_sv_cur  = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
+
+% Plot theta connectivity ~ current reward as scatter plot
+fn_plot_LMM_scatter(SBJs,good_tbl_prv.theta_conn,'reward_cur','theta_conn',lme1,theta_conn_rew_cur.pValue(2));
+xlabel('Current Reward (z)');
+ylabel('theta connectivity (z)');
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
+% Plot theta ~ previous reward as line plot
+fn_plot_LMM_quantile_lines(SBJs,good_tbl_prv.theta_conn,'reward_cur','theta_conn',...
+    lme1,theta_conn_rew_cur.pValue(2),n_quantiles);
+xlabel('Current Reward (z)');
+ylabel('theta connectivity (z)');
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
+% Plot theta connectivity ~ SV_prv as Gratton-style line plot
+fn_plot_LMM_gratton(good_tbl_prv.theta_conn,'reward','theta_conn');
+ylabel('PFC-BG Theta connectivity (z)');
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
 
 %% PFC theta and reward change and Global Reward State (GRS):
 lme0 = fitlme(good_tbl_grs.theta_conn,'theta_conn~ 1 + (1|sbj_n)');%,'StartMethod','random');

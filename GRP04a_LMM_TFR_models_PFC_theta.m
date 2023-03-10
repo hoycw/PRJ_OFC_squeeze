@@ -229,6 +229,10 @@ end
 % lme2 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ decision_prv + (1|sbj_n)');%,'StartMethod','random');
 % pfc_theta_dec_cur = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 % pfc_theta_dec_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
+% 
+% lme0 = fitglme(good_tbl_prv.PFC_theta,'decision_cur ~ 1 + (1|sbj_n)','Distribution','binomial');
+% lme1 = fitglme(good_tbl_prv.PFC_theta,'decision_cur ~ PFC_theta + (1|sbj_n)','Distribution','binomial');
+% dec_cur_pfc_theta = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 
 %% PFC theta and reward change and Global Reward State (GRS):
 lme0 = fitlme(good_tbl_grs.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');

@@ -254,6 +254,17 @@ end
 % lme_sv_prv  = fitlme(good_tbl_prv.BG_theta,'BG_theta~ SV_prv + (1|sbj_n)');
 % bg_theta_rew_sv_prv = compare(lme_rew_prv,lme_sv_prv,'NSim',1000)
 
+%% BG theta and decision:
+lme0 = fitlme(good_tbl_prv.BG_theta,'BG_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
+lme1 = fitlme(good_tbl_prv.BG_theta,'BG_theta~ decision_cur + (1|sbj_n)');%,'StartMethod','random');
+lme2 = fitlme(good_tbl_prv.BG_theta,'BG_theta~ decision_prv + (1|sbj_n)');%,'StartMethod','random');
+bg_theta_dec_cur = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+bg_theta_dec_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
+
+lme0 = fitglme(good_tbl_prv.BG_theta,'decision_cur ~ 1 + (1|sbj_n)','Distribution','binomial');
+lme1 = fitglme(good_tbl_prv.BG_theta,'decision_cur ~ BG_theta + (1|sbj_n)','Distribution','binomial');
+dec_cur_bg_theta = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
+
 %% BG theta and reward change and Global Reward State (GRS):
 lme0 = fitlme(good_tbl_grs.BG_theta,'BG_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
 lme1 = fitlme(good_tbl_grs.BG_theta,'BG_theta~ reward_chg + (1|sbj_n)');%,'StartMethod','random');

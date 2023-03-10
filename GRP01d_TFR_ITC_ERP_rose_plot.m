@@ -155,7 +155,7 @@ for s = 1:length(SBJs)
         'outerposition',[0 0 1 1],'Visible',fig_vis);
     
     for ch_ix = 1:2
-        subplot(2,3,ch_ix*3-2); hold on;
+        subplot(2,4,[ch_ix*4-3 ch_ix*4-2]); hold on;
         % Get color lims per condition
         if ch_ix==1
             ch_lab = sbj_bg_roi{s};
@@ -179,11 +179,6 @@ for s = 1:length(SBJs)
         line([time_tick_ix(time_ticks==0) time_tick_ix(time_ticks==0)],ylim,'LineWidth',plt.evnt_width,'Color',plt.evnt_color,...
             'LineStyle',plt.evnt_styles{1});
         
-        % Plot ERP Means (and variance)
-%         yyaxis right;
-%         plot(time_vec*1000, squeeze(erps(s,ch_ix,:)),'Color','k','LineWidth',2,'LineStyle','-');
-%         ylabel('Amplitude (uV)');
-        
         % Axes and parameters
 %         title([ch_lab '- ' an_id], 'interpreter', 'none');
         title([ch_lab ' ITPC'], 'interpreter', 'none');
@@ -201,16 +196,23 @@ for s = 1:length(SBJs)
         ylabel('Frequency (Hz)');
         set(gca,'FontSize',font_size);
         
+        % Plot ERP Mean
+        yyaxis right;
+        plot(squeeze(erps(s,ch_ix,:)),'Color','k','LineWidth',2,'LineStyle','-');
+        ylabel('ERP Amplitude');
+        
         %% Plot Theta Rose plot of phase angles
-        subplot(2,3,ch_ix*3-1);
+        subplot(2,4,ch_ix*4-1);
         polarhistogram(theta_ang{s,ch_ix},[-pi:pi/5:pi],'Normalization','probability');
-        title([ch_lab ': mean theta ITPC = ' num2str(theta_itpc_mean)]);
+        title(['theta ITPC avg(' num2str(an_lim(1),'%.1f') '-' ...
+            num2str(an_lim(2),'%.1f') 's)=' num2str(theta_itpc_mean,'%.2f')]);
         set(gca,'FontSize',font_size);
         
         %% Plot theta and beta
-        subplot(2,3,ch_ix*3);
+        subplot(2,4,ch_ix*4);
         polarhistogram(beta_ang{s,ch_ix},[-pi:pi/5:pi],'Normalization','probability');
-        title([ch_lab ': mean theta ITPC = ' num2str(beta_itpc_mean)]);
+        title(['beta ITPC avg(' num2str(an_lim(1),'%.1f') '-' ...
+            num2str(an_lim(2),'%.1f') 's)=' num2str(beta_itpc_mean,'%.2f')]);
         set(gca,'FontSize',font_size);
     end
     
@@ -225,9 +227,11 @@ end
 %% Average at group level
 itpc_grp       = squeeze(nanmean(itpc,1));
 theta_itpc_grp = squeeze(mean(theta_itpc,1));
-theta_itpc_grp_sem = squeeze(std(theta_itpc,1))./sqrt(size(theta_itpc,1));
+theta_itpc_grp_sem = squeeze(std(theta_itpc,[],1))./sqrt(size(theta_itpc,1));
 beta_itpc_grp  = squeeze(mean(beta_itpc,1));
-beta_itpc_grp_sem = squeeze(std(beta_itpc,1))./sqrt(size(beta_itpc,1));
+beta_itpc_grp_sem = squeeze(std(beta_itpc,[],1))./sqrt(size(beta_itpc,1));
+erp_grp = squeeze(mean(erps,1));
+erp_grp_sem = squeeze(std(erps,[],1))./sqrt(size(erps,1));
 
 %% Plot TFRs for the GROUP with SBJ PSDs
 if plot_boxes; box_str = '_boxes'; else; box_str = ''; end
@@ -269,7 +273,13 @@ for ch_ix = 1:2
     ylabel('Frequency (Hz)');
     set(gca,'FontSize',font_size);
     
-    % Plot theta and beta ITPC
+    % Plot ERP
+    yyaxis right;
+    shadedErrorBar(1:size(itpc_grp,3),squeeze(erp_grp(ch_ix,:)), squeeze(erp_grp_sem(ch_ix,:)),...
+        'lineprops',{'Color','k','LineWidth',2});
+    ylabel('ERP Amplitude');
+    
+    %% Plot theta and beta ITPC
     subplot(2,2,ch_ix*2); hold on;
     
     t_line = shadedErrorBar(time_vec, squeeze(theta_itpc_grp(ch_ix,:)), ...
@@ -285,7 +295,7 @@ for ch_ix = 1:2
     end
     
     % Axes and parameters
-    title([ch_lab ' Power'], 'interpreter', 'none');
+    title([ch_lab ' ITPC'], 'interpreter', 'none');
     set(gca,'XLim', [plt.plt_lim(1) plt.plt_lim(2)]);
     set(gca,'XTick', time_ticks);%plt.plt_lim(1):plt.x_step_sz:plt.plt_lim(2));
     set(gca,'YLim',ylims);
