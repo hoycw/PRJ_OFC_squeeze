@@ -17,21 +17,25 @@ clear all
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'ampcorr_D0t5_bhvz_nrlfz_out4';
 
 % Phase-locking value
-% an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'PLV_S5t15_bhvz_nrlz_out4';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'PLV_S5t15_bhvz_nrlz_out4';
 
 % Jackknife coherence
 % an_id = 'TFRmth_S03t2_f2t30_fourier'; stat_id = 'cohjk_S5t15_bhvz_nrlz';
 
-% Coherence with PLV-style filter-Hilbert
-an_id = 'TFRmth_S03t2_f2t30_fourier'; stat_id = 'cohfh_S5t15_bhvz_nrlz';
-
 %% Analysis Set Up
 % Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
-eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
+eval(['run ' prj_dir 'scripts/PFC05_vars.m']);
 eval(['run ' prj_dir 'scripts/stat_vars/' stat_id '_vars.m']);
 
-[theta_cf, betalo_cf, betahi_cf] = fn_get_sbj_peak_frequencies(SBJs,an_id);
+% Handle single subject indexing
+if length(SBJs)~=1; error('only run this for individual SBJ, probably PFC05!'); end
+all_SBJs = {'PFC03','PFC04','PFC05','PFC01'};
+sbj_ix = find(strcmp(all_SBJs,SBJs));
+
+% Load power band info
+[theta_cf, betalo_cf, betahi_cf] = fn_get_sbj_peak_frequencies(all_SBJs,an_id);
+theta_cf = theta_cf(:,sbj_ix); betalo_cf = betalo_cf(:,sbj_ix); betahi_cf = betahi_cf(:,sbj_ix);
 theta_lim  = fn_compute_freq_lim(SBJs,theta_cf,'theta');
 betalo_lim = fn_compute_freq_lim(SBJs,betalo_cf,'betalo');
 
@@ -57,8 +61,7 @@ for s = 1:length(SBJs)
     if ~any(strcmp(sbj_data.ts.label{1},{'STN','GPi'})); error('BG is not first channel!'); end
     if ~any(strcmp(sbj_data.ts.label{2},{'FPC','OFC'})); error('PFC is not second channel!'); end
     
-    %% Compute Connectivity
-    if any(strcmp(st.conn_metric,{'cohjk','cohfhft'}))
+    if strcmp(st.conn_metric,'cohjk')
         proc_fname = [sbj_dir SBJs{s} '_' an_id '_' st.conn_metric '.mat'];
         fprintf('Loading %s\n',proc_fname);
         load(proc_fname,'conn');
@@ -67,21 +70,15 @@ for s = 1:length(SBJs)
         if ~any(strcmp(conn.label{1},{'STN','GPi'})); error('BG is not first channel!'); end
         if ~any(strcmp(conn.label{2},{'FPC','OFC'})); error('PFC is not second channel!'); end
         
-        % Find time and frequency range
-        [~,time_ix(1)] = min(abs(conn.time-st.stat_lim(1)));
-        [~,time_ix(2)] = min(abs(conn.time-st.stat_lim(2)));
+        % Find frequency range
         [~,t_lo_ix] = min(abs(conn.freq-theta_lim(s,pk_frq_ch_ix,1)));
         [~,t_hi_ix] = min(abs(conn.freq-theta_lim(s,pk_frq_ch_ix,2)));
         [~,b_lo_ix] = min(abs(conn.freq-betalo_lim(s,pk_frq_ch_ix,1)));
         [~,b_hi_ix] = min(abs(conn.freq-betalo_lim(s,pk_frq_ch_ix,2)));
         
-        if strcmp(st.conn_metric,'cohjk')
-            % Average across frequencies then time
-            theta_conn_sbj{s}  = squeeze(nanmean(nanmean(conn.cohspctrm(:,1,2,t_lo_ix:t_hi_ix,time_ix(1):time_ix(2)),4),5));
-            betalo_conn_sbj{s} = squeeze(nanmean(nanmean(conn.cohspctrm(:,1,2,b_lo_ix:b_hi_ix,time_ix(1):time_ix(2)),4),5));
-        elseif strcmp(st.conn_metric,'cohfhft')
-            error('write this code');
-        end
+        % Average across frequencies then time
+        theta_conn_sbj{s}  = squeeze(nanmean(nanmean(conn.cohspctrm(:,1,2,t_lo_ix:t_hi_ix,:),4),5));
+        betalo_conn_sbj{s} = squeeze(nanmean(nanmean(conn.cohspctrm(:,1,2,b_lo_ix:b_hi_ix,:),4),5));
     else
         % For decision-locked, re-align to button press
         if strcmp(st.stat_evnt,'D')
@@ -103,7 +100,7 @@ for s = 1:length(SBJs)
             cfgpp.hilbert = 'abs';
         elseif strcmp(st.conn_metric,'PLV')
             cfgpp.hilbert = 'angle';
-        elseif contains(st.conn_metric,'coh')
+        elseif strcmp(st.conn_metric,'coh')
             cfgpp.hilbert = 'complex';
         end
         filt_data = ft_preprocessing(cfgpp, input);
@@ -130,26 +127,6 @@ for s = 1:length(SBJs)
 %         conn_data = ft_selectdata(cfgs, filt_data);
 %         betahi_conn_sbj{s} = fn_connectivity_single_trial(conn_data,st.conn_metric);
     end
-end
-
-%% Plot distributions of connectivity values for each subject
-figure;
-if strcmp(st.conn_metric,'ampcorr')
-    bins = -1:0.1:1;
-elseif strcmp(st.conn_metric,'cohjk')
-    min_conn = min([min(vertcat(theta_conn_sbj{:})) min(vertcat(betalo_conn_sbj{:}))]);
-    max_conn = max([max(vertcat(theta_conn_sbj{:})) max(vertcat(betalo_conn_sbj{:}))]);
-    bins = linspace(min_conn,max_conn,20);
-else
-    bins = 0:0.05:1;
-end
-for s = 1:4
-    subplot(2,2,s); hold on;
-    histogram(theta_conn_sbj{s},bins,'FaceColor','r','FaceAlpha',0.2);
-    histogram(betalo_conn_sbj{s},bins,'FaceColor','b','FaceAlpha',0.2);
-    title(SBJs{s});
-    legend(['Theta ' st.conn_metric],['Beta ' st.conn_metric],'Location','best');
-    set(gca,'FontSize',16);
 end
 
 %% Concatenate variables (cur = current trial, prv = previous trial)
@@ -237,7 +214,7 @@ table_all  = table(trl_n_cur, sbj_n, PFC_roi, BG_roi, theta_conn, betalo_conn,..
                  reward_chg, grs);
 
 %% Write table for R
-table_all_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_full_table_all.csv'];
+table_all_fname = [prj_dir 'data/' SBJs{1} '/' SBJs{1} '_' an_id '_' stat_id '_full_table_all.csv'];
 fprintf('\tSaving %s...\n',table_all_fname);
 writetable(table_all,table_all_fname);
 

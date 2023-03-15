@@ -1,7 +1,7 @@
 function [pow_lim] = fn_compute_freq_lim(SBJs,peak_freqs,band_id)
 
 if ~all(strcmp(SBJs,{'PFC03','PFC04','PFC05','PFC01'}))
-    error('wrong SBJ order!');
+    warning('not full list or wrong SBJ order!');
 end
 
 %% Set defaults

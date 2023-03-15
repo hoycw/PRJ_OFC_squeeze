@@ -10,9 +10,9 @@ addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 
 %% Parameters
-conn_metric = 'cohjk';%'PLVft';%'coh';%'PLV';%'ampcorr';
-an_ids = {'TFRmth_S03t2_f2t30_fourier'};%'TFRmth_S1t2_madS8t0_f2t40'};%'TFRmth_S1t2_madA8t1_f2t40'};%
-% an_ids = {'TFRmth_D1t1_madS8t0_f2t40'};
+conn_metric = 'coh';%'PLVft';%'coh';%'PLV';%'ampcorr';
+% an_ids = {'TFRmth_S03t2_f2t30_fourier'};%'TFRmth_S1t2_madS8t0_f2t40'};%'TFRmth_S1t2_madA8t1_f2t40'};%
+an_ids = {'TFRmth_D1t1_f2t40_fourier'};%'TFRmth_D1t1_madS8t0_f2t40'};
 
 % Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';

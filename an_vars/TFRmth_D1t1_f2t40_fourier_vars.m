@@ -3,10 +3,10 @@ an.ROI         = {'all'};             % Channel to be analyzed
 an.event_type  = 'D';           % event around which to cut trials
 an.trial_lim_s = [-1.01 1.01];       % window in SEC for cutting trials
 an.demean_yn   = 'no';
-% an.bsln_evnt   = 'S';
-% an.bsln_type   = 'mad';
-% an.bsln_lim    = [-0.8 0];
-% an.bsln_boots  = 0;
+an.bsln_evnt   = 'S';
+an.bsln_type   = 'none';
+an.bsln_lim    = [0 0];
+an.bsln_boots  = 0;
 
 % TFR Parameters
 cfg_tfr = [];

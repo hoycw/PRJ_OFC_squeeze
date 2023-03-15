@@ -1,4 +1,3 @@
-
 function [theta_peak_freqs, betalo_peak_freqs, betahi_peak_freqs] = fn_get_sbj_peak_frequencies(SBJs,an_id)
 %% Returns the center (peak) frequency for theta and low beta for PFC squeeze SBJs
 %   based on the analysis parameters; if no SBJ specific peak, then -1

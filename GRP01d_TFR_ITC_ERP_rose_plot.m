@@ -13,7 +13,8 @@ ft_defaults
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
-an_id = 'TFRmth_S1t2_f2t40_fourier';
+% an_id = 'TFRmth_S1t2_f2t40_fourier';
+an_id = 'TFRmth_D1t1_f2t40_fourier';
 
 % Plotting parameters
 plot_boxes = 0;
@@ -83,12 +84,11 @@ for s = 1:length(SBJs)
     
     % Average ERP
     if strcmp(an.event_type,'D') && strcmp(an.bsln_evnt,'S')
-        error('no time series re-aligbnment to decision implemented yet');
+        error('no time series re-alignment to decision implemented yet');
     else
         cfg_erp = [];
         cfg_erp.hpfilter       = 'yes';
         cfg_erp.hpfreq         = 1;
-        % cfgpp.hpfiltord      = 4; % Leaving blank causes instability error, 1 or 2 works
         cfg_erp.lpfilter       = 'yes';
         cfg_erp.lpfreq         = 20;
         cfg_erp.demean         = 'yes';

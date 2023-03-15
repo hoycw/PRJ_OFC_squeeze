@@ -10,9 +10,9 @@ addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 
 %% Parameters
-conn_metric = 'cohjk';%'ampcorr';
-an_id = 'TFRmth_S03t2_f2t30_fourier';%'TFRmth_S1t2_f2t40_fourier';%'TFRmth_S1t2_madS8t0_f2t40';
-% an_id = 'TFRmth_D1t1_madS8t0_f2t40';
+conn_metric = 'coh';%'ampcorr';
+% an_id = 'TFRmth_S03t2_f2t30_fourier';%'TFRmth_S1t2_f2t40_fourier';%'TFRmth_S1t2_madS8t0_f2t40';
+an_id = 'TFRmth_D1t1_f2t40_fourier';%'TFRmth_D1t1_madS8t0_f2t40';
 freq_ch = 'PFC';    % which channel's SBJ-specific frequency band should be used? 'PFC' or 'BG'
 
 % Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
@@ -20,7 +20,7 @@ prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
 % Plotting parameters
-toss_out  = 'main';
+toss_out  = '';
 font_size = 18;
 save_fig  = 1;
 fig_ftype = 'png';
@@ -119,10 +119,10 @@ if ~isempty(toss_out)
     end
 else
     toss_str = '';
-    for s = 1:length(SBJs)
-        out_idx{s,1} = zeros(size(find(table_all_avg.sbj_n==s)));
-        out_idx{s,2} = zeros(size(find(table_all_avg.sbj_n==s)));
-    end
+%     for s = 1:length(SBJs)
+%         out_idx{s,1} = zeros(size(find(table_all_avg.sbj_n==s)));
+%         out_idx{s,2} = zeros(size(find(table_all_avg.sbj_n==s)));
+%     end
 end
 
 %% Load connectivity data

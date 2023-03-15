@@ -8,7 +8,7 @@ clear all
 % Baseline/ITI:
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'ampcorr_Sn8t0_bhvz_nrlfz_out4';
 % Stimulus decision phase:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'ampcorr_S5t15_bhvz_nrlfz_out4';
+% an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'ampcorr_S5t15_bhvz_nrlfz_out4';
 % Pre-decision:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'ampcorr_Dn5t0_bhvz_nrlfz_out4';
 % Post-decision/feedback:
@@ -19,6 +19,9 @@ an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'ampcorr_S5t15_bhvz_nrlfz_out4';
 
 % Jackknife coherence
 % an_id = 'TFRmth_S03t2_f2t30_fourier'; stat_id = 'cohjk_S5t15_bhvz_nrlz';
+
+% Coherence with PLV-style filter-Hilbert
+an_id = 'TFRmth_S03t2_f2t30_fourier'; stat_id = 'cohfh_S5t15_bhvz_nrlz';
 
 n_quantiles = 5;
 save_fig = 1;
