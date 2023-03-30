@@ -12,6 +12,10 @@ lmm_vars = {'PFC_theta','reward_prv';
             'PFC_betalo','effortS_cur';
             'BG_theta','reward_prv';
             'BG_betalo','effortS_cur'};
+% lmm_vars = {'PFC_theta','SV_prv';
+%             'PFC_betalo','SV_cur';
+%             'BG_theta','SV_prv';
+%             'BG_betalo','SV_cur'};
         
 %% Analysis Set Up
 % Load SBJ info, stat info:
@@ -219,6 +223,10 @@ end
 fprintf('\n');
 
 %% Save LMEs
-lmm_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_LMM_timeresolved.mat'];
+if any(contains(lmm_vars(:,2),'SV'))
+    lmm_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_LMM_timeresolved_SV.mat'];
+else
+    lmm_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_LMM_timeresolved.mat'];
+end
 fprintf('Saving %s\n',lmm_fname);
 save(lmm_fname,'-v7.3','lmm_vars','lmm_ts','lmm_stat_ts','plt_time_vec');

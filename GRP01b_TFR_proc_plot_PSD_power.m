@@ -179,7 +179,7 @@ for s = 1:length(SBJs)
         ylims = ylim;
         xlabel('Frequency (Hz)');
         ylabel('Power (norm)');
-        title(['Reactive PSD (' num2str(an_lim(1)) '-' num2str(an_lim(2)) 's)']);
+        title(['Normalized PSD (' num2str(an_lim(1)) '-' num2str(an_lim(2)) 's)']);
         set(gca,'FontSize',font_size);
         
         %% Plot theta and beta
@@ -288,7 +288,7 @@ for ch_ix = 1:2
     xlabel('Frequency (Hz)');
     ylabel('Power (z)');
     if strcmp(an_id,'TFRmth_S1t2_madS8t0_f2t40') && ch_ix==2; ylim([0 12]); end
-    title(['Reactive PSD (' num2str(an_lim(1)) '-' num2str(an_lim(2)) 's)']);
+    title(['Normalized PSD (' num2str(an_lim(1)) '-' num2str(an_lim(2)) 's)']);
     legend(psd_lines,SBJs,'Location','northeast');
     set(gca,'FontSize',font_size);
     

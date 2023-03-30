@@ -163,7 +163,12 @@ end
 fn_plot_LMM_quantile_lines(SBJs,good_tbl_prv.PFC_theta,'reward_prv','PFC_theta',...
     lme1,pfc_theta_rew_prv.pValue(2),n_quantiles);
 xlabel('Previous Reward (z)');
+xlim([-1.8 1.8]);
+xticks(-1.5:0.5:1.5);
 ylabel('PFC theta (z)');
+ylim([-0.6 0.6]);
+yticks(-0.5:0.5:0.5);
+set(gca,'FontSize',20);
 if save_fig
     fig_name = get(gcf,'Name');
     fig_fname = [fig_dir fig_name '.' fig_ftype];

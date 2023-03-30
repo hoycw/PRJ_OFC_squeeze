@@ -472,6 +472,38 @@ if save_fig
     saveas(gcf,fig_fname);
 end
 
+%% Paper supplemental figure 1:
+% Gratton-style line plot
+fig_name = 'GRP_lRT_LMM_results_logRT_dec_ease_gratton';
+figure('Name',fig_name,'units','norm','outerposition',[0 0 0.25 0.4]);
+hold on;
+prv_low_idx = good_tbl_prv.logrt_cur.dec_ease_prv<median(good_tbl_prv.logrt_cur.dec_ease_prv);
+cur_low_idx = good_tbl_prv.logrt_cur.dec_ease_cur<median(good_tbl_prv.logrt_cur.dec_ease_cur);
+
+lL_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & cur_low_idx));
+lH_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & ~cur_low_idx));
+hL_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & cur_low_idx));
+hH_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & ~cur_low_idx));
+lL_sem = std(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & cur_low_idx))./sqrt(sum(prv_low_idx & cur_low_idx));
+lH_sem = std(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & ~cur_low_idx))./sqrt(sum(prv_low_idx & ~cur_low_idx));
+hL_sem = std(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & cur_low_idx))./sqrt(sum(~prv_low_idx & cur_low_idx));
+hH_sem = std(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & ~cur_low_idx))./sqrt(sum(~prv_low_idx & ~cur_low_idx));
+cur_lo_line = errorbar([1 2],[lL_avg hL_avg],[lL_sem hL_sem],'Color','b','LineWidth',2);
+cur_hi_line = errorbar([1 2],[lH_avg hH_avg],[lH_sem hH_sem],'Color','r','LineWidth',2);
+ylabel('log RT (z)');
+set(gca,'XTick',[1 2]);
+set(gca,'XTickLabel',{'Low Prev. Ease','High Prev. Ease'});
+xlim([0.5 2.5]);
+legend([cur_lo_line, cur_hi_line],{'Low Curr. Ease','High Curr. Ease'},'Location','northwest');
+title('Effects of Previous/Current Decision Ease');
+set(gca,'FontSize',20);
+
+if save_fig
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
 %% Does previous trial subjective value predict anything useful?
 % error('!!! need to check/toss these variable outliers');
 % % Current subjective value

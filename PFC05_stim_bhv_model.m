@@ -8,7 +8,7 @@ model_p_acc = 1;
 off_color = 'b';
 on_color  = 'r';
 scat_sz = 40;
-font_sz = 18;
+font_sz = 24;
 
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 save_fig = 1;
@@ -245,11 +245,12 @@ end
 fig_name = ['PFC05_stim_dec_fn_ONOFF_line'];
 figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
 off_line = line(SV_off(SV_off_sort_idx),p_accept_off(SV_off_sort_idx),'Color',off_color,'LineWidth',3);
-scatter(SV_off(SV_off_sort_idx),p_accept_off(SV_off_sort_idx),scat_sz,off_color);
+% scatter(SV_off(SV_off_sort_idx),p_accept_off(SV_off_sort_idx),scat_sz,off_color);
 on_line = line(SV_on(SV_on_sort_idx),p_accept_on(SV_on_sort_idx),'Color',on_color,'LineWidth',3);
-scatter(SV_on(SV_on_sort_idx),p_accept_on(SV_on_sort_idx),scat_sz,on_color);
+% scatter(SV_on(SV_on_sort_idx),p_accept_on(SV_on_sort_idx),scat_sz,on_color);
 %     line(mdl_x,mdl_y,'Color','k');
-line([0 0],[0 1],'Color','k','LineStyle','--');
+line([-5 15],[0.5 0.5],'Color','k','LineStyle','--');
+xlim([-5 15]);
 xlabel('Subjective Value'); ylabel('Probabilty Accept');
 title('Subjective Value Decision Function');
 legend([off_line,on_line],{'OFF stimulation','ON stimulation'},'Location','best');

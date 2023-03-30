@@ -13,6 +13,10 @@ check_lmm_vars = {'PFC_theta','reward_prv';
             'PFC_betalo','effortS_cur';
             'BG_theta','reward_prv';
             'BG_betalo','effortS_cur'};
+% check_lmm_vars = {'PFC_theta','SV_prv';
+%             'PFC_betalo','SV_cur';
+%             'BG_theta','SV_prv';
+%             'BG_betalo','SV_cur'};
 lmm_colors = [178,24,43;...
               33,102,172;...
               244,165,130;...
@@ -55,7 +59,13 @@ fig_dir   = [prj_dir 'results/TFR/' an_id '/LMM/' stat_id '/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
 
 %% Load LMM results
-lmm_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_LMM_timeresolved.mat'];
+if any(contains(check_lmm_vars(:,2),'SV'))
+    lmm_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_LMM_timeresolved_SV.mat'];
+    fig_suffix = '_SV';
+else
+    lmm_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_LMM_timeresolved.mat'];
+    fig_suffix = '';
+end
 fprintf('Loading %s\n',lmm_fname);
 load(lmm_fname);
 if size(lmm_vars,1)~=4; error('why not use PFC/BG and theta/beta?'); end
@@ -96,7 +106,7 @@ end
 if ~any(time_ticks==0); error('cant plot event with no tick at 0'); end
 
 %% Plot coefficient time series
-fig_name = ['GRP_LMM_ts_' an_id '_' stat_id];
+fig_name = ['GRP_LMM_ts_' an_id '_' stat_id fig_suffix];
 figure('Name',fig_name,'units','normalized',...
     'outerposition',[0 0 0.5 0.6],'Visible',fig_vis);
 for m_ix = 1:size(lmm_vars,1)
@@ -159,7 +169,7 @@ if save_fig
 end
 
 %% Plot coefficient time series by ROI without error bars
-fig_name = ['GRP_LMM_ts_' an_id '_' stat_id '_byROI_noerrbr'];
+fig_name = ['GRP_LMM_ts_' an_id '_' stat_id '_byROI_noerrbr' fig_suffix];
 figure('Name',fig_name,'units','normalized',...
     'outerposition',[0 0 0.3 1],'Visible',fig_vis);
 pow_y_lim = 0.15;

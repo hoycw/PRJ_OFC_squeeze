@@ -175,11 +175,6 @@ bg_theta_rew_prv_vs_SV_prv = compare(lme1,lme2,'NSim',1000)
 % lme1_roi = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_prv + BG_roi + (1|sbj_n)');
 % bg_theta_roi_rew_prv = compare(lme0_roi,lme1_roi,'CheckNesting',true)%,'NSim',1000)
 
-% BG theta and effort:
-lme0 = fitlme(good_tbl_all.BG_theta,'BG_theta~ 1 + (1|sbj_n)');
-lme1 = fitlme(good_tbl_all.BG_theta,'BG_theta~ effortS_cur + (1|sbj_n)');
-bg_theta_effS = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-
 % Plot BG theta ~ previous reward as scatter plot
 fn_plot_LMM_scatter(SBJs,good_tbl_prv.BG_theta,'reward_prv','BG_theta',lme1,bg_theta_rew_prv.pValue(2));
 xlabel('Previous Reward (z)');
@@ -195,7 +190,12 @@ end
 fn_plot_LMM_quantile_lines(SBJs,good_tbl_prv.BG_theta,'reward_prv','BG_theta',...
     lme1,bg_theta_rew_prv.pValue(2),n_quantiles);
 xlabel('Previous Reward (z)');
+xlim([-1.8 1.8]);
+xticks(-1.5:0.5:1.5);
 ylabel('BG theta (z)');
+ylim([-0.6 0.6]);
+yticks(-0.5:0.5:0.5);
+set(gca,'FontSize',20);
 if save_fig
     fig_name = get(gcf,'Name');
     fig_fname = [fig_dir fig_name '.' fig_ftype];

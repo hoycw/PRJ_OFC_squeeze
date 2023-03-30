@@ -13,8 +13,8 @@ ft_defaults
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
-% an_id = 'TFRmth_S1t2_f2t40_fourier';
-an_id = 'TFRmth_D1t1_f2t40_fourier';
+an_id = 'TFRmth_S1t2_f2t40_fourier';
+% an_id = 'TFRmth_D1t1_f2t40_fourier';
 
 % Plotting parameters
 plot_boxes = 0;

@@ -166,7 +166,12 @@ end
 fn_plot_LMM_quantile_lines(SBJs,good_tbl_all.PFC_betalo,'effortS_cur','PFC_betalo',...
     lme2,pfc_betalo_effS.pValue(2),n_quantiles);
 xlabel('Subjective Effort (z)');
+xlim([-1.8 1.8]);
+xticks(-1.5:0.5:1.5);
 ylabel('PFC low beta (z)');
+ylim([-0.6 0.6]);
+yticks(-0.5:0.5:0.5);
+set(gca,'FontSize',20);
 if save_fig
     fig_name = get(gcf,'Name');
     fig_fname = [fig_dir fig_name '.' fig_ftype];

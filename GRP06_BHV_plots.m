@@ -74,6 +74,42 @@ end
 
 p_acc_mn_grp = mean(p_acc_mn,3);
 
+%% Plot RT distributions
+fig_name = 'SBJ_RT_histograms';
+figure('Name',fig_name);
+bins = 1.5:0.25:5.5;
+grp_rts = [];
+for s = 1:length(SBJs)
+    grp_rts = [grp_rts; bhvs{s}.rt];
+    subplot(4,1,s); hold on;
+    histogram(bhvs{s}.rt,bins,'FaceColor',sbj_colors(s,:));
+    legend(SBJs{s},'Location','northeast');
+    set(gca,'FontSize',18);
+end
+xlabel('Reaction Times (s)');
+
+if save_fig
+    fig_dir   = [prj_dir 'results/bhv/'];
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
+fig_name = 'GRP_RT_histograms';
+figure('Name',fig_name); hold on;
+histogram(grp_rts,bins);%,'FaceColor',[0.3 0.3 0.3]);
+xlabel('Reaction Times (s)');
+ylabel('Trial Count');
+title('Group RT distribution');
+set(gca,'FontSize',24);
+
+if save_fig
+    fig_dir   = [prj_dir 'results/bhv/'];
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
 %% 3-D plot of acceptance as function of reward and effort
 % Subject level
 for s = 1:length(SBJs)
