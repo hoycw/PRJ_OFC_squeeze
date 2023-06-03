@@ -18,6 +18,9 @@ switch band_id
     case 'beta'
         cannonical = [12 35];
         bandwidth  = 3;
+    case 'lowf'
+        cannonical = [2 10];
+        bandwidth  = 8;
     otherwise
         error(['frequency band not recognized: ' band_id]);
 end

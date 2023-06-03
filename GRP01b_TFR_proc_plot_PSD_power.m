@@ -16,7 +16,7 @@ eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 an_id = 'TFRmth_S1t2_madS8t0_f2t40';%'TFRmth_S1t2_madA8t1_f2t40';%
 
 % Plotting parameters
-plot_boxes = 0;
+plot_boxes = 1;
 plot_psd   = 1;
 symmetric_clim = 1;
 font_size  = 24;
