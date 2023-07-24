@@ -8,7 +8,7 @@ clear all
 % Baseline/ITI:
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'Sn8t0_bhvz_nrlz_out4';
 % Stimulus decision phase:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrl0_out4';%'S5t15_bhvz_nrlz_out4';
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % Pre-decision:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
@@ -49,7 +49,8 @@ out_ix_all = [];
 good_tbl_all = struct;
 for f = 1:length(pow_vars)
     % Identify outliers
-    out_idx_all.(pow_vars{f}) = abs(table_all.(pow_vars{f}))>st.outlier_thresh;
+    out_idx_all.(pow_vars{f}) = abs(table_all.(pow_vars{f}))>mean(table_all.(pow_vars{f}))...
+                                    +(st.outlier_thresh*std(table_all.(pow_vars{f})));
     
     % Toss outlier trials for each ROI and frequency band
     good_tbl_all.(pow_vars{f}) = table_all(~out_idx_all.(pow_vars{f}),:);
