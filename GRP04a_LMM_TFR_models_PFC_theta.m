@@ -117,23 +117,33 @@ end
 % pfc_theta_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
 
 %% Full model no decision ease/difficulty
-lme_full = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_norewc = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_norewp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_noeffc = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_noeffp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_full = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_full_norewc = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_full_norewp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_full_noeffc = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_full_noeffp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + (1|sbj_n)');% + (1|trl_n_cur)');
 
 pfc_theta_rewc = compare(lme_full_norewc,lme_full,'CheckNesting',true)
 pfc_theta_rewp = compare(lme_full_norewp,lme_full,'CheckNesting',true)
 pfc_theta_effc = compare(lme_full_noeffc,lme_full,'CheckNesting',true)
 pfc_theta_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
 
+lme_full_nop = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + (1|sbj_n)');% + (1|trl_n_cur)');
+pfc_theta_addprv = compare(lme_full_nop,lme_full,'CheckNesting',true)
+lme_rec_rp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+pfc_theta_addRprv = compare(lme_full_nop,lme_rec_rp,'CheckNesting',true)
+
 %% Compare reward + effort vs. SV
-lme_all = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_sv_curprv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_cur + SV_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_all = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_sv_curprv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_cur + SV_prv + (1|sbj_n)');% + (1|trl_n_cur)');
 pfc_theta_full_vs_SV = compare(lme_sv_curprv,lme_all,'NSim',1000)
 
-lme_ez_curprv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ dec_ease_cur + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_sv_cur = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_cur + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_sv_prv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+pfc_theta_svc = compare(lme_sv_prv,lme_sv_curprv,'CheckNesting',true)
+pfc_theta_svp = compare(lme_sv_cur,lme_sv_curprv,'CheckNesting',true)
+
+lme_ez_curprv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ dec_ease_cur + dec_ease_prv + (1|sbj_n)');% + (1|trl_n_cur)');
 
 %% PFC theta and previous reward:
 lme0 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
@@ -257,6 +267,62 @@ lme0 = fitlme(good_tbl_all.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod'
 lme1 = fitlme(good_tbl_all.PFC_theta,'PFC_theta~ reward_cur + (1|sbj_n)');%,'StartMethod','random');
 pfc_theta_rew_cur = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 
+% lme_prewXchg = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_prv*reward_chg + (1|sbj_n)');%,'StartMethod','random');
+% lme_prew_chg = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_prv + reward_chg + (1|sbj_n)');%,'StartMethod','random');
+lme_prew_prXchg = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_prv + reward_prv:reward_chg + (1|sbj_n)');%,'StartMethod','random');
+% previous reward is significant, and interaction is almost significant
+
+up_tbl = good_tbl_prv.PFC_theta(good_tbl_prv.PFC_theta.reward_chg>=0,:);
+dn_tbl = good_tbl_prv.PFC_theta(good_tbl_prv.PFC_theta.reward_chg<0,:);
+lme_prew_up = fitlme(up_tbl,'PFC_theta~ reward_prv + (1|sbj_n)');
+lme_prew_dn = fitlme(dn_tbl,'PFC_theta~ reward_prv + (1|sbj_n)');
+% seems to be stronger effect when reward decreases!
+
+hir_tbl = good_tbl_prv.PFC_theta(good_tbl_prv.PFC_theta.reward_cur>=0,:);
+lor_tbl = good_tbl_prv.PFC_theta(good_tbl_prv.PFC_theta.reward_cur<0,:);
+lme_prew_hirew = fitlme(hir_tbl,'PFC_theta~ reward_prv + (1|sbj_n)');
+lme_prew_lorew = fitlme(lor_tbl,'PFC_theta~ reward_prv + (1|sbj_n)');
+% previous reward is strong effect only when current reward is low
+%   positive coef means higher if I had a high previous reward
+%   looking at the data though, all conditions are around z=0 EXCEPT
+%   low/low- does this mean you give up and exert no theta/control when
+%   double sequence?
+
+hipr_tbl = good_tbl_prv.PFC_theta(good_tbl_prv.PFC_theta.reward_prv>=0,:);
+lopr_tbl = good_tbl_prv.PFC_theta(good_tbl_prv.PFC_theta.reward_prv<0,:);
+lme_rew_hiprew = fitlme(hipr_tbl,'PFC_theta~ reward_cur + (1|sbj_n)');
+lme_rew_loprew = fitlme(lopr_tbl,'PFC_theta~ reward_cur + (1|sbj_n)');
+% strong effect of current reward when previous was low!
+
+% fn_plot_LMM_scatter(SBJs,up_tbl,'reward_prv','PFC_theta',lme_prew_up,lme_prew_up.Coefficients.pValue(2));
+% xlabel('Previous Reward after increase (z)');
+% ylabel('PFC theta (z)');
+% fn_plot_LMM_scatter(SBJs,dn_tbl,'reward_prv','PFC_theta',lme_prew_dn,lme_prew_dn.Coefficients.pValue(2));
+% xlabel('Previous Reward after decrease (z)');
+% ylabel('PFC theta (z)');
+
+fn_plot_LMM_gratton(good_tbl_prv.PFC_theta,'reward','PFC_theta');
+ylabel('PFC Theta (z)');
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
+% Can I see this effect in the GRS? theta should be low when GRS is VERY low
+lme0 = fitlme(good_tbl_grs.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
+lme_grs = fitlme(good_tbl_grs.PFC_theta,'PFC_theta~ grs + (1|sbj_n)');
+fn_plot_LMM_scatter(SBJs,good_tbl_grs.PFC_theta,'grs','PFC_theta',lme_grs,lme_grs.Coefficients.pValue(2));
+% nothing there...
+lor_tbl_grs = good_tbl_grs.PFC_theta(good_tbl_grs.PFC_theta.reward_cur<0,:);
+lme_grs_lor = fitlme(lor_tbl_grs,'PFC_theta~ grs + (1|sbj_n)');
+fn_plot_LMM_scatter(SBJs,lor_tbl_grs,'grs','PFC_theta',lme_grs_lor,lme_grs_lor.Coefficients.pValue(2));
+% nothing there...
+mean(lor_tbl.PFC_theta(lor_tbl.reward_prv<0))
+mean(lor_tbl.PFC_theta(lor_tbl.reward_prv<0 & lor_tbl.grs<0))
+% Ok, PFC theta is even lower when the GRS is also below average
+
 %%  PFC theta and previous subjective value:
 lme0 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
 lme1 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_prv + (1|sbj_n)');%,'StartMethod','random');
@@ -342,6 +408,13 @@ end
 %     fprintf('Saving %s\n',fig_fname);
 %     saveas(gcf,fig_fname);
 % end
+
+%% PFC theta modulated by reward increase or decrease?
+up_idx = good_tbl_prv.PFC_theta.reward_prv<good_tbl_prv.PFC_theta.reward_cur;
+figure; hold on;
+histogram(good_tbl_prv.PFC_theta.reward_chg(up_idx),50);
+histogram(good_tbl_prv.PFC_theta.reward_chg(~up_idx),50);
+legend('increase','decrease');
 
 %% PFC theta and current reward following low reward
 % prv_low_idx = good_tbl_prv.PFC_theta.reward_prv<median(good_tbl_prv.PFC_theta.reward_prv);

@@ -8,7 +8,7 @@ clear all
 % Baseline/ITI:
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'Sn8t0_bhvz_nrlz_out4';
 % Stimulus decision phase:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrl0_out4';%'S5t15_bhvz_nrlz_out4';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';%'S5t15_bhvz_nrl0_out4';%
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % Pre-decision:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
@@ -117,28 +117,38 @@ end
 % bg_theta_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
 
 %% Full model no decision ease/difficulty
-lme_full = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_norewc = fitlme(good_tbl_prv.BG_theta,'BG_theta~ effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_norewp = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_noeffc = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-lme_full_noeffp = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + (1|sbj_n) + (1|trl_n_cur)');
+lme_full = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_full_norewc = fitlme(good_tbl_prv.BG_theta,'BG_theta~ effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_full_norewp = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_full_noeffc = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_full_noeffp = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + (1|sbj_n)');% + (1|trl_n_cur)');
 
 bg_theta_rewc = compare(lme_full_norewc,lme_full,'CheckNesting',true)
 bg_theta_rewp = compare(lme_full_norewp,lme_full,'CheckNesting',true)
 bg_theta_effc = compare(lme_full_noeffc,lme_full,'CheckNesting',true)
 bg_theta_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
 
+lme_full_nop = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + (1|sbj_n)');% + (1|trl_n_cur)');
+bg_theta_addprv = compare(lme_full_nop,lme_full,'CheckNesting',true)
+lme_rec_rp = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+bg_theta_addRprv = compare(lme_full_nop,lme_rec_rp,'CheckNesting',true)
+
 %% Compare reward + effort vs. SV
 lme_all = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
 lme_sv_curprv = fitlme(good_tbl_prv.BG_theta,'BG_theta~ SV_cur + SV_prv + (1|sbj_n)');% + (1|trl_n_cur)');
 bg_theta_full_vs_SV = compare(lme_sv_curprv,lme_all,'NSim',1000)
 
+lme_sv_cur = fitlme(good_tbl_prv.BG_theta,'BG_theta~ SV_cur + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_sv_prv = fitlme(good_tbl_prv.BG_theta,'BG_theta~ SV_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+bg_theta_svc = compare(lme_sv_prv,lme_sv_curprv,'CheckNesting',true)
+bg_theta_svp = compare(lme_sv_cur,lme_sv_curprv,'CheckNesting',true)
+
 lme_ez_curprv = fitlme(good_tbl_prv.BG_theta,'BG_theta~ dec_ease_cur + dec_ease_prv + (1|sbj_n)');% + (1|trl_n_cur)');
 
 lme_all_BG = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + BG_roi + (1|sbj_n)');% + (1|trl_n_cur)');
 lme_sv_curprv_BG = fitlme(good_tbl_prv.BG_theta,'BG_theta~ SV_cur + SV_prv + BG_roi + (1|sbj_n)');% + (1|trl_n_cur)');
-bg_betalo_full_vs_BG = compare(lme_all,lme_all_BG,'CheckNesting',true)
-bg_betalo_SV_vs_BG = compare(lme_sv_curprv,lme_sv_curprv_BG,'CheckNesting',true)
+bg_theta_full_vs_BG = compare(lme_all,lme_all_BG,'CheckNesting',true)
+bg_theta_SV_vs_BG = compare(lme_sv_curprv,lme_sv_curprv_BG,'CheckNesting',true)
 
 %% Plot BG theta by ROI
 bg_roi_idx_all = good_tbl_all.BG_theta.BG_roi;

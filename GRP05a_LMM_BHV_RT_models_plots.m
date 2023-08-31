@@ -551,4 +551,48 @@ end
 % effortS_effortS_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 % %   Hmmmm, seems effortS_prv predicts current trial effort (and effortS)...
 
+%% effect of previous reward interacting with current trial
+full_mdl_str = 'logrt_cur ~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)';
+lme_full = fitglme(good_tbl_prv.logrt_prv,full_mdl_str,'Distribution','binomial');
+full_rewpXdecp = 'logrt_cur ~ reward_cur + effortS_cur + reward_prv + reward_prv:logrt_prv + effortS_prv + (1|sbj_n)';
+lme_rewpXdp = fitglme(good_tbl_prv.logrt_prv,full_rewpXdecp,'Distribution','binomial');
+% nothing, rew_prv p = 0.10, so maybe closer than without interaction, but meh
+full_rewpXpAccp = 'logrt_cur ~ reward_cur + effortS_cur + reward_prv + reward_prv:pAccept_prv + effortS_prv + (1|sbj_n)';
+lme_rewpXpAp = fitglme(good_tbl_prv.logrt_prv,full_rewpXpAccp,'Distribution','binomial');
+% Hmmmm a parginal interaction between reward_prv:pAccept_prv (p=0.055)
+pa_full_rewpXpAccp = 'pAccept_cur ~ reward_cur + effortS_cur + reward_prv + reward_prv:pAccept_prv + effortS_prv + (1|sbj_n)';
+lme_pA_rewpXpAp = fitlme(good_tbl_prv.logrt_prv,pa_full_rewpXpAccp);
+% NOPE
+full_rewpXrewc = 'logrt_cur ~ reward_cur + effortS_cur + reward_prv + reward_cur:reward_prv + effortS_prv + (1|sbj_n)';
+lme_rewpXrewc = fitglme(good_tbl_prv.logrt_prv,full_rewpXrewc,'Distribution','binomial');
+full_effSpXeffSc = 'logrt_cur ~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_cur:effortS_prv + (1|sbj_n)';
+lme_effSpXeffSc = fitglme(good_tbl_prv.logrt_prv,full_effSpXeffSc,'Distribution','binomial');
+
+full_full = 'logrt_cur ~ reward_cur*effortS_cur*reward_prv*effortS_prv';
+lme_fullll = fitglme(good_tbl_prv.logrt_prv,full_full,'Distribution','binomial');
+full_full_n34 = ['logrt_cur ~ reward_cur*effortS_cur*reward_prv*effortS_prv' ...
+    ' - reward_cur:effortS_cur:reward_prv - reward_cur:effortS_cur:effortS_prv - reward_cur:reward_prv:effortS_prv' ...
+    ' - effortS_cur:reward_prv:effortS_prv - reward_cur:effortS_cur:reward_prv:effortS_prv  + (1|sbj_n)'];
+lme_full_n34 = fitglme(good_tbl_prv.logrt_prv,full_full_n34,'Distribution','binomial');
+
+svfull_mdl_str = 'logrt_cur ~ SV_cur + SV_prv + (1|sbj_n)';
+lme_svfull = fitglme(good_tbl_prv.logrt_prv,svfull_mdl_str,'Distribution','binomial');
+svfull_rewp_str = 'logrt_cur ~ SV_cur + SV_prv + reward_prv + (1|sbj_n)';
+lme_svfull_rewp = fitglme(good_tbl_prv.logrt_prv,svfull_rewp_str,'Distribution','binomial');
+svc_rewp_str = 'logrt_cur ~ SV_cur + reward_prv + (1|sbj_n)';
+lme_svfull_rewp = fitglme(good_tbl_prv.logrt_prv,svc_rewp_str,'Distribution','binomial');
+svcXrewp_str = 'logrt_cur ~ SV_cur + SV_cur:reward_prv + (1|sbj_n)';
+lme_svfullXrewp = fitglme(good_tbl_prv.logrt_prv,svcXrewp_str,'Distribution','binomial');
+
+% tbl_yp = good_tbl_prv.logrt_prv(good_tbl_prv.logrt_prv.logrt_prv==1,:);
+% tbl_np = good_tbl_prv.logrt_prv(good_tbl_prv.logrt_prv.logrt_prv==0,:);
+% lme_rewp_yp = fitglme(tbl_yp,'logrt_cur~ reward_prv + (1|sbj_n)','Distribution','binomial');
+% lme_rewp_np = fitglme(tbl_np,'logrt_cur~ reward_prv + (1|sbj_n)','Distribution','binomial');
+% % Nothing for split on previous decision
+% lme_full_yp = fitglme(tbl_yp,full_mdl_str,'Distribution','binomial');
+% lme_full_np = fitglme(tbl_np,full_mdl_str,'Distribution','binomial');
+% % Nothing for split on previous decision
+
+fn_plot_LMM_gratton(good_tbl_prv.logrt_prv,'reward','logrt_cur');
+fn_plot_LMM_gratton(good_tbl_prv.logrt_prv,'effortS','logrt_cur');
 
