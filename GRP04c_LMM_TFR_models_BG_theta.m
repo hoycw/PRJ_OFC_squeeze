@@ -133,6 +133,27 @@ bg_theta_addprv = compare(lme_full_nop,lme_full,'CheckNesting',true)
 lme_rec_rp = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + (1|sbj_n)');% + (1|trl_n_cur)');
 bg_theta_addRprv = compare(lme_full_nop,lme_rec_rp,'CheckNesting',true)
 
+%% Test previous reward interactions
+lme_full_pRcRint = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + reward_cur:reward_prv + (1|sbj_n)');
+lme_full_pRcEint = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_cur:reward_prv + (1|sbj_n)');
+lme_full_pRpEint = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_prv:reward_prv + (1|sbj_n)');
+bg_theta_pRcRint_p = compare(lme_full,lme_full_pRcRint,'CheckNesting',true)
+bg_theta_pRcEint_p = compare(lme_full,lme_full_pRcEint,'CheckNesting',true)
+bg_theta_pRpEint_p = compare(lme_full,lme_full_pRpEint,'CheckNesting',true)
+
+lme_full_Rcpint = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + reward_cur:reward_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+bg_theta_Rcpint_p = compare(lme_full,lme_full_Rcpint,'CheckNesting',true)
+
+fn_plot_LMM_gratton_bar_sbj(good_tbl_prv.BG_theta,'reward_prv','reward_cur','BG_theta');
+ylabel('BG theta (z)');
+set(gca,'FontSize',18);
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
 %% Compare reward + effort vs. SV
 lme_all = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
 lme_sv_curprv = fitlme(good_tbl_prv.BG_theta,'BG_theta~ SV_cur + SV_prv + (1|sbj_n)');% + (1|trl_n_cur)');
@@ -149,6 +170,14 @@ lme_all_BG = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + 
 lme_sv_curprv_BG = fitlme(good_tbl_prv.BG_theta,'BG_theta~ SV_cur + SV_prv + BG_roi + (1|sbj_n)');% + (1|trl_n_cur)');
 bg_theta_full_vs_BG = compare(lme_all,lme_all_BG,'CheckNesting',true)
 bg_theta_SV_vs_BG = compare(lme_sv_curprv,lme_sv_curprv_BG,'CheckNesting',true)
+
+% Plot BG theta ~ SV_prv as Gratton-style line plot
+fn_plot_LMM_gratton(good_tbl_prv.BG_theta,'SV','BG_theta');
+ylabel('BG Theta (z)');
+fn_plot_LMM_gratton(good_tbl_prv.BG_theta,'reward','BG_theta');
+ylabel('BG Theta (z)');
+fn_plot_LMM_gratton(good_tbl_prv.BG_theta,'effortS','BG_theta');
+ylabel('BG Theta (z)');
 
 %% Plot BG theta by ROI
 bg_roi_idx_all = good_tbl_all.BG_theta.BG_roi;

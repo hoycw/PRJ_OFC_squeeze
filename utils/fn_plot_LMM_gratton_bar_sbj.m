@@ -1,4 +1,4 @@
-function fn_plot_LMM_gratton(tbl,xvar_prv,xvar_cur,yvar)
+function fn_plot_LMM_gratton_bar_sbj(tbl,xvar_prv,xvar_cur,yvar)
 
 if ~contains(xvar_prv,'prv') || ~contains(xvar_cur,'cur')
     error('input xvar must have cur/prv for gratton violin plot');
@@ -6,13 +6,11 @@ end
 
 prv_lab = strrep(xvar_prv,'_prv','');
 cur_lab = strrep(xvar_cur,'_cur','');
-lo_color = [230,97,1]./256;
-hi_color = [94,60,153]./256;
-scat_sz  = 40;
+lo_color = [1 1 1];%[253,184,99]./256;
+hi_color = [0.7 0.7 0.7];%[178,171,210]./256;
+scat_sz  = 50;
 
 if ~all(unique(tbl.sbj_n)'==[1 2 3 4]); error('SBJs in tbl mismatch'); end
-
-sbj_xvals = linspace(-0.05,0.05,4);
 sbj_colors = [27, 158, 119;         % teal
               217, 95, 2;           % burnt orange
               117, 112, 179;        % purple
@@ -48,24 +46,36 @@ for c = 1:length(cond_labs)
 end
 
 %% Plot error bars
-fig_name = ['GRP_TFR_LMM_results_' yvar '_' xvar_prv '-' xvar_cur '_gratton'];
+fig_name = ['GRP_TFR_LMM_results_' yvar '_' xvar_prv '-' xvar_cur '_gratton_bar_sbj'];
 figure('Name',fig_name); hold on;
 
-for c = 1:4
-    if contains(cond_labs{c},'lC'); scat_color = lo_color; else; scat_color = hi_color; end
-    if contains(cond_labs{c},'lP'); xpos = 1; else; xpos = 2; end
-    scatter(sbj_xvals+xpos,sbj_means(:,c),scat_sz,scat_color);
+% Plot group means as bars
+cond_xpos = [0.5 1.5 3.5 4.5];
+sbj_xvals = linspace(-0.05,0.05,4);
+bars = bar(cond_xpos,diag(grp_means),'stacked');
+for s = 1:4
+    for c= 1:4
+        scatter(sbj_xvals(s)+cond_xpos(c),sbj_means(s,c),scat_sz,sbj_colors(s,:));
+    end
+    line(sbj_xvals(s)+cond_xpos(1:2),sbj_means(s,1:2),'Color',sbj_colors(s,:));
+    line(sbj_xvals(s)+cond_xpos(3:4),sbj_means(s,3:4),'Color',sbj_colors(s,:));
 end
-cur_lo_line = errorbar([1 2],grp_means(contains(cond_labs,'lC')),grp_sems(contains(cond_labs,'lP')),...
-    'Color',lo_color,'LineWidth',2);
-cur_hi_line = errorbar([1 2],grp_means(contains(cond_labs,'hC')),grp_sems(contains(cond_labs,'hP')),...
-    'Color',hi_color,'LineWidth',2);
+for c = 1:4
+    if contains(cond_labs{c},'lC'); plt_color = lo_color; else; plt_color = hi_color; end
+    set(bars(c),'FaceColor',plt_color,'EdgeColor','k');
+    line([cond_xpos(c) cond_xpos(c)],[grp_means(c)-grp_sems(c)/2 grp_means(c)+grp_sems(c)/2],...
+        'Color','k','LineWidth',3);
+end
 ylabel(yvar);
-set(gca,'XTick',[1 2]);
+if contains(yvar,'decision')
+    ylim([0 1]); yticks(0:0.2:1);
+else
+    ylim([min(sbj_means(:))-range(sbj_means(:))*0.1 max(sbj_means(:))+range(sbj_means(:))*0.1]);
+end
+set(gca,'XTick',[1 4]);
 set(gca,'XTickLabel',{['Low Previous ' prv_lab],['High Previous ' prv_lab]});
-xlim([0.5 2.5]);
-legend([cur_lo_line, cur_hi_line],{['Low Current ' cur_lab],['High Current ' cur_lab]},'Location','best');
-title(['Effects of Previous ' prv_lab ':Current ' cur_lab]);
+title(['Effects of Previous ' prv_lab ' x Current ' cur_lab]);
 set(gca,'FontSize',16);
+legend(bars(1:2),{['Low Current ' cur_lab],['High Current ' cur_lab]},'Location','best');
 
 end

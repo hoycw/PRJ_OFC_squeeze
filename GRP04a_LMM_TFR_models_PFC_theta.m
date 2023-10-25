@@ -128,10 +128,30 @@ pfc_theta_rewp = compare(lme_full_norewp,lme_full,'CheckNesting',true)
 pfc_theta_effc = compare(lme_full_noeffc,lme_full,'CheckNesting',true)
 pfc_theta_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
 
+% Statistically better to add previous trial predictors?
 lme_full_nop = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + (1|sbj_n)');% + (1|trl_n_cur)');
 pfc_theta_addprv = compare(lme_full_nop,lme_full,'CheckNesting',true)
+% Maybe just previous reward?
 lme_rec_rp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + (1|sbj_n)');% + (1|trl_n_cur)');
 pfc_theta_addRprv = compare(lme_full_nop,lme_rec_rp,'CheckNesting',true)
+
+%% Test previous reward interactions
+lme_full_pRcRint = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + reward_cur:reward_prv + (1|sbj_n)');
+lme_full_pRcEint = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_cur:reward_prv + (1|sbj_n)');
+lme_full_pRpEint = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_prv:reward_prv + (1|sbj_n)');
+pfc_theta_pRcRint_p = compare(lme_full,lme_full_pRcRint,'CheckNesting',true)
+pfc_theta_pRcEint_p = compare(lme_full,lme_full_pRcEint,'CheckNesting',true)
+pfc_theta_pRpEint_p = compare(lme_full,lme_full_pRpEint,'CheckNesting',true)
+
+fn_plot_LMM_gratton_bar_sbj(good_tbl_prv.PFC_theta,'reward_prv','reward_cur','PFC_theta');
+ylabel('PFC theta (z)');
+set(gca,'FontSize',18);
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
 
 %% Compare reward + effort vs. SV
 lme_all = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
@@ -152,7 +172,7 @@ lme1rs = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_prv + (1 + reward_prv|
 lme2 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_prv + (1|sbj_n)');%,'StartMethod','random');
 lme3 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_prv + SV_prv + (1|sbj_n)');
 pfc_theta_rew_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-% pfc_theta_SV_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
+% pfc_theta_SV_prv g= compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
 % lme0 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
 % lme1 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ effort_prv + (1|sbj_n)');%,'StartMethod','random');
 % lme2 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ effortS_prv + (1|sbj_n)');%,'StartMethod','random');
@@ -190,14 +210,18 @@ if save_fig
 end
 
 % Plot PFC theta ~ SV_prv as Gratton-style line plot
+fn_plot_LMM_gratton(good_tbl_prv.PFC_theta,'SV','PFC_theta');
+ylabel('PFC Theta (z)');
 fn_plot_LMM_gratton(good_tbl_prv.PFC_theta,'reward','PFC_theta');
 ylabel('PFC Theta (z)');
-if save_fig
-    fig_name = get(gcf,'Name');
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
+fn_plot_LMM_gratton(good_tbl_prv.PFC_theta,'effortS','PFC_theta');
+ylabel('PFC Theta (z)');
+% if save_fig
+%     fig_name = get(gcf,'Name');
+%     fig_fname = [fig_dir fig_name '.' fig_ftype];
+%     fprintf('Saving %s\n',fig_fname);
+%     saveas(gcf,fig_fname);
+% end
 
 % % Plot median splits of PFC theta as function of current/previous reward
 % fig_name = 'GRP_TFR_LMM_results_PFC_theta_reward_splits';

@@ -37,7 +37,7 @@ fprintf('\tLoading %s...\n',table_all_fname);
 table_all = readtable(table_all_fname);
 
 %% Toss outliers
-dec_vars = {'decision_cur','decision_prv'};
+dec_vars = {'decision_cur'};
 out_idx_all = struct;
 out_ix_all = [];
 good_tbl_all = struct;
@@ -138,17 +138,26 @@ end
 %     'decision_cur~ PFC_theta + BG_theta + PFC_betalo + BG_betalo + (1|sbj_n) + (1|trl_n_cur)','Distribution','binomial');
 
 %% Full model including difficulty
-lme_full = fitglme(good_tbl_grs.decision_cur,...
-    'decision_cur~ reward_cur + effortS_cur + dec_ease_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)','Distribution','binomial');
-lme_full_noDEc = fitglme(good_tbl_grs.decision_cur,'decision_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)','Distribution','binomial');
-lme_full_noDEp = fitglme(good_tbl_grs.decision_cur,'decision_cur~ reward_cur + effortS_cur + dec_ease_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)','Distribution','binomial');
-lme_full_norewcur = fitglme(good_tbl_grs.decision_cur,'decision_cur~ effortS_cur + dec_ease_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)','Distribution','binomial');
-lme_full_noeffScur = fitglme(good_tbl_grs.decision_cur,'decision_cur~ reward_cur + dec_ease_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)','Distribution','binomial');
+fit_method = 'Laplace';
+lme_full_str = 'decision_cur~ reward_cur + effortS_cur + dec_ease_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n)';% + (1|trl_n_cur)'
+lme_full_noDEc_str = 'decision_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n)';% + (1|trl_n_cur)'
+lme_full_noDEp_str = 'decision_cur~ reward_cur + effortS_cur + dec_ease_cur + reward_prv + effortS_prv + (1|sbj_n)';% + (1|trl_n_cur)'
+lme_full_noRc_str  = 'decision_cur~ effortS_cur + dec_ease_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n)';% + (1|trl_n_cur)'
+lme_full_noESc_str = 'decision_cur~ reward_cur + dec_ease_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n)';% + (1|trl_n_cur)'
+lme_full = fitglme(good_tbl_prv.decision_cur,lme_full_str,'Distribution','binomial','FitMethod',fit_method);
+lme_full_noDEc = fitglme(good_tbl_prv.decision_cur,lme_full_noDEc_str,'Distribution','binomial','FitMethod',fit_method);
+lme_full_noDEp = fitglme(good_tbl_prv.decision_cur,lme_full_noDEp_str,'Distribution','binomial','FitMethod',fit_method);
+lme_full_noRc  = fitglme(good_tbl_prv.decision_cur,lme_full_noRc_str,'Distribution','binomial','FitMethod',fit_method);
+lme_full_noESc = fitglme(good_tbl_prv.decision_cur,lme_full_noESc_str,'Distribution','binomial','FitMethod',fit_method);
 
-dec_dezc = compare(lme_full_noDEc,lme_full,'CheckNesting',true) % adding reward to decision ease is not significantly better
-dec_dezp = compare(lme_full_noDEp,lme_full,'CheckNesting',true) % adding reward to decision ease is not significantly better
-dec_rewc = compare(lme_full_norewcur,lme_full,'CheckNesting',true) % adding reward to decision ease is not significantly better
-dec_efSc = compare(lme_full_noeffScur,lme_full,'CheckNesting',true) % adding reward to decision ease is not significantly better
+dec_dezc = compare(lme_full_noDEc,lme_full,'CheckNesting',true)
+% NO improvement with decicsion ease
+dec_dezp = compare(lme_full_noDEp,lme_full,'CheckNesting',true)
+% NO, AIC worse with prv ease
+dec_rewc = compare(lme_full_noRc,lme_full,'CheckNesting',true)
+% YES, reward still very sig
+dec_efSc = compare(lme_full_noESc,lme_full,'CheckNesting',true)
+% YES, effortS still very sig
 
 % Compute correlations between reward and decision ease
 rew_rewchg_corr = nan(size(SBJs));
@@ -169,24 +178,73 @@ for s = 1:length(SBJs)
 end
 
 %% Full model without difficulty
-model_formula_full = 'decision_cur ~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)';
-model_formula_noefSc  = 'decision_cur ~ reward_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)';
-model_formula_norewc  = 'decision_cur ~ effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)';
-model_formula_norewp  = 'decision_cur ~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n) + (1|trl_n_cur)';
-dec_full = fitglme(good_tbl_all.decision_cur,model_formula_full,'Distribution','binomial');
-decrd = fitglme(good_tbl_all.decision_cur,model_formula_noefSc,'Distribution','binomial');
-deced = fitglme(good_tbl_all.decision_cur,model_formula_norewc,'Distribution','binomial');
-deced_norp = fitglme(good_tbl_all.decision_cur,model_formula_norewp,'Distribution','binomial');
-dec_rew = compare(deced,dec_full,'CheckNesting',true)
-dec_rewp = compare(dec_full,deced_norp)
-dec_eff = compare(decrd,dec_full,'CheckNesting',true)
+fit_method = 'Laplace';
+model_formula_full = 'decision_cur ~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)';% + (1|trl_n_cur)';
+model_formula_noefSc  = 'decision_cur ~ reward_cur + reward_prv + effortS_prv + (1|sbj_n)';% + (1|trl_n_cur)';
+model_formula_norewc  = 'decision_cur ~ effortS_cur + reward_prv + effortS_prv + (1|sbj_n)';% + (1|trl_n_cur)';
+model_formula_norewp  = 'decision_cur ~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n)';% + (1|trl_n_cur)';
+model_formula_noefSp  = 'decision_cur ~ reward_cur + effortS_cur + reward_prv + (1|sbj_n)';% + (1|trl_n_cur)';
+dec_full = fitglme(good_tbl_prv.decision_cur,model_formula_full,'Distribution','binomial','FitMethod',fit_method);
+dec_norc = fitglme(good_tbl_prv.decision_cur,model_formula_norewc,'Distribution','binomial','FitMethod',fit_method);
+dec_noec = fitglme(good_tbl_prv.decision_cur,model_formula_noefSc,'Distribution','binomial','FitMethod',fit_method);
+dec_norp = fitglme(good_tbl_prv.decision_cur,model_formula_norewp,'Distribution','binomial','FitMethod',fit_method);
+dec_noep = fitglme(good_tbl_prv.decision_cur,model_formula_noefSp,'Distribution','binomial','FitMethod',fit_method);
+dec_rew = compare(dec_norc,dec_full,'CheckNesting',true)
+dec_efS = compare(dec_noec,dec_full,'CheckNesting',true)
+dec_rewp = compare(dec_norp,dec_full,'CheckNesting',true)
+dec_efSp = compare(dec_noep,dec_full,'CheckNesting',true)
+
+model_formula_REcur = 'decision_cur ~ reward_cur + effortS_cur + (1|sbj_n)';% + (1|trl_n_cur)';
+model_formula_noR  = 'decision_cur ~ effortS_cur + (1|sbj_n)';% + (1|trl_n_cur)';
+model_formula_noE  = 'decision_cur ~ reward_cur + (1|sbj_n)';% + (1|trl_n_cur)';
+dec_RE = fitglme(good_tbl_prv.decision_cur,model_formula_REcur,'Distribution','binomial','FitMethod',fit_method);
+dec_noR  = fitglme(good_tbl_prv.decision_cur,model_formula_noR,'Distribution','binomial','FitMethod',fit_method);
+dec_noE  = fitglme(good_tbl_prv.decision_cur,model_formula_noE,'Distribution','binomial','FitMethod',fit_method);
+dec_R = compare(dec_noR,dec_RE,'CheckNesting',true)
+dec_E = compare(dec_noE,dec_RE,'CheckNesting',true)
+
+%% Test previous reward interactions
+lme_full_pRcRint = fitglme(good_tbl_prv.decision_cur,'decision_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + reward_cur:reward_prv + (1|sbj_n)',...
+    'Distribution','binomial','FitMethod',fit_method);
+lme_full_pRcEint = fitglme(good_tbl_prv.decision_cur,'decision_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_cur:reward_prv + (1|sbj_n)',...
+    'Distribution','binomial','FitMethod',fit_method);
+lme_full_pRpEint = fitglme(good_tbl_prv.decision_cur,'decision_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_prv:reward_prv + (1|sbj_n)',...
+    'Distribution','binomial','FitMethod',fit_method);
+dec_pRcRint_p = compare(dec_full,lme_full_pRcRint,'CheckNesting',true)
+dec_pRcEint_p = compare(dec_full,lme_full_pRcEint,'CheckNesting',true)
+dec_pRpEint_p = compare(dec_full,lme_full_pRpEint,'CheckNesting',true)
+
+lme_full_pRcREint = fitglme(good_tbl_prv.decision_cur,'decision_cur~ reward_cur*reward_prv + effortS_cur*reward_prv + effortS_prv + (1|sbj_n)',...
+    'Distribution','binomial','FitMethod',fit_method);
+dec_pRcREint_p = compare(lme_full_pRcRint,lme_full_pRcREint,'CheckNesting',true)
+dec_pRcREint_p2 = compare(lme_full_pRcEint,lme_full_pRcREint,'CheckNesting',true)
+
+fn_plot_LMM_gratton_bar_sbj(good_tbl_prv.decision_cur,'reward_prv','reward_cur','decision_cur');
+ylabel('Offers Accepted (%)');
+set(gca,'FontSize',18);
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+fn_plot_LMM_gratton_bar_sbj(good_tbl_prv.decision_cur,'reward_prv','effortS_cur','decision_cur');
+ylabel('Offers Accepted (%)');
 
 %% Compare SV vs. reward + effort
-model_formula_reweffS = 'decision_cur ~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)';
-model_formula_sv  = 'decision_cur ~ SV_cur + SV_prv + (1|sbj_n) + (1|trl_n_cur)';
-dec_reweffS = fitglme(good_tbl_all.decision_cur,model_formula_reweffS,'Distribution','binomial');
-dec_sv      = fitglme(good_tbl_all.decision_cur,model_formula_sv,'Distribution','binomial');
-dec_reweff_vs_sv = compare(dec_reweffS,dec_sv)
+!!!why is the RE model better than SV for dec_cur? check residuals
+fit_method = 'Laplace';
+model_formula_reweffS = 'decision_cur ~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)';% + (1|trl_n_cur)';
+model_formula_sv  = 'decision_cur ~ SV_cur + SV_prv + (1|sbj_n)';% + (1|trl_n_cur)';
+model_formula_nosv   = 'decision_cur ~ SV_prv + (1|sbj_n)';% + (1|trl_n_cur)';
+model_formula_nosvp  = 'decision_cur ~ SV_cur + (1|sbj_n)';% + (1|trl_n_cur)';
+dec_reweffS = fitglme(good_tbl_prv.decision_cur,model_formula_reweffS,'Distribution','binomial','FitMethod',fit_method);
+dec_sv      = fitglme(good_tbl_prv.decision_cur,model_formula_sv,'Distribution','binomial','FitMethod',fit_method);
+dec_nosv    = fitglme(good_tbl_prv.decision_cur,model_formula_nosv,'Distribution','binomial','FitMethod',fit_method);
+dec_nosvp   = fitglme(good_tbl_prv.decision_cur,model_formula_nosvp,'Distribution','binomial','FitMethod',fit_method);
+dec_reweff_vs_sv = compare(dec_sv,dec_reweffS)
+dec_SV_pval = compare(dec_nosv,dec_sv,'CheckNesting',true)
+dec_SVp_pval = compare(dec_nosvp,dec_sv,'CheckNesting',true)
 
 %% Test decision ~ current individual task features
 % Decision ~ reward_cur
@@ -224,7 +282,7 @@ dec_rewez = compare(lme_rewc,lme_rewdezc,'CheckNesting',true) % adding decision 
 dec_ezrew = compare(lme_dezc,lme_rewdezc,'CheckNesting',true) % adding reward to decision ease is not significantly better
 
 lme_decp = fitglme(good_tbl_prv.decision_cur,'decision_cur ~ decision_prv + (1|sbj_n)','Distribution','binomial');
-lme_pAccp = fitglme(good_tbl_prv.decision_prv,'decision_cur ~ pAccept_prv + (1|sbj_n)','Distribution','binomial');
+lme_pAccp = fitglme(good_tbl_prv.decision_cur,'decision_cur ~ pAccept_prv + (1|sbj_n)','Distribution','binomial');
 % LRT has error, but p value for coefficeint isn't close
 % dec_decp = compare(lme0,lme_decp,'CheckNesting',true)%,'NSim',1000)
 
@@ -260,28 +318,28 @@ dec_rewez = compare(lme_rewc,lme_rewdezc,'CheckNesting',true) % adding decision 
 dec_ezrew = compare(lme_dezc,lme_rewdezc,'CheckNesting',true) % adding reward to decision ease is not significantly better
 
 %% Plot decision as a funciton of previous trial p_accept
-prv_pAcchi = good_tbl_prv.decision_prv.pAccept_prv<0;
+prv_pAcchi = good_tbl_prv.decision_cur.pAccept_prv<0;
 mn_pAcchi = mean(good_tbl_prv.decision_cur.decision_cur(prv_pAcchi));
 mn_pAcclo = mean(good_tbl_prv.decision_cur.decision_cur(~prv_pAcchi));
 se_pAcchi = std(good_tbl_prv.decision_cur.decision_cur(prv_pAcchi))./sqrt(sum(prv_pAcchi));
 se_pAcclo = std(good_tbl_prv.decision_cur.decision_cur(~prv_pAcchi))./sqrt(sum(~prv_pAcchi));
 [~,pAcc_pval] = ttest2(good_tbl_prv.decision_cur.decision_cur(prv_pAcchi),good_tbl_prv.decision_cur.decision_cur(~prv_pAcchi));
 
-prv_rewhi = good_tbl_prv.decision_prv.reward_prv<0;
+prv_rewhi = good_tbl_prv.decision_cur.reward_prv<0;
 mn_rewhi = mean(good_tbl_prv.decision_cur.decision_cur(prv_rewhi));
 mn_rewlo = mean(good_tbl_prv.decision_cur.decision_cur(~prv_rewhi));
 se_rewhi = std(good_tbl_prv.decision_cur.decision_cur(prv_rewhi))./sqrt(sum(prv_rewhi));
 se_rewlo = std(good_tbl_prv.decision_cur.decision_cur(~prv_rewhi))./sqrt(sum(~prv_rewhi));
 [~,rew_pval] = ttest2(good_tbl_prv.decision_cur.decision_cur(prv_rewhi),good_tbl_prv.decision_cur.decision_cur(~prv_rewhi));
 
-prv_effhi = good_tbl_prv.decision_prv.effortS_prv<0;
+prv_effhi = good_tbl_prv.decision_cur.effortS_prv<0;
 mn_effhi = mean(good_tbl_prv.decision_cur.decision_cur(prv_effhi));
 mn_efflo = mean(good_tbl_prv.decision_cur.decision_cur(~prv_effhi));
 se_effhi = std(good_tbl_prv.decision_cur.decision_cur(prv_effhi))./sqrt(sum(prv_effhi));
 se_efflo = std(good_tbl_prv.decision_cur.decision_cur(~prv_effhi))./sqrt(sum(~prv_effhi));
 [~,eff_pval] = ttest2(good_tbl_prv.decision_cur.decision_cur(prv_effhi),good_tbl_prv.decision_cur.decision_cur(~prv_effhi));
 
-prv_SVhi = good_tbl_prv.decision_prv.SV_prv<0;
+prv_SVhi = good_tbl_prv.decision_cur.SV_prv<0;
 mn_SVhi = mean(good_tbl_prv.decision_cur.decision_cur(prv_SVhi));
 mn_SVlo = mean(good_tbl_prv.decision_cur.decision_cur(~prv_SVhi));
 se_SVhi = std(good_tbl_prv.decision_cur.decision_cur(prv_SVhi))./sqrt(sum(prv_SVhi));
@@ -329,40 +387,47 @@ title(['SV p=' num2str(SV_pval)]);
 set(gca,'FontSize',16);
 
 %% effect of previous reward as function of prior trial decision
+fit_method = 'Laplace';
 full_mdl_str = 'decision_cur ~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)';
-lme_full = fitglme(good_tbl_prv.decision_prv,full_mdl_str,'Distribution','binomial');
+lme_full = fitglme(good_tbl_prv.decision_cur,full_mdl_str,'Distribution','binomial','FitMethod',fit_method);
 full_rewpXdecp = 'decision_cur ~ reward_cur + effortS_cur + reward_prv + reward_prv:decision_prv + effortS_prv + (1|sbj_n)';
-lme_rewpXdp = fitglme(good_tbl_prv.decision_prv,full_rewpXdecp,'Distribution','binomial');
+lme_rewpXdp = fitglme(good_tbl_prv.decision_cur,full_rewpXdecp,'Distribution','binomial','FitMethod',fit_method);
 % nothing, rew_prv p = 0.10, so maybe closer than without interaction, but meh
 full_rewpXpAccp = 'decision_cur ~ reward_cur + effortS_cur + reward_prv + reward_prv:pAccept_prv + effortS_prv + (1|sbj_n)';
-lme_rewpXpAp = fitglme(good_tbl_prv.decision_prv,full_rewpXpAccp,'Distribution','binomial');
+lme_rewpXpAp = fitglme(good_tbl_prv.decision_cur,full_rewpXpAccp,'Distribution','binomial','FitMethod',fit_method);
 % Hmmmm a parginal interaction between reward_prv:pAccept_prv (p=0.055)
 pa_full_rewpXpAccp = 'pAccept_cur ~ reward_cur + effortS_cur + reward_prv + reward_prv:pAccept_prv + effortS_prv + (1|sbj_n)';
-lme_pA_rewpXpAp = fitlme(good_tbl_prv.decision_prv,pa_full_rewpXpAccp);
+lme_pA_rewpXpAp = fitlme(good_tbl_prv.decision_cur,pa_full_rewpXpAccp);
 % NOPE
-full_rewpXrewc = 'decision_cur ~ reward_cur + effortS_cur + reward_prv + reward_cur:reward_prv + effortS_prv + (1|sbj_n)';
-lme_rewpXrewc = fitglme(good_tbl_prv.decision_prv,full_rewpXrewc,'Distribution','binomial');
+full_rewpXrewc = 'decision_cur ~ reward_cur + effortS_cur + reward_prv + effortS_prv + reward_cur:reward_prv + (1|sbj_n)';
+lme_rewpXrewc = fitglme(good_tbl_prv.decision_cur,full_rewpXrewc,'Distribution','binomial','FitMethod',fit_method);
+% YES! rew:rew_prv is significant! 
 full_effSpXeffSc = 'decision_cur ~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_cur:effortS_prv + (1|sbj_n)';
-lme_effSpXeffSc = fitglme(good_tbl_prv.decision_prv,full_effSpXeffSc,'Distribution','binomial');
+lme_effSpXeffSc = fitglme(good_tbl_prv.decision_cur,full_effSpXeffSc,'Distribution','binomial','FitMethod',fit_method);
 
 full_full = 'decision_cur ~ reward_cur*effortS_cur*reward_prv*effortS_prv';
-lme_fullll = fitglme(good_tbl_prv.decision_prv,full_full,'Distribution','binomial');
+lme_fullll = fitglme(good_tbl_prv.decision_cur,full_full,'Distribution','binomial','FitMethod',fit_method);
 full_full_n34 = ['decision_cur ~ reward_cur*effortS_cur*reward_prv*effortS_prv' ...
     ' - reward_cur:effortS_cur:reward_prv - reward_cur:effortS_cur:effortS_prv - reward_cur:reward_prv:effortS_prv' ...
     ' - effortS_cur:reward_prv:effortS_prv - reward_cur:effortS_cur:reward_prv:effortS_prv  + (1|sbj_n)'];
-lme_full_n34 = fitglme(good_tbl_prv.decision_prv,full_full_n34,'Distribution','binomial');
+lme_full_n34 = fitglme(good_tbl_prv.decision_cur,full_full_n34,'Distribution','binomial','FitMethod',fit_method);
+
+full_rXpr = ['decision_cur ~ reward_cur + effortS_cur + reward_prv + effortS_prv + reward_cur:reward_prv + (1|sbj_n)'];
+lme_full_rXpr = fitglme(good_tbl_prv.decision_cur,full_rXpr,'Distribution','binomial','FitMethod',fit_method);
+full_rXpr_eXpr = ['decision_cur ~ reward_cur + effortS_cur + reward_prv + effortS_prv + reward_cur:reward_prv + effortS_cur:reward_prv + (1|sbj_n)'];
+lme_full_rXpr_eXpr = fitglme(good_tbl_prv.decision_cur,full_rXpr_eXpr,'Distribution','binomial','FitMethod',fit_method);
 
 svfull_mdl_str = 'decision_cur ~ SV_cur + SV_prv + (1|sbj_n)';
-lme_svfull = fitglme(good_tbl_prv.decision_prv,svfull_mdl_str,'Distribution','binomial');
+lme_svfull = fitglme(good_tbl_prv.decision_cur,svfull_mdl_str,'Distribution','binomial','FitMethod',fit_method);
 svfull_rewp_str = 'decision_cur ~ SV_cur + SV_prv + reward_prv + (1|sbj_n)';
-lme_svfull_rewp = fitglme(good_tbl_prv.decision_prv,svfull_rewp_str,'Distribution','binomial');
+lme_svfull_rewp = fitglme(good_tbl_prv.decision_cur,svfull_rewp_str,'Distribution','binomial','FitMethod',fit_method);
 svc_rewp_str = 'decision_cur ~ SV_cur + reward_prv + (1|sbj_n)';
-lme_svfull_rewp = fitglme(good_tbl_prv.decision_prv,svc_rewp_str,'Distribution','binomial');
+lme_svfull_rewp = fitglme(good_tbl_prv.decision_cur,svc_rewp_str,'Distribution','binomial','FitMethod',fit_method);
 svcXrewp_str = 'decision_cur ~ SV_cur + SV_cur:reward_prv + (1|sbj_n)';
-lme_svfullXrewp = fitglme(good_tbl_prv.decision_prv,svcXrewp_str,'Distribution','binomial');
+lme_svfullXrewp = fitglme(good_tbl_prv.decision_cur,svcXrewp_str,'Distribution','binomial','FitMethod',fit_method);
 
-% tbl_yp = good_tbl_prv.decision_prv(good_tbl_prv.decision_prv.decision_prv==1,:);
-% tbl_np = good_tbl_prv.decision_prv(good_tbl_prv.decision_prv.decision_prv==0,:);
+% tbl_yp = good_tbl_prv.decision_cur(good_tbl_prv.decision_cur.decision_prv==1,:);
+% tbl_np = good_tbl_prv.decision_cur(good_tbl_prv.decision_cur.decision_prv==0,:);
 % lme_rewp_yp = fitglme(tbl_yp,'decision_cur~ reward_prv + (1|sbj_n)','Distribution','binomial');
 % lme_rewp_np = fitglme(tbl_np,'decision_cur~ reward_prv + (1|sbj_n)','Distribution','binomial');
 % % Nothing for split on previous decision
@@ -370,8 +435,9 @@ lme_svfullXrewp = fitglme(good_tbl_prv.decision_prv,svcXrewp_str,'Distribution',
 % lme_full_np = fitglme(tbl_np,full_mdl_str,'Distribution','binomial');
 % % Nothing for split on previous decision
 
-fn_plot_LMM_gratton(good_tbl_prv.decision_prv,'reward','decision_cur');
-fn_plot_LMM_gratton(good_tbl_prv.decision_prv,'effortS','decision_cur');
+fn_plot_LMM_gratton(good_tbl_prv.decision_cur,'reward','decision_cur');
+fn_plot_LMM_gratton_sbj(SBJs,good_tbl_prv.decision_cur,'reward','decision_cur');
+fn_plot_LMM_gratton(good_tbl_prv.decision_cur,'effortS','decision_cur');
 
 
 %% Test log(RT) vs. RT modeling

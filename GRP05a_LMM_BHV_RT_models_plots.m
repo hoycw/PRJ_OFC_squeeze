@@ -145,6 +145,14 @@ logrt_cur_rewp = compare(lme_full_norewp,lme_full,'CheckNesting',true)
 logrt_cur_effc = compare(lme_full_noeffc,lme_full,'CheckNesting',true)
 logrt_cur_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
 
+%% Test previous reward interactions
+lme_full_pRcRint = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + reward_cur:reward_prv + (1|sbj_n)');
+lme_full_pRcEint = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_cur:reward_prv + (1|sbj_n)');
+lme_full_pRpEint = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_prv:reward_prv + (1|sbj_n)');
+logrt_cur_pRcRint_p = compare(lme_full,lme_full_pRcRint,'CheckNesting',true)
+logrt_cur_pRcEint_p = compare(lme_full,lme_full_pRcEint,'CheckNesting',true)
+logrt_cur_pRpEint_p = compare(lme_full,lme_full_pRpEint,'CheckNesting',true)
+
 %% Compare reward + effort vs. SV
 lme_all = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
 lme_sv_curprv = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ SV_cur + SV_prv + (1|sbj_n)');
@@ -473,36 +481,46 @@ if save_fig
 end
 
 %% Paper supplemental figure 1:
-% Gratton-style line plot
-fig_name = 'GRP_lRT_LMM_results_logRT_dec_ease_gratton';
-figure('Name',fig_name,'units','norm','outerposition',[0 0 0.25 0.4]);
-hold on;
-prv_low_idx = good_tbl_prv.logrt_cur.dec_ease_prv<median(good_tbl_prv.logrt_cur.dec_ease_prv);
-cur_low_idx = good_tbl_prv.logrt_cur.dec_ease_cur<median(good_tbl_prv.logrt_cur.dec_ease_cur);
-
-lL_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & cur_low_idx));
-lH_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & ~cur_low_idx));
-hL_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & cur_low_idx));
-hH_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & ~cur_low_idx));
-lL_sem = std(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & cur_low_idx))./sqrt(sum(prv_low_idx & cur_low_idx));
-lH_sem = std(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & ~cur_low_idx))./sqrt(sum(prv_low_idx & ~cur_low_idx));
-hL_sem = std(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & cur_low_idx))./sqrt(sum(~prv_low_idx & cur_low_idx));
-hH_sem = std(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & ~cur_low_idx))./sqrt(sum(~prv_low_idx & ~cur_low_idx));
-cur_lo_line = errorbar([1 2],[lL_avg hL_avg],[lL_sem hL_sem],'Color','b','LineWidth',2);
-cur_hi_line = errorbar([1 2],[lH_avg hH_avg],[lH_sem hH_sem],'Color','r','LineWidth',2);
+fn_plot_LMM_gratton_bar_sbj(good_tbl_prv.logrt_cur,'dec_ease_prv','dec_ease_cur','logrt_cur');
 ylabel('log RT (z)');
-set(gca,'XTick',[1 2]);
-set(gca,'XTickLabel',{'Low Prev. Ease','High Prev. Ease'});
-xlim([0.5 2.5]);
-legend([cur_lo_line, cur_hi_line],{'Low Curr. Ease','High Curr. Ease'},'Location','northwest');
-title('Effects of Previous/Current Decision Ease');
-set(gca,'FontSize',20);
-
+set(gca,'FontSize',18);
 if save_fig
+    fig_name = get(gcf,'Name');
     fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
 end
+
+% % Gratton-style line plot
+% fig_name = 'GRP_lRT_LMM_results_logRT_dec_ease_gratton';
+% figure('Name',fig_name,'units','norm','outerposition',[0 0 0.25 0.4]);
+% hold on;
+% prv_low_idx = good_tbl_prv.logrt_cur.dec_ease_prv<median(good_tbl_prv.logrt_cur.dec_ease_prv);
+% cur_low_idx = good_tbl_prv.logrt_cur.dec_ease_cur<median(good_tbl_prv.logrt_cur.dec_ease_cur);
+% 
+% lL_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & cur_low_idx));
+% lH_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & ~cur_low_idx));
+% hL_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & cur_low_idx));
+% hH_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & ~cur_low_idx));
+% lL_sem = std(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & cur_low_idx))./sqrt(sum(prv_low_idx & cur_low_idx));
+% lH_sem = std(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & ~cur_low_idx))./sqrt(sum(prv_low_idx & ~cur_low_idx));
+% hL_sem = std(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & cur_low_idx))./sqrt(sum(~prv_low_idx & cur_low_idx));
+% hH_sem = std(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & ~cur_low_idx))./sqrt(sum(~prv_low_idx & ~cur_low_idx));
+% cur_lo_line = errorbar([1 2],[lL_avg hL_avg],[lL_sem hL_sem],'Color','b','LineWidth',2);
+% cur_hi_line = errorbar([1 2],[lH_avg hH_avg],[lH_sem hH_sem],'Color','r','LineWidth',2);
+% ylabel('log RT (z)');
+% set(gca,'XTick',[1 2]);
+% set(gca,'XTickLabel',{'Low Prev. Ease','High Prev. Ease'});
+% xlim([0.5 2.5]);
+% legend([cur_lo_line, cur_hi_line],{'Low Curr. Ease','High Curr. Ease'},'Location','northwest');
+% title('Effects of Previous/Current Decision Ease');
+% set(gca,'FontSize',20);
+% 
+% if save_fig
+%     fig_fname = [fig_dir fig_name '.' fig_ftype];
+%     fprintf('Saving %s\n',fig_fname);
+%     saveas(gcf,fig_fname);
+% end
 
 %% Does previous trial subjective value predict anything useful?
 % error('!!! need to check/toss these variable outliers');
