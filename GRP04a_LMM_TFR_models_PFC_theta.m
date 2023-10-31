@@ -8,7 +8,7 @@ clear all
 % Baseline/ITI:
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'Sn8t0_bhvz_nrlz_out4';
 % Stimulus decision phase:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';%'S5t15_bhvz_nrl0_out4';%
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrl0_out3';%'S5t15_bhvz_nrl0_out4';%
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % Pre-decision:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
@@ -136,6 +136,7 @@ lme_rec_rp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur 
 pfc_theta_addRprv = compare(lme_full_nop,lme_rec_rp,'CheckNesting',true)
 
 %% Test previous reward interactions
+lme_full = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
 lme_full_pRcRint = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + reward_cur:reward_prv + (1|sbj_n)');
 lme_full_pRcEint = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_cur:reward_prv + (1|sbj_n)');
 lme_full_pRpEint = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_prv:reward_prv + (1|sbj_n)');
@@ -143,7 +144,68 @@ pfc_theta_pRcRint_p = compare(lme_full,lme_full_pRcRint,'CheckNesting',true)
 pfc_theta_pRcEint_p = compare(lme_full,lme_full_pRcEint,'CheckNesting',true)
 pfc_theta_pRpEint_p = compare(lme_full,lme_full_pRpEint,'CheckNesting',true)
 
+lme_full_pRcRpEint = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + reward_cur:reward_prv + effortS_prv:reward_prv + (1|sbj_n)');
+pfc_theta_pRcRpEint_p = compare(lme_full_pRpEint,lme_full_pRcRpEint,'CheckNesting',true)
+pfc_theta_pRcRpEint_p2 = compare(lme_full_pRcRint,lme_full_pRcRpEint,'CheckNesting',true)
+
+% [p,F,df1,df2] = anova(lme_full,'DFMethod','Satterthwaite')
+
+
+% Plot partial dependence
+fn_plot_LMM_interaction_partial_dependence(lme_full_pRcRint,'reward_prv','reward_cur');
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+fn_plot_LMM_interaction_partial_dependence(lme_full_pRpEint,'reward_prv','effortS_prv');
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+fn_plot_LMM_interaction_partial_dependence(lme_full_pRcEint,'reward_prv','effortS_cur');
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+
+% Plot partial dependence in model with both interactions
+%   These look extremely similar, so I think I can trust it either way...
+%   However, the interaction not included in the model no longer has a
+%   gradient consistent with an interaction, which makes sense
+% fn_plot_LMM_interaction_partial_dependence(lme_full_pRcRpEint,'reward_prv','reward_cur');
+% if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '_pRcRpEint.' fig_ftype];
+%     fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+% fn_plot_LMM_interaction_partial_dependence(lme_full_pRcRpEint,'reward_prv','effortS_prv');
+% if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '_pRcRpEint.' fig_ftype];
+%     fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+
+% Plot tertile line plots
+fn_plot_LMM_quantile_line_interaction(good_tbl_prv.PFC_theta,'reward_prv','reward_cur','PFC_theta',3,5);
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+fn_plot_LMM_quantile_line_interaction(good_tbl_prv.PFC_theta,'reward_prv','effortS_prv','PFC_theta',3,5);
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+fn_plot_LMM_quantile_line_interaction(good_tbl_prv.PFC_theta,'reward_prv','effortS_cur','PFC_theta',3,5);
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+
+% Plot median splits as line plots 
+fn_plot_LMM_quantile_line_interaction(good_tbl_prv.PFC_theta,'reward_prv','reward_cur','PFC_theta',2,5);
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+fn_plot_LMM_quantile_line_interaction(good_tbl_prv.PFC_theta,'reward_prv','effortS_prv','PFC_theta',2,5);
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+fn_plot_LMM_quantile_line_interaction(good_tbl_prv.PFC_theta,'reward_prv','effortS_cur','PFC_theta',2,5);
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+
+% Plot median split bar plots
 fn_plot_LMM_gratton_bar_sbj(good_tbl_prv.PFC_theta,'reward_prv','reward_cur','PFC_theta');
+ylabel('PFC theta (z)');
+set(gca,'FontSize',18);
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+fn_plot_LMM_gratton_bar_sbj(good_tbl_prv.PFC_theta,'reward_prv','effortS_prv','PFC_theta');
 ylabel('PFC theta (z)');
 set(gca,'FontSize',18);
 if save_fig

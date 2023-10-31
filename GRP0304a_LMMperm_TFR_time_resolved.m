@@ -5,9 +5,13 @@ addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 close all
 clear all
+error_str = ['Why actually run this? the time-resolved LMMs are used to visualize ' ...
+    'the coefficients over time, but not for significance. Thus, no need to run ' ...
+    'these LMM permutations at each time point.'];
+error(error_str);
 
 %% Analysis parameters:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S0t2ts_wl2s025_bhvz_nrl0_out3main';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S0t2ts_wl2s025_bhvz_nrl0_out3main_bt1k';
 pow_vars = {'PFC_theta','PFC_betalo','BG_theta','BG_betalo'};
 predictors = {'reward_cur','effortS_cur','reward_prv','effortS_prv'};
 
@@ -18,6 +22,7 @@ addpath([prj_dir 'scripts/']);
 addpath([prj_dir 'scripts/utils/']);
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 eval(['run ' prj_dir 'scripts/stat_vars/' stat_id '_vars.m']);
+if ~isfield(st,'nboots'); error('only run this for permutation bootstrap stat_ids!'); end
 if ~isfield(st,'time_resolved') || ~st.time_resolved; error('only use time resovled stat_ids!'); end
 if st.use_simon_tfr~=0; error('why use Simon TFR?'); end
 
@@ -177,11 +182,14 @@ for nrl_ix = 1:length(pow_vars)
 end
 
 %% Run model per time point, tossing outliers
+tic;
 fit_method = 'ML';
 lmm_ts      = cell([length(pow_vars) length(plt_time_vec)]);
 lmm_stat_ts = cell([length(pow_vars) length(plt_time_vec) length(predictors)]);
+pred_pvals  = nan([length(plt_time_vec) length(predictors)]);
 for nrl_ix = 1:length(pow_vars)
-    fprintf('Running %d/%d LMMs: (total = %d)\n\t',nrl_ix,length(pow_vars),length(plt_time_vec));
+    fprintf('Running %d/%d LMMs: (total = %d), time elapsed = %.2f min\n\t',...
+        nrl_ix,length(pow_vars),length(plt_time_vec),toc/60);
     for t_ix = 1:length(plt_time_vec)
         %% Create time-specific neural table
         BG_theta   = [];
@@ -200,7 +208,7 @@ for nrl_ix = 1:length(pow_vars)
             rt_cur, logrt_cur, reward_cur, effort_cur, effortS_cur, decision_cur, SV_cur, absSV_cur, pAccept_cur, dec_ease_cur,...
             rt_prv, logrt_prv, reward_prv, effort_prv, effortS_prv, decision_prv, SV_prv, absSV_prv, pAccept_prv, dec_ease_prv,...
             reward_chg, grs);
-          
+        
         % Toss outliers and NaNs from previous table
         prv_nan_idx = isnan(tbl_all.SV_prv);
         good_tbl = tbl_all(~out_idx_all.(pow_vars{nrl_ix}) & ~prv_nan_idx,:);
@@ -210,7 +218,7 @@ for nrl_ix = 1:length(pow_vars)
                 error(['NaN is good_tbl.' tbl_fields{f}]);
             end
         end
-      
+                
         %% Compute all desired LMMs
         % Run LMM
         full_formula = [pow_vars{nrl_ix} '~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)'];
@@ -222,17 +230,29 @@ for nrl_ix = 1:length(pow_vars)
             lmm_stat_ts{nrl_ix,t_ix,p_ix} = compare(pred_lme,lmm_ts{nrl_ix,t_ix},'CheckNesting',true);
         end
         
-        if mod(t_ix,10)==0; fprintf('%.02f..',plt_time_vec(t_ix)); end
+        % Run permutations
+        null_pred_pvals = nan([length(predictors) st.nboots]);
+        par_tbl = good_tbl; par_nboots = st.nboots;
+        parfor b_ix = 1:par_nboots
+            [~, null_pred_pvals(:,b_ix)] = fn_run_LMM_null_permutation(...
+                par_tbl,predictors,full_formula,fit_method);
+        end
+        
+        % Compute p value
+        for p_ix = 1:length(predictors)
+            pred_pvals(t_ix,p_ix) = sum(null_pred_pvals(p_ix,:)<=lmm_stat_ts{nrl_ix,t_ix,p_ix}.pValue(2))/st.nboots;
+        end
+        
     end
     fprintf('\n');
 end
-fprintf('\n');
+fprintf('DONE! time elapsed = %.2f min\n',toc/60);
 
 %% Save LMEs
 if any(contains(predictors,'SV'))
-    lmm_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_LMM_timeresolved_SV.mat'];
+    lmm_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_LMMperm_timeresolved_SV.mat'];
 else
-    lmm_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_LMM_timeresolved.mat'];
+    lmm_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_LMMperm_timeresolved.mat'];
 end
 fprintf('Saving %s\n',lmm_fname);
-save(lmm_fname,'-v7.3','pow_vars','predictors','lmm_ts','lmm_stat_ts','plt_time_vec');
+save(lmm_fname,'-v7.3','pow_vars','predictors','lmm_ts','lmm_stat_ts','pred_pvals','plt_time_vec');

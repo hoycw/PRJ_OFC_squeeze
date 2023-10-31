@@ -1,11 +1,19 @@
 function fn_plot_LMM_gratton_bar_sbj(tbl,xvar_prv,xvar_cur,yvar)
 
-if ~contains(xvar_prv,'prv') || ~contains(xvar_cur,'cur')
-    error('input xvar must have cur/prv for gratton violin plot');
-end
+% if ~contains(xvar_prv,'prv') || ~contains(xvar_cur,'cur')
+%     error('input xvar must have cur/prv for gratton violin plot');
+% end
 
-prv_lab = strrep(xvar_prv,'_prv','');
-cur_lab = strrep(xvar_cur,'_cur','');
+if contains(xvar_prv,'_prv')
+    prv_lab = ['Previous ' strrep(xvar_prv,'_prv','')];
+elseif contains(xvar_prv,'_cur')
+    prv_lab = ['Current ' strrep(xvar_prv,'_cur','')];
+end
+if contains(xvar_cur,'_prv')
+    cur_lab = ['Previous ' strrep(xvar_cur,'_prv','')];
+elseif contains(xvar_cur,'_cur')
+    cur_lab = ['Current ' strrep(xvar_cur,'_cur','')];
+end
 lo_color = [1 1 1];%[253,184,99]./256;
 hi_color = [0.7 0.7 0.7];%[178,171,210]./256;
 scat_sz  = 50;
@@ -45,6 +53,17 @@ for c = 1:length(cond_labs)
     end
 end
 
+%% Print means:
+low_pR_idx = good_tbl_prv.decision_cur.reward_prv<median(good_tbl_prv.decision_cur.reward_prv);
+low_cE_idx = good_tbl_prv.decision_cur.effortS_cur<median(good_tbl_prv.decision_cur.effortS_cur);
+cE_mns = [mean(good_tbl_prv.decision_cur.decision_cur(low_pR_idx & low_cE_idx));
+    mean(good_tbl_prv.decision_cur.decision_cur(low_pR_idx & ~low_cE_idx));
+    mean(good_tbl_prv.decision_cur.decision_cur(~low_pR_idx & low_cE_idx));
+    mean(good_tbl_prv.decision_cur.decision_cur(~low_pR_idx & ~low_cE_idx))];
+fprintf('Difference in Percent accepted for effortS_cur:reward_prv:\n');
+fprintf('\tLow reward_prv: %.2f loE - %.2f hiE = %.3f\n',cE_mns(1),cE_mns(2),cE_mns(1)-cE_mns(2));
+fprintf('\tHi  reward_prv: %.2f loE - %.2f hiE = %.3f\n',cE_mns(3),cE_mns(4),cE_mns(3)-cE_mns(4));
+
 %% Plot error bars
 fig_name = ['GRP_TFR_LMM_results_' yvar '_' xvar_prv '-' xvar_cur '_gratton_bar_sbj'];
 figure('Name',fig_name); hold on;
@@ -57,13 +76,13 @@ for s = 1:4
     for c= 1:4
         scatter(sbj_xvals(s)+cond_xpos(c),sbj_means(s,c),scat_sz,sbj_colors(s,:));
     end
-    line(sbj_xvals(s)+cond_xpos(1:2),sbj_means(s,1:2),'Color',sbj_colors(s,:));
-    line(sbj_xvals(s)+cond_xpos(3:4),sbj_means(s,3:4),'Color',sbj_colors(s,:));
+    line(sbj_xvals(s)+cond_xpos(1:2),sbj_means(s,1:2),'Color',sbj_colors(s,:),'LineWidth',2);
+    line(sbj_xvals(s)+cond_xpos(3:4),sbj_means(s,3:4),'Color',sbj_colors(s,:),'LineWidth',2);
 end
 for c = 1:4
     if contains(cond_labs{c},'lC'); plt_color = lo_color; else; plt_color = hi_color; end
     set(bars(c),'FaceColor',plt_color,'EdgeColor','k');
-    line([cond_xpos(c) cond_xpos(c)],[grp_means(c)-grp_sems(c)/2 grp_means(c)+grp_sems(c)/2],...
+    errorbar(cond_xpos(c),grp_means(c),grp_sems(c),...
         'Color','k','LineWidth',3);
 end
 ylabel(yvar);
@@ -73,9 +92,9 @@ else
     ylim([min(sbj_means(:))-range(sbj_means(:))*0.1 max(sbj_means(:))+range(sbj_means(:))*0.1]);
 end
 set(gca,'XTick',[1 4]);
-set(gca,'XTickLabel',{['Low Previous ' prv_lab],['High Previous ' prv_lab]});
-title(['Effects of Previous ' prv_lab ' x Current ' cur_lab]);
+set(gca,'XTickLabel',{['Low ' prv_lab],['High ' prv_lab]});
+title(['Effects of ' prv_lab ' x ' cur_lab]);
 set(gca,'FontSize',16);
-legend(bars(1:2),{['Low Current ' cur_lab],['High Current ' cur_lab]},'Location','best');
+legend(bars(1:2),{['Low ' cur_lab],['High ' cur_lab]},'Location','best');
 
 end

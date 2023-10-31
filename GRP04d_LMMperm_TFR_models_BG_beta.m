@@ -8,7 +8,7 @@ clear all
 % Baseline/ITI:
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'Sn8t0_bhvz_nrlz_out4';
 % Stimulus decision phase:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrl0_out3_bt1k';%'S5t15_bhvz_nrl0_out4';%
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4_bt1k';%'S5t15_bhvz_nrl0_out4';%
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % Pre-decision:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
@@ -23,6 +23,7 @@ fig_ftype = 'png';
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 eval(['run ' prj_dir 'scripts/stat_vars/' stat_id '_vars.m']);
+if ~isfield(st,'nboots'); error('only run this for permutation bootstrap stat_ids!'); end
 
 fig_dir   = [prj_dir 'results/TFR/' an_id '/LMM/' stat_id '/BG_beta/'];
 if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
@@ -100,37 +101,43 @@ end
 %% ========================================================================
 %   BASAL GANGLIA BETA LOW
 %  ========================================================================
-%% Full model no decision ease/difficulty
-tic;
+%% Full reward/effort model
 fit_method = 'ML';
-full_formula   = 'BG_betalo~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)';% + (1|trl_n_cur)');
-lme_full        = fitlme(good_tbl_prv.BG_betalo,full_formula,'FitMethod',fit_method);
-
+full_formula = 'BG_betalo~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)';% + (1|trl_n_cur)');
 predictors = {'reward_cur','effortS_cur','reward_prv','effortS_prv'};
-pred_lme  = cell(size(predictors));
-pred_lrt = cell(size(predictors));
-for p = 1:length(predictors)
-    null_formula = strrep(full_formula,[predictors{p} ' + '],'');
-    pred_lme{p}  = fitlme(good_tbl_prv.BG_betalo,null_formula,'FitMethod',fit_method);
-    pred_lrt{p} = compare(pred_lme{p},lme_full,'CheckNesting',true);
+[lme_full,pred_pval] = fn_run_LMM_full_permutation_models(good_tbl_prv.BG_betalo,predictors,full_formula,fit_method,st.nboots);
+
+%% Plot BG beta ~ current effort as line plot
+fit_method = 'ML';
+full_formula = 'BG_betalo~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)';
+lme_full     = fitlme(good_tbl_prv.BG_betalo,full_formula,'FitMethod',fit_method);
+noEc_formula = 'BG_betalo~ reward_cur + reward_prv + effortS_prv + (1|sbj_n)';
+lme_noRc     = fitlme(good_tbl_prv.BG_betalo,noEc_formula,'FitMethod',fit_method);
+noEc_p = compare(lme_noRc,lme_full,'CheckNesting',true);
+
+fn_plot_LMM_quantile_lines(SBJs,good_tbl_prv.BG_betalo,'effortS_cur','BG_betalo',...
+    lme_full,noEc_p.pValue(2),n_quantiles);
+xlabel('Subjective Effort (z)');
+xlim([-1.8 1.8]);
+xticks(-1.5:0.5:1.5);
+ylabel('BG beta (z)');
+if strcmp(st.norm_nrl_pred,'zscore')
+    ylim([-0.6 0.6]);
+    yticks(-0.5:0.5:0.5);
+end
+set(gca,'FontSize',20);
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
 end
 
-% Run permutations
-null_pred_coefs = nan([length(predictors) st.nboots]);
-null_pred_pvals = nan([length(predictors) st.nboots]);
-par_tbl = good_tbl_prv.BG_betalo;
-par_nboots = st.nboots;
-parfor b_ix = 1:par_nboots
-%     if mod(b_ix,10)==0; fprintf('bt%d, ',b_ix); end
-    [null_pred_coefs(:,b_ix), null_pred_pvals(:,b_ix)] = fn_run_LMM_null_permutation(...
-        par_tbl,predictors,full_formula,fit_method);
-%     if mod(b_ix,100)==0; fprintf('\n'); end
-end
+%% Compare reward + effort vs. SV
+fit_method = 'ML';
+lme_all = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
 
-% Compute p value
-pred_pval = nan(size(predictors));
-for p = 1:length(predictors)
-    pred_pval(p) = sum(null_pred_pvals(p,:)<=pred_lrt{p}.pValue(2))/st.nboots;
-end
-fprintf('\nFinished null permutations, time elapsed = %.2f min\n\n',toc/60);
-
+sv_formula = 'BG_betalo~ SV_cur + SV_prv + (1|sbj_n)';
+sv_pred = {'SV_cur','SV_prv'};
+[lme_sv,sv_pred_pval] = fn_run_LMM_full_permutation_models(good_tbl_prv.BG_betalo,sv_pred,sv_formula,fit_method,st.nboots);
+bg_beta_full_vs_SV = compare(lme_sv,lme_all,'NSim',1000)

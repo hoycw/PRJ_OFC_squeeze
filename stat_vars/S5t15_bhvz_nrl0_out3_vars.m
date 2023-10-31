@@ -6,16 +6,13 @@
 % st.cfreq_lim = [2 7];
 % st.bandwidth = 4;
 
-st.conn_metric = 'ampcorr';
-st.freq_pk_ch = 'PFC';    % which channel's SBJ-specific frequency band should be used? 'PFC' or 'BG'
-
 st.stat_evnt = 'S';
 st.stat_lim  = [0.5 1.5];
 
 st.norm_bhv_pred = 'zscore';    % see fn_normalize_predictor
-st.norm_nrl_pred = 'fishz';
+st.norm_nrl_pred = 'none';
 
-st.outlier_thresh = 4;          % threshold for tossing outliers in DV (y variable)
+st.outlier_thresh = 3;          % threshold for tossing outliers in DV (y variable)
 
 st.use_simon_tfr = 0;
 st.toss_same_trials = 1;

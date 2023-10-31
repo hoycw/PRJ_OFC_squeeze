@@ -8,7 +8,7 @@ clear all
 % Baseline/ITI:
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'Sn8t0_bhvz_nrlz_out4';
 % Stimulus decision phase:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrl0_out3_bt1k';%'S5t15_bhvz_nrl0_out4';%
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4_bt1k';
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % Pre-decision:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
@@ -101,37 +101,71 @@ end
 %% ========================================================================
 %   PFC THETA
 %  ========================================================================
-%% Full model no decision ease/difficulty
-tic;
+%% Full reward/effort model
 fit_method = 'ML';
-full_formula   = 'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)';% + (1|trl_n_cur)');
-lme_full        = fitlme(good_tbl_prv.PFC_theta,full_formula,'FitMethod',fit_method);
-
+full_formula = 'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)';% + (1|trl_n_cur)');
 predictors = {'reward_cur','effortS_cur','reward_prv','effortS_prv'};
-pred_lme  = cell(size(predictors));
-pred_lrt = cell(size(predictors));
-for p = 1:length(predictors)
-    null_formula = strrep(full_formula,[predictors{p} ' + '],'');
-    pred_lme{p}  = fitlme(good_tbl_prv.PFC_theta,null_formula,'FitMethod',fit_method);
-    pred_lrt{p} = compare(pred_lme{p},lme_full,'CheckNesting',true);
+[lme_full,pred_pval] = fn_run_LMM_full_permutation_models(good_tbl_prv.PFC_theta,predictors,full_formula,fit_method,st.nboots);
+
+%% Plot theta ~ previous reward as line plot
+fit_method = 'ML';
+full_formula = 'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)';
+lme_full     = fitlme(good_tbl_prv.PFC_theta,full_formula,'FitMethod',fit_method);
+noRp_formula = 'PFC_theta~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n)';
+lme_noRp     = fitlme(good_tbl_prv.PFC_theta,noRp_formula,'FitMethod',fit_method);
+noRp_p = compare(lme_noRp,lme_full,'CheckNesting',true);
+
+fn_plot_LMM_quantile_lines(SBJs,good_tbl_prv.PFC_theta,'reward_prv','PFC_theta',...
+    lme_full,noRp_p.pValue(2),n_quantiles);
+xlabel('Previous Reward (z)');
+xlim([-1.8 1.8]);
+xticks(-1.5:0.5:1.5);
+ylabel('PFC theta (z)');
+if strcmp(st.norm_nrl_pred,'zscore')
+    ylim([-0.6 0.6]);
+    yticks(-0.5:0.5:0.5);
+end
+set(gca,'FontSize',20);
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
 end
 
-% Run permutations
-null_pred_coefs = nan([length(predictors) st.nboots]);
-null_pred_pvals = nan([length(predictors) st.nboots]);
-par_tbl = good_tbl_prv.PFC_theta;
-par_nboots = st.nboots;
-parfor b_ix = 1:par_nboots
-%     if mod(b_ix,10)==0; fprintf('bt%d, ',b_ix); end
-    [null_pred_coefs(:,b_ix), null_pred_pvals(:,b_ix)] = fn_run_LMM_null_permutation(...
-        par_tbl,predictors,full_formula,fit_method);
-%     if mod(b_ix,100)==0; fprintf('\n'); end
-end
+%% Compare reward + effort vs. SV
+fit_method = 'ML';
+lme_all = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
 
-% Compute p value
-pred_pval = nan(size(predictors));
-for p = 1:length(predictors)
-    pred_pval(p) = sum(null_pred_pvals(p,:)<=pred_lrt{p}.pValue(2))/st.nboots;
-end
-fprintf('\nFinished null permutations, time elapsed = %.2f min\n\n',toc/60);
+sv_formula = 'PFC_theta~ SV_cur + SV_prv + (1|sbj_n)';
+sv_pred = {'SV_cur','SV_prv'};
+[lme_sv,sv_pred_pval] = fn_run_LMM_full_permutation_models(good_tbl_prv.PFC_theta,sv_pred,sv_formula,fit_method,st.nboots);
+pfc_theta_full_vs_SV = compare(lme_sv,lme_all,'NSim',1000)
 
+ez_formula = 'PFC_theta~ dec_ease_cur + dec_ease_prv + (1|sbj_n)';
+ez_pred = {'dec_ease_cur','dec_ease_prv'};
+[lme_ez,ez_pred_pval] = fn_run_LMM_full_permutation_models(good_tbl_prv.PFC_theta,ez_pred,ez_formula,fit_method,st.nboots);
+
+%% Test previous reward interactions
+%   Not clear how to permute data for clean non-parametric stats on
+%   interaction effect, so this should be done using regular tests
+fit_method = 'ML';
+% pRcR_formula = 'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + reward_cur:reward_prv + (1|sbj_n)';
+% pRcR_pred = {'reward_cur:reward_prv'};
+% pRcE_formula = 'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_cur:reward_prv + (1|sbj_n)';
+% pRcE_pred = {'effortS_cur:reward_prv'};
+% pRpE_formula = 'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_prv:reward_prv + (1|sbj_n)';
+% pRpE_pred = {'effortS_prv:reward_prv'};
+% [lme_full_pRcR,pRcR_pval] = fn_run_LMM_full_permutation_models(good_tbl_prv.PFC_theta,pRcR_pred,pRcR_formula,fit_method,st.nboots);
+% [lme_full_pRcE,pRcE_pval] = fn_run_LMM_full_permutation_models(good_tbl_prv.PFC_theta,pRcE_pred,pRcE_formula,fit_method,st.nboots);
+% [lme_full_pRpE,pRpE_pval] = fn_run_LMM_full_permutation_models(good_tbl_prv.PFC_theta,pRpE_pred,pRpE_formula,fit_method,st.nboots);
+
+fn_plot_LMM_gratton_bar_sbj(good_tbl_prv.PFC_theta,'reward_prv','reward_cur','PFC_theta');
+ylabel('PFC theta (z)');
+set(gca,'FontSize',18);
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end

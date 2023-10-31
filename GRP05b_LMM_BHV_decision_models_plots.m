@@ -7,7 +7,7 @@ clear all
 
 %%
 % Stimulus decision phase:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrl0_out3';
 
 n_quantiles = 5;
 save_fig = 1;
@@ -204,6 +204,9 @@ dec_R = compare(dec_noR,dec_RE,'CheckNesting',true)
 dec_E = compare(dec_noE,dec_RE,'CheckNesting',true)
 
 %% Test previous reward interactions
+fit_method = 'Laplace';
+model_formula_full = 'decision_cur ~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)';% + (1|trl_n_cur)';
+dec_full = fitglme(good_tbl_prv.decision_cur,model_formula_full,'Distribution','binomial','FitMethod',fit_method);
 lme_full_pRcRint = fitglme(good_tbl_prv.decision_cur,'decision_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + reward_cur:reward_prv + (1|sbj_n)',...
     'Distribution','binomial','FitMethod',fit_method);
 lme_full_pRcEint = fitglme(good_tbl_prv.decision_cur,'decision_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_cur:reward_prv + (1|sbj_n)',...
@@ -213,12 +216,55 @@ lme_full_pRpEint = fitglme(good_tbl_prv.decision_cur,'decision_cur~ reward_cur +
 dec_pRcRint_p = compare(dec_full,lme_full_pRcRint,'CheckNesting',true)
 dec_pRcEint_p = compare(dec_full,lme_full_pRcEint,'CheckNesting',true)
 dec_pRpEint_p = compare(dec_full,lme_full_pRpEint,'CheckNesting',true)
+% dec_pRcR_vs_pRcE_p = compare(lme_full_pRcEint,lme_full_pRcRint,'NSim',1000)
 
 lme_full_pRcREint = fitglme(good_tbl_prv.decision_cur,'decision_cur~ reward_cur*reward_prv + effortS_cur*reward_prv + effortS_prv + (1|sbj_n)',...
     'Distribution','binomial','FitMethod',fit_method);
 dec_pRcREint_p = compare(lme_full_pRcRint,lme_full_pRcREint,'CheckNesting',true)
 dec_pRcREint_p2 = compare(lme_full_pRcEint,lme_full_pRcREint,'CheckNesting',true)
 
+% Plot partial dependence
+fn_plot_LMM_interaction_partial_dependence(lme_full_pRcRint,'reward_prv','reward_cur');
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+fn_plot_LMM_interaction_partial_dependence(lme_full_pRpEint,'reward_prv','effortS_prv');
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+fn_plot_LMM_interaction_partial_dependence(lme_full_pRcEint,'reward_prv','effortS_cur');
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+
+% Plot partial dependence in model with both interactions
+fn_plot_LMM_interaction_partial_dependence(lme_full_pRcREint,'reward_prv','reward_cur');
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '_pRcREint.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+fn_plot_LMM_interaction_partial_dependence(lme_full_pRcREint,'reward_prv','effortS_cur');
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '_pRcREint.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+
+% Plot tertile line plots
+fn_plot_LMM_quantile_line_interaction(good_tbl_prv.decision_cur,'reward_prv','reward_cur','decision_cur',3,5);
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+fn_plot_LMM_quantile_line_interaction(good_tbl_prv.decision_cur,'reward_prv','effortS_prv','decision_cur',3,5);
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+fn_plot_LMM_quantile_line_interaction(good_tbl_prv.decision_cur,'reward_prv','effortS_cur','decision_cur',3,5);
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+
+% Plot median splits as line plots 
+fn_plot_LMM_quantile_line_interaction(good_tbl_prv.decision_cur,'reward_prv','reward_cur','decision_cur',2,5);
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+fn_plot_LMM_quantile_line_interaction(good_tbl_prv.decision_cur,'reward_prv','effortS_prv','decision_cur',2,5);
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+fn_plot_LMM_quantile_line_interaction(good_tbl_prv.decision_cur,'reward_prv','effortS_cur','decision_cur',2,5);
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+
+% Plot median split bar plots
 fn_plot_LMM_gratton_bar_sbj(good_tbl_prv.decision_cur,'reward_prv','reward_cur','decision_cur');
 ylabel('Offers Accepted (%)');
 set(gca,'FontSize',18);
@@ -230,6 +276,20 @@ if save_fig
 end
 fn_plot_LMM_gratton_bar_sbj(good_tbl_prv.decision_cur,'reward_prv','effortS_cur','decision_cur');
 ylabel('Offers Accepted (%)');
+set(gca,'FontSize',18);
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
+% Test reward:effort interactions
+formula_cREint = 'decision_cur ~ reward_cur + effortS_cur + reward_cur:effortS_cur + reward_prv + effortS_prv + (1|sbj_n)';
+dec_full = fitglme(good_tbl_prv.decision_cur,model_formula_full,'Distribution','binomial','FitMethod',fit_method);
+lme_cREint = fitglme(good_tbl_prv.decision_cur,formula_cREint,'Distribution','binomial','FitMethod',fit_method);
+dec_cREint_p = compare(dec_full,lme_cREint,'CheckNesting',true)
+% Nope, don't add R:E interaction
 
 %% Compare SV vs. reward + effort
 !!!why is the RE model better than SV for dec_cur? check residuals
