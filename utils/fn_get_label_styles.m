@@ -29,7 +29,6 @@ elseif contains(var,'effort')
                       5,112,176;...
                       3,78,123]./256; % shades of blue
 elseif strcmp(var,'sbj_n')
-    color_ix = 1:n_levels;
     full_colors = [27, 158, 119;         % teal
                    217, 95, 2;           % burnt orange
                    117, 112, 179;        % purple
@@ -39,7 +38,7 @@ else
 end
 
 if n_levels==1
-    color_ix = 5;
+    if contains(var,'decision'); color_ix = 1; else, color_ix = 5; end
     line_styles = {'-'};
 elseif n_levels==2
     color_ix = [3 5];

@@ -203,7 +203,7 @@ dec_noE  = fitglme(good_tbl_prv.decision_cur,model_formula_noE,'Distribution','b
 dec_R = compare(dec_noR,dec_RE,'CheckNesting',true)
 dec_E = compare(dec_noE,dec_RE,'CheckNesting',true)
 
-%% Test previous reward interactions
+%% Test previous reward interactions with reward/effort
 fit_method = 'Laplace';
 model_formula_full = 'decision_cur ~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)';% + (1|trl_n_cur)';
 dec_full = fitglme(good_tbl_prv.decision_cur,model_formula_full,'Distribution','binomial','FitMethod',fit_method);
@@ -255,14 +255,14 @@ if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_f
 
 % Plot median splits as line plots 
 fn_plot_LMM_quantile_line_interaction(good_tbl_prv.decision_cur,'reward_prv','reward_cur','decision_cur',2,5);
-if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
-fn_plot_LMM_quantile_line_interaction(good_tbl_prv.decision_cur,'reward_prv','effortS_prv','decision_cur',2,5);
+set(gca,'FontSize',20);
 if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
 fn_plot_LMM_quantile_line_interaction(good_tbl_prv.decision_cur,'reward_prv','effortS_cur','decision_cur',2,5);
+set(gca,'FontSize',20);
 if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+fn_plot_LMM_quantile_line_interaction(good_tbl_prv.decision_cur,'reward_prv','effortS_prv','decision_cur',2,5);
 
 % Plot median split bar plots
 fn_plot_LMM_gratton_bar_sbj(good_tbl_prv.decision_cur,'reward_prv','reward_cur','decision_cur');
@@ -305,6 +305,27 @@ dec_nosvp   = fitglme(good_tbl_prv.decision_cur,model_formula_nosvp,'Distributio
 dec_reweff_vs_sv = compare(dec_sv,dec_reweffS)
 dec_SV_pval = compare(dec_nosv,dec_sv,'CheckNesting',true)
 dec_SVp_pval = compare(dec_nosvp,dec_sv,'CheckNesting',true)
+
+%% Test previous reward interactions with reward/effort
+fit_method = 'Laplace';
+model_formula_sv  = 'decision_cur ~ SV_cur + SV_prv + (1|sbj_n)';% + (1|trl_n_cur)';
+dec_sv_full = fitglme(good_tbl_prv.decision_cur,model_formula_sv,'Distribution','binomial','FitMethod',fit_method);
+lme_full_SVpR = fitglme(good_tbl_prv.decision_cur,'decision_cur~ SV_cur + SV_prv + reward_prv + (1|sbj_n)',...
+    'Distribution','binomial','FitMethod',fit_method);
+lme_full_pRSVint = fitglme(good_tbl_prv.decision_cur,'decision_cur~ SV_cur + SV_prv + SV_cur:reward_prv + (1|sbj_n)',...
+    'Distribution','binomial','FitMethod',fit_method);
+lme_full_pRpSVint = fitglme(good_tbl_prv.decision_cur,'decision_cur~ SV_cur + SV_prv + SV_prv:reward_prv + (1|sbj_n)',...
+    'Distribution','binomial','FitMethod',fit_method);
+lme_full_pSVSVint = fitglme(good_tbl_prv.decision_cur,'decision_cur~ SV_cur*SV_prv + (1|sbj_n)',...
+    'Distribution','binomial','FitMethod',fit_method);
+dec_SVpR_p = compare(dec_sv_full,lme_full_SVpR,'CheckNesting',true)
+% Nope
+dec_pRSVint_p = compare(dec_sv_full,lme_full_pRSVint,'CheckNesting',true)
+% Nope
+dec_pRpSVint_p = compare(dec_sv_full,lme_full_pRpSVint,'CheckNesting',true)
+% Nope
+dec_pSVSVint_p = compare(dec_sv_full,lme_full_pSVSVint,'CheckNesting',true)
+% Nope
 
 %% Test decision ~ current individual task features
 % Decision ~ reward_cur

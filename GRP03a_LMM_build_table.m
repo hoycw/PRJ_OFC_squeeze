@@ -144,9 +144,9 @@ for s = 1:length(SBJs)
     trl_n = size(bhvs{s}.stake,1);
     trl_n_cur = [trl_n_cur; bhvs{s}.trl];
     sbj_n = [sbj_n; num2str(ones(trl_n,1).*s)];
-    if strcmp(sbj_pfc_roi{s},'OFC'); pfc_roi_ix = 1; else; pfc_roi_ix = 2; end
+    if strcmp(sbj_pfc_roi{s},'OFC'); pfc_roi_ix = 0; else; pfc_roi_ix = 1; end
     PFC_roi = [PFC_roi; num2str(ones(trl_n,1).*pfc_roi_ix)];
-    if strcmp(sbj_bg_roi{s},'STN'); bg_roi_ix = 1; else; bg_roi_ix = 2; end
+    if strcmp(sbj_bg_roi{s},'STN'); bg_roi_ix = 0; else; bg_roi_ix = 1; end
     BG_roi = [BG_roi; num2str(ones(trl_n,1).*bg_roi_ix)];
     
     PFC_theta  = [PFC_theta; fn_normalize_predictor(theta_pow{s,2},st.norm_nrl_pred)];
