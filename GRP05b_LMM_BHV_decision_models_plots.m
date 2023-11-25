@@ -223,6 +223,18 @@ lme_full_pRcREint = fitglme(good_tbl_prv.decision_cur,'decision_cur~ reward_cur*
 dec_pRcREint_p = compare(lme_full_pRcRint,lme_full_pRcREint,'CheckNesting',true)
 dec_pRcREint_p2 = compare(lme_full_pRcEint,lme_full_pRcREint,'CheckNesting',true)
 
+% Test if PFC theta is better than previous reward
+% lme_full_TcRint = fitglme(good_tbl_prv.decision_cur,'decision_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + reward_cur:PFC_theta + (1|sbj_n)',...
+%     'Distribution','binomial','FitMethod',fit_method);
+% lme_full_TcEint = fitglme(good_tbl_prv.decision_cur,'decision_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_cur:PFC_theta + (1|sbj_n)',...
+%     'Distribution','binomial','FitMethod',fit_method);
+% lme_full_TpEint = fitglme(good_tbl_prv.decision_cur,'decision_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_prv:PFC_theta + (1|sbj_n)',...
+%     'Distribution','binomial','FitMethod',fit_method);
+% dec_TcRint_p = compare(dec_full,lme_full_TcRint,'CheckNesting',true)
+% dec_TcEint_p = compare(dec_full,lme_full_TcEint,'CheckNesting',true)
+% dec_TpEint_p = compare(dec_full,lme_full_TpEint,'CheckNesting',true)
+% All no, bu tthe previous effort one is actually close (p=0.053)...
+
 % Plot partial dependence
 fn_plot_LMM_interaction_partial_dependence(lme_full_pRcRint,'reward_prv','reward_cur');
 if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];

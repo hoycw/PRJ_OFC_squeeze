@@ -81,14 +81,41 @@ zT = array2table(zReg, 'VariableNames', col_names);
 % zmdl = fitglm(zT,modelspec,'Distribution','binomial')
 
 % GLMMs
-modelspec = 'Decision ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block) + (1|TrialCum) + (1|BlkCum)';
-% mdl = fitglme(T,modelspec,'Distribution','binomial')
-zmdl = fitglme(zT,modelspec,'Distribution','binomial')
+fit_method = 'Laplace';
+full_mdl = 'Decision ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block)';% + (1|TrialCum) + (1|BlkCum)';
+% lme = fitglme(T,modelspec,'Distribution','binomial','FitMethod',fit_method);)
+full_lme = fitglme(zT,full_mdl,'Distribution','binomial','FitMethod',fit_method)
+
+% Test significance
+noR_mdl = 'Decision ~ Effort*Stake*Stim - Effort:Stake:Stim - Stake + (1|Block)';
+noR_lme = fitglme(zT,noR_mdl,'Distribution','binomial','FitMethod',fit_method);
+r_pval = compare(noR_lme,full_lme,'CheckNesting',true)
+% Yes
+noE_mdl = 'Decision ~ Effort*Stake*Stim - Effort:Stake:Stim - Effort + (1|Block)';
+noE_lme = fitglme(zT,noE_mdl,'Distribution','binomial','FitMethod',fit_method);
+e_pval = compare(noE_lme,full_lme,'CheckNesting',true)
+% Yes
+noSt_mdl = 'Decision ~ Effort*Stake*Stim - Effort:Stake:Stim - Stim + (1|Block)';
+noSt_lme = fitglme(zT,noSt_mdl,'Distribution','binomial','FitMethod',fit_method);
+st_pval = compare(noSt_lme,full_lme,'CheckNesting',true)
+% Yes
+noRE_mdl = 'Decision ~ Effort*Stake*Stim - Effort:Stake:Stim - Effort:Stake + (1|Block)';
+noRE_lme = fitglme(zT,noRE_mdl,'Distribution','binomial','FitMethod',fit_method);
+re_pval = compare(noRE_lme,full_lme,'CheckNesting',true)
+% No
+noRSt_mdl = 'Decision ~ Effort*Stake*Stim - Effort:Stake:Stim - Stake:Stim + (1|Block)';
+noRSt_lme = fitglme(zT,noRSt_mdl,'Distribution','binomial','FitMethod',fit_method);
+rst_pval = compare(noRSt_lme,full_lme,'CheckNesting',true)
+% Yes
+noESt_mdl = 'Decision ~ Effort*Stake*Stim - Effort:Stake:Stim - Effort:Stim + (1|Block)';
+noESt_lme = fitglme(zT,noESt_mdl,'Distribution','binomial','FitMethod',fit_method);
+est_pval = compare(noESt_lme,full_lme,'CheckNesting',true)
+% No, but close (p = 0.069)
 
 % GLMMs
 if model_p_acc
-    modelspec = 'p_accept ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block)';% + (1|TrialCum) + (1|BlkCum)';
-    zmdl_pacc = fitlme(zT,modelspec)
+    full_mdl = 'p_accept ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block)';% + (1|TrialCum) + (1|BlkCum)';
+    zmdl_pacc = fitlme(zT,full_mdl)
 end
 
 % mdl2 = stepwiselm(T,'interactions')
@@ -425,15 +452,15 @@ low_ez_idx = ease_all<median(ease_all);
 zReg_lowez = [zscore(data(low_ez_idx,effort_ix)) zscore(data(low_ez_idx,stake_ix)) data(low_ez_idx,3:7) zscore(p_accept_all(low_ez_idx))];
 zT_lowez = array2table(zReg_midrew, 'VariableNames', col_names);
 
-modelspec = 'p_accept ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block) + (1|TrialCum) + (1|BlkCum)';
-zmdl_pacc_lowez = fitlme(zT_lowez,modelspec)
+full_mdl = 'p_accept ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block) + (1|TrialCum) + (1|BlkCum)';
+zmdl_pacc_lowez = fitlme(zT_lowez,full_mdl)
 
 % Compare to a model with only ease
 zReg_lowez = [zscore(data(low_ez_idx,effort_ix)) zscore(data(low_ez_idx,stake_ix)) data(low_ez_idx,3:7) zscore(p_accept_all(low_ez_idx))];
 zT_lowez = array2table(zReg_midrew, 'VariableNames', col_names);
 
-modelspec = 'p_accept ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block) + (1|TrialCum) + (1|BlkCum)';
-zmdl_pacc_lowez = fitlme(zT_lowez,modelspec)
+full_mdl = 'p_accept ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block) + (1|TrialCum) + (1|BlkCum)';
+zmdl_pacc_lowez = fitlme(zT_lowez,full_mdl)
 
 % Plot correlation between p accept ON-OFF and decision difficuty
 
@@ -451,8 +478,8 @@ zReg_midrew_ease = [zscore(data(midstake_idx,effort_ix)) zscore(data(midstake_id
 zT_midrew = array2table(zReg_midrew, 'VariableNames', col_names);
 zT_midrew_ease = array2table(zReg_midrew_ease, 'VariableNames', [col_names 'ease']);
 
-modelspec = 'p_accept ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block) + (1|TrialCum) + (1|BlkCum)';
-zmdl_pacc_stakeeff47 = fitlme(zT_midrew,modelspec)
+full_mdl = 'p_accept ~ Effort*Stake*Stim - Effort:Stake:Stim + (1|Block) + (1|TrialCum) + (1|BlkCum)';
+zmdl_pacc_stakeeff47 = fitlme(zT_midrew,full_mdl)
 modelspec_ez = 'p_accept ~ ease*Stim + (1|Block) + (1|TrialCum) + (1|BlkCum)';
 zmdl_pacc_ez47 = fitlme(zT_midrew_ease,modelspec_ez)
 
