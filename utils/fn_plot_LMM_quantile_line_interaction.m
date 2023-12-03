@@ -40,14 +40,20 @@ for s = 1:length(sbj_ns)
     end
     
     % Assign to quantiles
-    for i = 1:n_quant_div
-        if i==1                 % first quantile
-            xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)<div_edges(i)) = i;
-        elseif i==n_quant_div   % last quantile
-            xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)>=div_edges(i-1)) = i;
-        else                    % middle quantiles
-            xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)<div_edges(i) &...
-                tbl.(xvar_div)>=div_edges(i-1)) = i;
+    if n_quant_div==2 && any(contains(xvar_div,{'reward','effort'}))
+        % Override median split for reward/effort to be high/low split
+        xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)<-0.5) = 1;
+        xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)>0.5)  = 2;
+    else
+        for i = 1:n_quant_div
+            if i==1                 % first quantile
+                xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)<div_edges(i)) = i;
+            elseif i==n_quant_div   % last quantile
+                xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)>=div_edges(i-1)) = i;
+            else                    % middle quantiles
+                xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)<div_edges(i) &...
+                    tbl.(xvar_div)>=div_edges(i-1)) = i;
+            end
         end
     end
     for i = 1:n_quant_plt

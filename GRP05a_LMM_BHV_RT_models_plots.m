@@ -7,11 +7,12 @@ clear all
 
 %%
 % Stimulus decision phase:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrl0_out3';
 
 n_quantiles = 5;
 save_fig = 1;
 fig_ftype = 'png';
+scat_sz = 40;
 
 % Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
@@ -90,21 +91,6 @@ for p = 1:length(rt_vars)
     end
 end
 
-%% Behavioral model fitting
-%   SV_physical(t) = R(t)?k*E(t)^2
-%   softmax: exp(B * Q1) / exp(B * Q1) + exp(B * Q2)
-%   here, Q1 is SV and Q2 is nothing (reject choice, no alternative, so just B term)
-% decisionfun=@(p) norm( (exp(p(1)*(bhv.stake-(p(2)*(bhv.effort).^2))) ./ ...
-%     (exp(p(1)) + exp(p(1)*(bhv.stake-(p(2)*(bhv.effort).^2))))) - bhv.decision);
-% [par, fit]=fminsearch(decisionfun, [1,1]);
-% 
-% SV_fn    = @(k) bhv.stake-(k*(bhv.effort).^2);
-% EFF_fn   = @(k) (k*(bhv.effort).^2);
-% bhv.SV   = SV_fn(par(2));
-% bhv.EFFs = EFF_fn(par(2));
-% bhv.p_accept = (exp(par(1)*(bhv.stake-(par(2)*(bhv.effort).^2))) ./...
-%     (exp(par(1)) + exp(par(1)*(bhv.stake-(par(2)*(bhv.effort).^2)))));
-
 %% Create variables
 % Mean Reward and Effort
 efforts = unique(bhvs{1}.effort);
@@ -145,59 +131,82 @@ logrt_cur_rewp = compare(lme_full_norewp,lme_full,'CheckNesting',true)
 logrt_cur_effc = compare(lme_full_noeffc,lme_full,'CheckNesting',true)
 logrt_cur_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
 
+% Sup. Fig. 1c: Plot logRT ~ reward as line plot
+fn_plot_LMM_quantile_lines(SBJs,good_tbl_prv.logrt_cur,'reward_cur','logrt_cur',...
+    lme_full,logrt_cur_rewc.pValue(2),n_quantiles);
+xlabel('Reward (z)');
+ylabel('log(RT)');
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+
 %% Test previous reward interactions
+lme_full = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
 lme_full_pRcRint = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + reward_cur:reward_prv + (1|sbj_n)');
 lme_full_pRcEint = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_cur:reward_prv + (1|sbj_n)');
 lme_full_pRpEint = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_prv:reward_prv + (1|sbj_n)');
-logrt_cur_pRcRint_p = compare(lme_full,lme_full_pRcRint,'CheckNesting',true)
-logrt_cur_pRcEint_p = compare(lme_full,lme_full_pRcEint,'CheckNesting',true)
-logrt_cur_pRpEint_p = compare(lme_full,lme_full_pRpEint,'CheckNesting',true)
+logrt_cur_pRcRint_p = compare(lme_full,lme_full_pRcRint,'CheckNesting',true) % no
+logrt_cur_pRcEint_p = compare(lme_full,lme_full_pRcEint,'CheckNesting',true) % no
+logrt_cur_pRpEint_p = compare(lme_full,lme_full_pRpEint,'CheckNesting',true) % no
+
+%% Test effect of decision ease
+lme_ez        = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ dec_ease_cur + dec_ease_prv + (1|sbj_n)');
+lme_ez_noDEc  = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ dec_ease_prv + (1|sbj_n)');
+lme_ez_noDEp  = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ dec_ease_cur + (1|sbj_n)');
+
+lrt_ezc = compare(lme_ez_noDEc,lme_ez,'CheckNesting',true) % yes, significant
+lrt_ezp = compare(lme_ez_noDEp,lme_ez,'CheckNesting',true) % yes, significant
+
+%% Compare effect of reward and decision ease in same model
+lme_fullez        = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ reward_cur + effort_cur + dec_ease_cur + reward_prv + effort_prv + dec_ease_prv + (1|sbj_n)');
+lme_fullez_noDEc  = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ reward_cur + effort_cur + reward_prv + effort_prv + dec_ease_prv + (1|sbj_n)');
+lme_fullez_noDEp  = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ reward_cur + effort_cur + dec_ease_cur + reward_prv + effort_prv + (1|sbj_n)');
+lme_fullez_norewc = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ effort_cur + dec_ease_cur + reward_prv + effort_prv + dec_ease_prv + (1|sbj_n)');
+
+lrt_dec = compare(lme_fullez_noDEc,lme_fullez,'CheckNesting',true) % yes, ease still significant
+lrt_dep = compare(lme_fullez_noDEp,lme_fullez,'CheckNesting',true) % yes, previous ease still significant
+lrt_rew = compare(lme_fullez_norewc,lme_fullez,'CheckNesting',true) % no, reward is no longer significant
+
+% Sup. Fig. 1b: gratton bar plot for decision ease
+fn_plot_LMM_gratton_bar_sbj(good_tbl_prv.logrt_cur,'dec_ease_prv','dec_ease_cur','logrt_cur');
+ylabel('log(RT)');
+set(gca,'FontSize',18);
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+
+% Compute correlations between reward and decision ease
+rew_ez_corr = nan(size(SBJs));
+rew_ez_pval = nan(size(SBJs));
+for s = 1:length(SBJs)
+    sbj_idx = good_tbl_all.logrt_cur.sbj_n==s;
+    [tmp,tmp_p] = corrcoef(good_tbl_all.logrt_cur.reward_cur(sbj_idx),good_tbl_all.logrt_cur.dec_ease_cur(sbj_idx));
+    rew_ez_corr(s) = tmp(1,2);
+    rew_ez_pval(s) = tmp_p(1,2);
+end
+
+% Confirm ease overrules reward with single predictors
+% lme0 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ 1 + (1|sbj_n)');
+% lme1 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ reward_cur + (1|sbj_n)');
+% lme2 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ dec_ease_cur + (1|sbj_n)');
+% lme3 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ reward_cur + dec_ease_cur + (1|sbj_n)');
+% lme4 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ reward_cur + effort_cur + dec_ease_cur + (1|sbj_n)');
+% lrt_rew = compare(lme0,lme1) % yes
+% lrt_ease = compare(lme0,lme2) % yes
+% lrt_rewez = compare(lme1,lme3) % yes
+% lrt_ezrew = compare(lme2,lme3) % no
 
 %% Compare reward + effort vs. SV
 lme_all = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
 lme_sv_curprv = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ SV_cur + SV_prv + (1|sbj_n)');
 logrt_cur_full_vs_SV = compare(lme_sv_curprv,lme_all,'NSim',1000)
 
-lme0 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ 1 + (1|sbj_n)');
-lme1 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ reward_cur + (1|sbj_n)');
-lme2 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ SV_cur + (1|sbj_n)');
-lme3 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ reward_cur + SV_cur + (1|sbj_n)');    % neither significant when both in model
+lme0 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ 1 + (1|sbj_n)');
+lme1 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ reward_cur + (1|sbj_n)');
+lme2 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ SV_cur + (1|sbj_n)');
+lme3 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ reward_cur + SV_cur + (1|sbj_n)');    % neither significant when both in model
 lrt_rew = compare(lme0,lme1)%,'NSim',1000)
 lrt_svc = compare(lme0,lme2)
 lrt_rewsv = compare(lme1,lme3,'NSim',1000) % adding SV to reward does not improve model fit
 lrt_rew_vs_sv = compare(lme1,lme2,'NSim',1000) % no significant difference in model fit between rew_cur and SV_cur
-
-%% Compare effect of reward and decision ease in same model
-lme0 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ 1 + (1|sbj_n)');
-lme1 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ reward_cur + (1|sbj_n)');
-lme2 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ dec_ease_cur + (1|sbj_n)');
-lme3 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ reward_cur + dec_ease_cur + (1|sbj_n)');
-lme4 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ reward_cur + effort_cur + dec_ease_cur + (1|sbj_n)');
-lrt_rew = compare(lme0,lme1)%,'NSim',1000)
-lrt_ease = compare(lme0,lme2)
-lrt_rewez = compare(lme1,lme3) % adding decision ease to reward improves model fit
-lrt_ezrew = compare(lme2,lme3) % adding reward to decision ease is not significantly better
-
-% lme_ez_curprv = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ dec_ease_cur + dec_ease_prv + (1|sbj_n)');
-
-lme_full = fitlme(good_tbl_prv.rt_cur,'logrt_cur~ reward_cur + effort_cur + dec_ease_cur + reward_prv + effort_prv + dec_ease_prv + (1|sbj_n)');
-lme_full_noDEc = fitlme(good_tbl_prv.rt_cur,'logrt_cur~ reward_cur + effort_cur + reward_prv + effort_prv + dec_ease_prv + (1|sbj_n)');
-lme_full_noDEp = fitlme(good_tbl_prv.rt_cur,'logrt_cur~ reward_cur + effort_cur + dec_ease_cur + reward_prv + effort_prv + (1|sbj_n)');
-lme_full_norewc = fitlme(good_tbl_prv.rt_cur,'logrt_cur~ effort_cur + dec_ease_cur + reward_prv + effort_prv + dec_ease_prv + (1|sbj_n)');
-
-lrt_dec = compare(lme_full_noDEc,lme_full,'CheckNesting',true) % adding reward to decision ease is not significantly better
-lrt_dep = compare(lme_full_noDEp,lme_full,'CheckNesting',true) % adding reward to decision ease is not significantly better
-lrt_rew = compare(lme_full_norewc,lme_full,'CheckNesting',true) % adding reward to decision ease is not significantly better
-
-% Compute correlations between reward and decision ease
-rew_ez_corr = nan(size(SBJs));
-rew_ez_pval = nan(size(SBJs));
-for s = 1:length(SBJs)
-    sbj_idx = good_tbl_all.rt_cur.sbj_n==s;
-    [tmp,tmp_p] = corrcoef(good_tbl_all.rt_cur.reward_cur(sbj_idx),good_tbl_all.rt_cur.dec_ease_cur(sbj_idx));
-    rew_ez_corr(s) = tmp(1,2);
-    rew_ez_pval(s) = tmp_p(1,2);
-end
 
 %% Test log(RT) vs. RT modeling
 % Reward model (this result holds for effort and SV too)
@@ -229,127 +238,13 @@ if save_fig
     saveas(gcf,fig_fname);
 end
 
-%% Beta
-lme0 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ 1 + (1|sbj_n)');
-lme1 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ PFC_betalo + (1|sbj_n)');
-lme2 = fitlme(good_tbl_all.rt_cur,'logrt_cur~ BG_betalo + (1|sbj_n)');
-lrt_pfcbeta = compare(lme0,lme1)%,'NSim',1000)
-lrt_bgbeta = compare(lme0,lme2)%,'NSim',1000)
-
-%% Current Reward, Effort,a nd SV models
-scat_sz = 40;
-
-% Reward model
-lme0 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ 1 + (1|sbj_n)');
-lme1 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ reward_cur + (1|sbj_n)');
-%     AIC       BIC       LogLikelihood    Deviance
-%     1631.2    1648.6    -811.61          1623.2  
-rt_rew = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-% Plot logRT ~ reward as line plot
-fn_plot_LMM_quantile_lines(SBJs,good_tbl_all.logrt_cur,'reward_cur','logrt_cur',...
-    lme1,rt_rew.pValue(2),n_quantiles);
-xlabel('Reward (z)');
-ylabel('log RT (z)');
-if save_fig
-    fig_name = get(gcf,'Name');
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-fig_name = 'GRP_lRT_LMM_results';
-figure('Name',fig_name); hold on;
-% subplot(2,2,1); hold on;
-for s = 1:length(SBJs)
-%     scatter(good_tbl_all.logrt_cur.reward_cur(good_tbl_all.logrt_cur.sbj_n==s),good_tbl_all.logrt_cur.logrt_cur(good_tbl_all.logrt_cur.sbj_n==s),...
-%         scat_sz,sbj_colors(s,:));
-    errorbar(zscore(stakes),zscore(bhvs{s}.lrt_stake_mn),bhvs{s}.lrt_stake_se,'Color',sbj_colors(s,:));
-end
-xvals = min(good_tbl_all.logrt_cur.reward_cur):0.01:max(good_tbl_all.logrt_cur.reward_cur);
-yvals = lme1.Coefficients.Estimate(1) + xvals*lme1.Coefficients.Estimate(2);
-line(xvals,yvals,'Color','k','LineWidth',3);
-xlabel('Reward (z)');
-xlim([-2 2]);
-ylabel('log RT (z)');
-title(['coef. = ' num2str(lme1.Coefficients.Estimate(2)) '; p = ' num2str(rt_rew.pValue(2),'%.03f')]);
-set(gca,'FontSize',16);
-
-% logRTs ~ Effort current
-lme0 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ 1 + (1|sbj_n)');
-lme1 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ effort_cur + (1|sbj_n)');
-lme2 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ effortS_cur + (1|sbj_n)');
-% rt_effort_EFF = compare(lme1,lme2)%,'NSim',1000)
-%   effort is better predictor than EFFs (subjective)
-rt_effort = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-
-% Subjective Value model
-lme0 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ 1 + (1|sbj_n)');
-lme2 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ SV_cur + (1|sbj_n)');
-%     AIC       BIC     LogLikelihood    Deviance
-%     1631.6    1649    -811.8           1623.6  
-% lme3 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ reward_cur + effort_cur + (1|sbj_n)');
-%     AIC       BIC       LogLikelihood    Deviance
-%     1631.5    1653.3    -810.76          1621.5  
-% lme4 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ reward_cur*effortS_cur + (1|sbj_n)');
-%     AIC       BIC       LogLikelihood    Deviance
-%     1629.7    1655.8    -808.86          1617.7  
-% lme42 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ reward_cur:effortS_cur + (1|sbj_n)');
-%     AIC       BIC       LogLikelihood    Deviance
-%     1631.1    1648.5    -811.53          1623.1  
-% lme5 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ absSV_cur + (1|sbj_n)');
-%     AIC       BIC     LogLikelihood    Deviance
-%     1609.6    1627    -800.79          1601.6  
-% lme6 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ reward_cur + absSV_cur + (1|sbj_n)');
-%     AIC       BIC       LogLikelihood    Deviance
-%     1611.5    1633.3    -800.75          1601.5  
-rt_sv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-subplot(2,2,2); hold on;
-for s = 1:length(SBJs)
-    scatter(good_tbl_all.logrt_cur.SV_cur(good_tbl_all.logrt_cur.sbj_n==s),good_tbl_all.logrt_cur.logrt_cur(good_tbl_all.logrt_cur.sbj_n==s),...
-        scat_sz,sbj_colors(s,:));
-end
-xvals = min(good_tbl_all.logrt_cur.SV_cur):0.01:max(good_tbl_all.logrt_cur.SV_cur);
-yvals = lme1.Coefficients.Estimate(1) + xvals*lme1.Coefficients.Estimate(2);
-line(xvals,yvals,'Color','k','LineWidth',3);
-xlabel('Subjective Value (z)');
-xlim([-2.5 2.5]);
-ylabel('log RT (z)');
-title(['coef. = ' num2str(lme1.Coefficients.Estimate(2)) '; p = ' num2str(rt_sv.pValue(2),'%.03f')]);
-set(gca,'FontSize',16);
-
 %% Salience models
 lme0 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ 1 + (1|sbj_n)');
 lme1 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ absSV_cur + (1|sbj_n)');
 lme2 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ dec_ease_cur + (1|sbj_n)');
 rt_abssv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 rt_dec_ease = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
-lrt_best_diff = compare(lme1,lme2,'NSim',1000)
-subplot(2,2,3); hold on;
-for s = 1:length(SBJs)
-    scatter(good_tbl_all.logrt_cur.absSV_cur(good_tbl_all.logrt_cur.sbj_n==s),good_tbl_all.logrt_cur.logrt_cur(good_tbl_all.logrt_cur.sbj_n==s),...
-        scat_sz,sbj_colors(s,:));
-end
-xvals = min(good_tbl_all.logrt_cur.absSV_cur):0.01:max(good_tbl_all.logrt_cur.absSV_cur);
-yvals = lme1.Coefficients.Estimate(1) + xvals*lme1.Coefficients.Estimate(2);
-line(xvals,yvals,'Color','k','LineWidth',3);
-xlabel('absolute SV (z)');
-xlim([-2.5 2.5]);
-ylabel('log RT (z)');
-title(['coef. = ' num2str(lme1.Coefficients.Estimate(2)) '; p = ' num2str(rt_abssv.pValue(2),'%.03f')]);
-set(gca,'FontSize',16);
-subplot(2,2,4); hold on;
-for s = 1:length(SBJs)
-    scatter(good_tbl_all.logrt_cur.dec_ease_cur(good_tbl_all.logrt_cur.sbj_n==s),good_tbl_all.logrt_cur.logrt_cur(good_tbl_all.logrt_cur.sbj_n==s),...
-        scat_sz,sbj_colors(s,:));
-end
-xvals = min(good_tbl_all.logrt_cur.dec_ease_cur):0.01:max(good_tbl_all.logrt_cur.dec_ease_cur);
-yvals = lme2.Coefficients.Estimate(1) + xvals*lme2.Coefficients.Estimate(2);
-line(xvals,yvals,'Color','k','LineWidth',3);
-xlabel('Decision Ease (z)');
-xlim([-2.5 2.5]);
-ylabel('log RT (z)');
-title(['coef. = ' num2str(lme2.Coefficients.Estimate(2)) '; p = ' num2str(rt_dec_ease.pValue(2),'%.03f')]);
-set(gca,'FontSize',16);
+% ease is better than abs(SV) according to AIC and BIC
 
 if save_fig
     fig_fname = [fig_dir fig_name '.' fig_ftype];
@@ -364,253 +259,10 @@ lme2 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ pAccept_cur + (1|sbj_n)');
 rt_dec = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 rt_pAcc = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
 
-%% Previous trial predictors
-% Previous Reward model
-lme0 = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ 1 + (1|sbj_n)');
-lme1 = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ reward_prv + (1|sbj_n)');
-rt_rew_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-
-% Previous Effort model
-lme0 = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ 1 + (1|sbj_n)');
-lme1 = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ effort_prv + (1|sbj_n)');
-lme2 = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ effortS_prv + (1|sbj_n)');
-rt_effort_EFF_prv = compare(lme1,lme2)%,'NSim',1000)
-rt_effort_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-rt_effortS_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
-
-% Previous Subjective Value model
-lme0 = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ 1 + (1|sbj_n)');
-lme1 = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ SV_prv + (1|sbj_n)');
-rt_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-
-% Previous salience model
-lme0 = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ 1 + (1|sbj_n)');
-lme1 = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ absSV_prv + (1|sbj_n)');
-lme2 = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ dec_ease_prv + (1|sbj_n)');
-lme3 = fitlme(good_tbl_prv.logrt_cur,'logrt_cur~ logrt_prv + (1|sbj_n)');
-rt_abssv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-rt_dec_ease_prv = compare(lme0,lme2,'CheckNesting',true)%,'NSim',1000)
-
-fig_name = 'GRP_lRT_LMM_results_prv_salience';
-figure('Name',fig_name);
-subplot(1,2,1); hold on;
-for s = 1:length(SBJs)
-    scatter(good_tbl_prv.logrt_cur.absSV_prv(good_tbl_prv.logrt_cur.sbj_n==s),good_tbl_prv.logrt_cur.logrt_cur(good_tbl_prv.logrt_cur.sbj_n==s),...
-        scat_sz,sbj_colors(s,:));
-end
-xvals = min(good_tbl_prv.logrt_cur.absSV_prv):0.01:max(good_tbl_prv.logrt_cur.absSV_prv);
-yvals = lme1.Coefficients.Estimate(1) + xvals*lme1.Coefficients.Estimate(2);
-line(xvals,yvals,'Color','k','LineWidth',3);
-xlabel('Previous abs(SV) (z)');
-xlim([-2.5 2.5]);
-ylabel('log RT (z)');
-title(['coef. = ' num2str(lme1.Coefficients.Estimate(2)) '; p = ' num2str(rt_abssv_prv.pValue(2),'%.03f')]);
-set(gca,'FontSize',16);
-subplot(1,2,2); hold on;
-for s = 1:length(SBJs)
-    scatter(good_tbl_prv.logrt_cur.dec_ease_prv(good_tbl_prv.logrt_cur.sbj_n==s),good_tbl_prv.logrt_cur.logrt_cur(good_tbl_prv.logrt_cur.sbj_n==s),...
-        scat_sz,sbj_colors(s,:));
-    
-end
-xvals = min(good_tbl_prv.logrt_cur.dec_ease_prv):0.01:max(good_tbl_prv.logrt_cur.dec_ease_prv);
-yvals = lme2.Coefficients.Estimate(1) + xvals*lme2.Coefficients.Estimate(2);
-line(xvals,yvals,'Color','k','LineWidth',3);
-xlabel('Previous Decision Ease (z)');
-xlim([-2.5 2.5]);
-ylabel('log RT (z)');
-title(['coef. = ' num2str(lme2.Coefficients.Estimate(2)) '; p = ' num2str(rt_dec_ease_prv.pValue(2),'%.03f')]);
-set(gca,'FontSize',16);
-
-if save_fig
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-% Gratton-style line plot
-fig_name = 'GRP_lRT_LMM_results_logRT_salience_gratton';
-figure('Name',fig_name,'units','norm','outerposition',[0 0 0.6 0.6]);
-subplot(1,2,1); hold on;
-prv_low_idx = good_tbl_prv.logrt_cur.absSV_prv<median(good_tbl_prv.logrt_cur.absSV_prv);
-cur_low_idx = good_tbl_prv.logrt_cur.absSV_cur<median(good_tbl_prv.logrt_cur.absSV_cur);
-
-lL_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & cur_low_idx));
-lH_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & ~cur_low_idx));
-hL_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & cur_low_idx));
-hH_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & ~cur_low_idx));
-lL_sem = std(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & cur_low_idx))./sqrt(sum(prv_low_idx & cur_low_idx));
-lH_sem = std(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & ~cur_low_idx))./sqrt(sum(prv_low_idx & ~cur_low_idx));
-hL_sem = std(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & cur_low_idx))./sqrt(sum(~prv_low_idx & cur_low_idx));
-hH_sem = std(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & ~cur_low_idx))./sqrt(sum(~prv_low_idx & ~cur_low_idx));
-cur_lo_line = errorbar([1 2],[lL_avg hL_avg],[lL_sem hL_sem],'Color','b','LineWidth',2);
-cur_hi_line = errorbar([1 2],[lH_avg hH_avg],[lH_sem hH_sem],'Color','r','LineWidth',2);
-ylabel('log RT (z)');
-set(gca,'XTick',[1 2]);
-set(gca,'XTickLabel',{'Low Prev. abs(SV)','High Prev. abs(SV)'});
-xlim([0.5 2.5]);
-legend([cur_lo_line, cur_hi_line],{'Low Curr. abs(SV)','High Curr. abs(SV)'},'Location','northwest');
-title('Effects of Previous/Current abs(SV)');
-set(gca,'FontSize',16);
-
-subplot(1,2,2); hold on;
-prv_low_idx = good_tbl_prv.logrt_cur.dec_ease_prv<median(good_tbl_prv.logrt_cur.dec_ease_prv);
-cur_low_idx = good_tbl_prv.logrt_cur.dec_ease_cur<median(good_tbl_prv.logrt_cur.dec_ease_cur);
-
-lL_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & cur_low_idx));
-lH_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & ~cur_low_idx));
-hL_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & cur_low_idx));
-hH_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & ~cur_low_idx));
-lL_sem = std(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & cur_low_idx))./sqrt(sum(prv_low_idx & cur_low_idx));
-lH_sem = std(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & ~cur_low_idx))./sqrt(sum(prv_low_idx & ~cur_low_idx));
-hL_sem = std(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & cur_low_idx))./sqrt(sum(~prv_low_idx & cur_low_idx));
-hH_sem = std(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & ~cur_low_idx))./sqrt(sum(~prv_low_idx & ~cur_low_idx));
-cur_lo_line = errorbar([1 2],[lL_avg hL_avg],[lL_sem hL_sem],'Color','b','LineWidth',2);
-cur_hi_line = errorbar([1 2],[lH_avg hH_avg],[lH_sem hH_sem],'Color','r','LineWidth',2);
-ylabel('log RT (z)');
-set(gca,'XTick',[1 2]);
-set(gca,'XTickLabel',{'Low Prev. Ease','High Prev. Ease'});
-xlim([0.5 2.5]);
-legend([cur_lo_line, cur_hi_line],{'Low Curr. Ease','High Curr. Ease'},'Location','northwest');
-title('Effects of Previous/Current Decision Ease');
-set(gca,'FontSize',16);
-
-if save_fig
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-%% Paper supplemental figure 1:
-fn_plot_LMM_gratton_bar_sbj(good_tbl_prv.logrt_cur,'dec_ease_prv','dec_ease_cur','logrt_cur');
-ylabel('log RT (z)');
-set(gca,'FontSize',18);
-if save_fig
-    fig_name = get(gcf,'Name');
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-% % Gratton-style line plot
-% fig_name = 'GRP_lRT_LMM_results_logRT_dec_ease_gratton';
-% figure('Name',fig_name,'units','norm','outerposition',[0 0 0.25 0.4]);
-% hold on;
-% prv_low_idx = good_tbl_prv.logrt_cur.dec_ease_prv<median(good_tbl_prv.logrt_cur.dec_ease_prv);
-% cur_low_idx = good_tbl_prv.logrt_cur.dec_ease_cur<median(good_tbl_prv.logrt_cur.dec_ease_cur);
-% 
-% lL_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & cur_low_idx));
-% lH_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & ~cur_low_idx));
-% hL_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & cur_low_idx));
-% hH_avg = mean(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & ~cur_low_idx));
-% lL_sem = std(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & cur_low_idx))./sqrt(sum(prv_low_idx & cur_low_idx));
-% lH_sem = std(good_tbl_prv.logrt_cur.logrt_cur(prv_low_idx & ~cur_low_idx))./sqrt(sum(prv_low_idx & ~cur_low_idx));
-% hL_sem = std(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & cur_low_idx))./sqrt(sum(~prv_low_idx & cur_low_idx));
-% hH_sem = std(good_tbl_prv.logrt_cur.logrt_cur(~prv_low_idx & ~cur_low_idx))./sqrt(sum(~prv_low_idx & ~cur_low_idx));
-% cur_lo_line = errorbar([1 2],[lL_avg hL_avg],[lL_sem hL_sem],'Color','b','LineWidth',2);
-% cur_hi_line = errorbar([1 2],[lH_avg hH_avg],[lH_sem hH_sem],'Color','r','LineWidth',2);
-% ylabel('log RT (z)');
-% set(gca,'XTick',[1 2]);
-% set(gca,'XTickLabel',{'Low Prev. Ease','High Prev. Ease'});
-% xlim([0.5 2.5]);
-% legend([cur_lo_line, cur_hi_line],{'Low Curr. Ease','High Curr. Ease'},'Location','northwest');
-% title('Effects of Previous/Current Decision Ease');
-% set(gca,'FontSize',20);
-% 
-% if save_fig
-%     fig_fname = [fig_dir fig_name '.' fig_ftype];
-%     fprintf('Saving %s\n',fig_fname);
-%     saveas(gcf,fig_fname);
-% end
-
-%% Does previous trial subjective value predict anything useful?
-% error('!!! need to check/toss these variable outliers');
-% % Current subjective value
-% lme0 = fitlme(table_all,'SV_cur~ 1 + (1|sbj_n)');
-% lme1 = fitlme(table_all,'SV_cur~ SV_prv + (1|sbj_n)');
-% sv_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-% 
-% % Current probability of accept
-% lme0 = fitlme(table_all,'pAccept_cur~ 1 + (1|sbj_n)');
-% lme1 = fitlme(table_all,'pAccept_cur~ SV_prv + (1|sbj_n)');
-% pAcc_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-% 
-% % Current decision
-% lme0 = fitlme(table_all,'decision_cur~ 1 + (1|sbj_n)');
-% lme1 = fitlme(table_all,'decision_cur~ SV_prv + (1|sbj_n)');
-% dec_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-% 
-% % Current salience
-% lme0 = fitlme(table_all,'absSV_cur~ 1 + (1|sbj_n)');
-% lme1 = fitlme(table_all,'absSV_cur~ SV_prv + (1|sbj_n)');
-% abssv_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-% lme0 = fitlme(table_all,'dec_ease_cur~ 1 + (1|sbj_n)');
-% lme1 = fitlme(table_all,'dec_ease_cur~ SV_prv + (1|sbj_n)');
-% dec_ease_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-% 
-% % Current reward
-% lme0 = fitlme(table_all,'reward_cur~ 1 + (1|sbj_n)');
-% lme1 = fitlme(table_all,'reward_cur~ SV_prv + (1|sbj_n)');
-% rew_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-% 
-% % Current Effort
-% lme0 = fitlme(table_all,'effort_cur~ 1 + (1|sbj_n)');
-% lme1 = fitlme(table_all,'effort_cur~ SV_prv + (1|sbj_n)');
-% effort_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-% lme0 = fitlme(table_all,'effortS_cur~ 1 + (1|sbj_n)');
-% lme1 = fitlme(table_all,'effortS_cur~ SV_prv + (1|sbj_n)');
-% effortS_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-% 
-% % Why? check autocorrelation of effortS
-% lme0 = fitlme(table_all,'effort_cur~ 1 + (1|sbj_n)');
-% lme1 = fitlme(table_all,'effort_cur~ effortS_prv + (1|sbj_n)');
-% effort_effort_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-% lme0 = fitlme(table_all,'effortS_cur~ 1 + (1|sbj_n)');
-% lme1 = fitlme(table_all,'effortS_cur~ effortS_prv + (1|sbj_n)');
-% effortS_effortS_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-% %   Hmmmm, seems effortS_prv predicts current trial effort (and effortS)...
-
-%% effect of previous reward interacting with current trial
-full_mdl_str = 'logrt_cur ~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)';
-lme_full = fitglme(good_tbl_prv.logrt_prv,full_mdl_str,'Distribution','binomial');
-full_rewpXdecp = 'logrt_cur ~ reward_cur + effortS_cur + reward_prv + reward_prv:logrt_prv + effortS_prv + (1|sbj_n)';
-lme_rewpXdp = fitglme(good_tbl_prv.logrt_prv,full_rewpXdecp,'Distribution','binomial');
-% nothing, rew_prv p = 0.10, so maybe closer than without interaction, but meh
-full_rewpXpAccp = 'logrt_cur ~ reward_cur + effortS_cur + reward_prv + reward_prv:pAccept_prv + effortS_prv + (1|sbj_n)';
-lme_rewpXpAp = fitglme(good_tbl_prv.logrt_prv,full_rewpXpAccp,'Distribution','binomial');
-% Hmmmm a parginal interaction between reward_prv:pAccept_prv (p=0.055)
-pa_full_rewpXpAccp = 'pAccept_cur ~ reward_cur + effortS_cur + reward_prv + reward_prv:pAccept_prv + effortS_prv + (1|sbj_n)';
-lme_pA_rewpXpAp = fitlme(good_tbl_prv.logrt_prv,pa_full_rewpXpAccp);
-% NOPE
-full_rewpXrewc = 'logrt_cur ~ reward_cur + effortS_cur + reward_prv + reward_cur:reward_prv + effortS_prv + (1|sbj_n)';
-lme_rewpXrewc = fitglme(good_tbl_prv.logrt_prv,full_rewpXrewc,'Distribution','binomial');
-full_effSpXeffSc = 'logrt_cur ~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_cur:effortS_prv + (1|sbj_n)';
-lme_effSpXeffSc = fitglme(good_tbl_prv.logrt_prv,full_effSpXeffSc,'Distribution','binomial');
-
-full_full = 'logrt_cur ~ reward_cur*effortS_cur*reward_prv*effortS_prv';
-lme_fullll = fitglme(good_tbl_prv.logrt_prv,full_full,'Distribution','binomial');
-full_full_n34 = ['logrt_cur ~ reward_cur*effortS_cur*reward_prv*effortS_prv' ...
-    ' - reward_cur:effortS_cur:reward_prv - reward_cur:effortS_cur:effortS_prv - reward_cur:reward_prv:effortS_prv' ...
-    ' - effortS_cur:reward_prv:effortS_prv - reward_cur:effortS_cur:reward_prv:effortS_prv  + (1|sbj_n)'];
-lme_full_n34 = fitglme(good_tbl_prv.logrt_prv,full_full_n34,'Distribution','binomial');
-
-svfull_mdl_str = 'logrt_cur ~ SV_cur + SV_prv + (1|sbj_n)';
-lme_svfull = fitglme(good_tbl_prv.logrt_prv,svfull_mdl_str,'Distribution','binomial');
-svfull_rewp_str = 'logrt_cur ~ SV_cur + SV_prv + reward_prv + (1|sbj_n)';
-lme_svfull_rewp = fitglme(good_tbl_prv.logrt_prv,svfull_rewp_str,'Distribution','binomial');
-svc_rewp_str = 'logrt_cur ~ SV_cur + reward_prv + (1|sbj_n)';
-lme_svfull_rewp = fitglme(good_tbl_prv.logrt_prv,svc_rewp_str,'Distribution','binomial');
-svcXrewp_str = 'logrt_cur ~ SV_cur + SV_cur:reward_prv + (1|sbj_n)';
-lme_svfullXrewp = fitglme(good_tbl_prv.logrt_prv,svcXrewp_str,'Distribution','binomial');
-
-% tbl_yp = good_tbl_prv.logrt_prv(good_tbl_prv.logrt_prv.logrt_prv==1,:);
-% tbl_np = good_tbl_prv.logrt_prv(good_tbl_prv.logrt_prv.logrt_prv==0,:);
-% lme_rewp_yp = fitglme(tbl_yp,'logrt_cur~ reward_prv + (1|sbj_n)','Distribution','binomial');
-% lme_rewp_np = fitglme(tbl_np,'logrt_cur~ reward_prv + (1|sbj_n)','Distribution','binomial');
-% % Nothing for split on previous decision
-% lme_full_yp = fitglme(tbl_yp,full_mdl_str,'Distribution','binomial');
-% lme_full_np = fitglme(tbl_np,full_mdl_str,'Distribution','binomial');
-% % Nothing for split on previous decision
-
-fn_plot_LMM_gratton(good_tbl_prv.logrt_prv,'reward','logrt_cur');
-fn_plot_LMM_gratton(good_tbl_prv.logrt_prv,'effortS','logrt_cur');
+%% Beta
+lme0 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ 1 + (1|sbj_n)');
+lme1 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ PFC_betalo + (1|sbj_n)');
+lme2 = fitlme(good_tbl_all.logrt_cur,'logrt_cur~ BG_betalo + (1|sbj_n)');
+lrt_pfcbeta = compare(lme0,lme1)%,'NSim',1000)
+lrt_bgbeta = compare(lme0,lme2)%,'NSim',1000)
 

@@ -10,7 +10,7 @@ st.stat_evnt = 'S';
 st.stat_lim  = [0.5 1.5];
 
 st.norm_bhv_pred = 'zscore';    % see fn_normalize_predictor
-st.norm_rt_pred = 'none';
+st.norm_rt_pred  = 'none';      % do not normalize RTs
 st.norm_nrl_pred = 'none';
 
 st.outlier_thresh = 3;          % threshold for tossing outliers in DV (y variable)
