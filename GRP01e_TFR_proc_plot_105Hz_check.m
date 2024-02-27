@@ -13,7 +13,7 @@ ft_defaults
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
-an_id = 'TFRmth_S1t2_madS8t0_f80t120';%'TFRmth_S1t2_madS8t0_f2t120';
+an_id = 'TFRmth_S1t2_madS8t0_f80t120_osr';%'TFRmth_S1t2_madS8t0_f2t120';
 
 % Plotting parameters
 plot_boxes = 1;

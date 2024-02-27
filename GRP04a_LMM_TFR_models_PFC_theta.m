@@ -8,7 +8,7 @@ clear all
 % Baseline/ITI:
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'Sn8t0_bhvz_nrlz_out4';
 % Stimulus decision phase:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrl0_out3';%'S5t15_bhvz_nrl0_out4';%
+an_id = 'TFRmth_S1t2_madS8t0_f2t40_osr'; stat_id = 'S5t15_bhvz_nrl0_out3_rt21';%'S5t15_bhvz_nrl0_out4';%
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % Pre-decision:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
@@ -100,28 +100,12 @@ end
 %% ========================================================================
 %   PFC THETA
 %  ========================================================================
-%% Full model
-% lme_full = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + dec_ease_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)');
-% lme_full_noDEc = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)');
-% lme_full_noDEp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + dec_ease_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-% lme_full_norewc = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ effortS_cur + dec_ease_cur + reward_prv + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)');
-% lme_full_norewp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + dec_ease_cur + effortS_prv + dec_ease_prv + (1|sbj_n) + (1|trl_n_cur)');
-% lme_full_noeffc = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + reward_prv + effortS_prv + (1|sbj_n) + (1|trl_n_cur)');
-% lme_full_noeffp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + (1|sbj_n) + (1|trl_n_cur)');
-% 
-% pfc_theta_dec = compare(lme_full_noDEc,lme_full,'CheckNesting',true)
-% pfc_theta_dep = compare(lme_full_noDEp,lme_full,'CheckNesting',true)
-% pfc_theta_rew = compare(lme_full_norewc,lme_full,'CheckNesting',true)
-% pfc_theta_rewp = compare(lme_full_norewp,lme_full,'CheckNesting',true)
-% pfc_theta_effc = compare(lme_full_noeffc,lme_full,'CheckNesting',true)
-% pfc_theta_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
-
-%% Full model no decision ease/difficulty
-lme_full = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
-lme_full_norewc = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
-lme_full_norewp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
-lme_full_noeffc = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
-lme_full_noeffp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+%% Full Reward-Effort model
+lme_full = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
+lme_full_norewc = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
+lme_full_norewp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + effortS_prv + (1|sbj_n)');
+lme_full_noeffc = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + reward_prv + effortS_prv + (1|sbj_n)');
+lme_full_noeffp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + (1|sbj_n)');
 
 pfc_theta_rewc = compare(lme_full_norewc,lme_full,'CheckNesting',true)
 pfc_theta_rewp = compare(lme_full_norewp,lme_full,'CheckNesting',true)
@@ -129,14 +113,14 @@ pfc_theta_effc = compare(lme_full_noeffc,lme_full,'CheckNesting',true)
 pfc_theta_effp = compare(lme_full_noeffp,lme_full,'CheckNesting',true)
 
 % Statistically better to add previous trial predictors?
-lme_full_nop = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_full_nop = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + (1|sbj_n)');
 pfc_theta_addprv = compare(lme_full_nop,lme_full,'CheckNesting',true)
 % Maybe just previous reward?
-lme_rec_rp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_rec_rp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + (1|sbj_n)');
 pfc_theta_addRprv = compare(lme_full_nop,lme_rec_rp,'CheckNesting',true)
 
 %% Test previous reward interactions
-lme_full = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_full = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
 lme_full_pRcRint = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + reward_cur:reward_prv + (1|sbj_n)');
 lme_full_pRcEint = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_cur:reward_prv + (1|sbj_n)');
 lme_full_pRpEint = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_prv:reward_prv + (1|sbj_n)');
@@ -216,16 +200,16 @@ if save_fig
 end
 
 %% Compare reward + effort vs. SV
-lme_all = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');% + (1|trl_n_cur)');
-lme_sv_curprv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_cur + SV_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_all = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
+lme_sv_curprv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_cur + SV_prv + (1|sbj_n)');
 pfc_theta_full_vs_SV = compare(lme_sv_curprv,lme_all,'NSim',1000)
 
-lme_sv_cur = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_cur + (1|sbj_n)');% + (1|trl_n_cur)');
-lme_sv_prv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_sv_cur = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_cur + (1|sbj_n)');
+lme_sv_prv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_prv + (1|sbj_n)');
 pfc_theta_svc = compare(lme_sv_prv,lme_sv_curprv,'CheckNesting',true)
 pfc_theta_svp = compare(lme_sv_cur,lme_sv_curprv,'CheckNesting',true)
 
-lme_ez_curprv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ dec_ease_cur + dec_ease_prv + (1|sbj_n)');% + (1|trl_n_cur)');
+lme_ez_curprv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ dec_ease_cur + dec_ease_prv + (1|sbj_n)');
 
 %% PFC theta and previous reward:
 lme0 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
@@ -271,62 +255,6 @@ if save_fig
     saveas(gcf,fig_fname);
 end
 
-% Plot PFC theta ~ SV_prv as Gratton-style line plot
-fn_plot_LMM_gratton(good_tbl_prv.PFC_theta,'SV','PFC_theta');
-ylabel('PFC Theta (z)');
-fn_plot_LMM_gratton(good_tbl_prv.PFC_theta,'reward','PFC_theta');
-ylabel('PFC Theta (z)');
-fn_plot_LMM_gratton(good_tbl_prv.PFC_theta,'effortS','PFC_theta');
-ylabel('PFC Theta (z)');
-% if save_fig
-%     fig_name = get(gcf,'Name');
-%     fig_fname = [fig_dir fig_name '.' fig_ftype];
-%     fprintf('Saving %s\n',fig_fname);
-%     saveas(gcf,fig_fname);
-% end
-
-% % Plot median splits of PFC theta as function of current/previous reward
-% fig_name = 'GRP_TFR_LMM_results_PFC_theta_reward_splits';
-% figure('Name',fig_name,'units','norm','outerposition',[0 0 0.7 0.5]);
-% prv_low_idx = good_tbl_prv.PFC_theta.reward_prv<median(good_tbl_prv.PFC_theta.reward_prv);
-% cur_low_idx = good_tbl_prv.PFC_theta.reward_cur<median(good_tbl_prv.PFC_theta.reward_cur);
-% 
-% subplot(1,3,1); hold on;
-% vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx);
-% vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx);
-% violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
-% line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
-% set(gca,'XTickLabel',{'Low Previous Reward','High Previous Reward'});
-% ylabel('PFC theta (z)');
-% title('Median Split of Previous Reward');
-% set(gca,'FontSize',16);
-% 
-% subplot(1,3,2); hold on;
-% vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & cur_low_idx);
-% vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx);
-% violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
-% line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
-% set(gca,'XTickLabel',{'Low Current Reward','High Current Reward'});
-% ylabel('PFC theta (z)');
-% title('Median Split of Low Previous Reward');
-% set(gca,'FontSize',16);
-% 
-% subplot(1,3,3); hold on;
-% vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & cur_low_idx);
-% vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & ~cur_low_idx);
-% violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
-% line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
-% set(gca,'XTickLabel',{'Low Current Reward','High Current Reward'});
-% ylabel('PFC theta (z)');
-% title('Median Split of High Previous Reward');
-% set(gca,'FontSize',16);
-% 
-% if save_fig
-%     fig_fname = [fig_dir fig_name '.' fig_ftype];
-%     fprintf('Saving %s\n',fig_fname);
-%     saveas(gcf,fig_fname);
-% end
-
 %% PFC theta and decision:
 % lme0 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
 % lme1 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ decision_cur + (1|sbj_n)');%,'StartMethod','random');
@@ -358,165 +286,6 @@ pfc_theta_rew_cur = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
 lme_prew_prXchg = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_prv + reward_prv:reward_chg + (1|sbj_n)');%,'StartMethod','random');
 % previous reward is significant, and interaction is almost significant
 
-up_tbl = good_tbl_prv.PFC_theta(good_tbl_prv.PFC_theta.reward_chg>=0,:);
-dn_tbl = good_tbl_prv.PFC_theta(good_tbl_prv.PFC_theta.reward_chg<0,:);
-lme_prew_up = fitlme(up_tbl,'PFC_theta~ reward_prv + (1|sbj_n)');
-lme_prew_dn = fitlme(dn_tbl,'PFC_theta~ reward_prv + (1|sbj_n)');
-% seems to be stronger effect when reward decreases!
-
-hir_tbl = good_tbl_prv.PFC_theta(good_tbl_prv.PFC_theta.reward_cur>=0,:);
-lor_tbl = good_tbl_prv.PFC_theta(good_tbl_prv.PFC_theta.reward_cur<0,:);
-lme_prew_hirew = fitlme(hir_tbl,'PFC_theta~ reward_prv + (1|sbj_n)');
-lme_prew_lorew = fitlme(lor_tbl,'PFC_theta~ reward_prv + (1|sbj_n)');
-% previous reward is strong effect only when current reward is low
-%   positive coef means higher if I had a high previous reward
-%   looking at the data though, all conditions are around z=0 EXCEPT
-%   low/low- does this mean you give up and exert no theta/control when
-%   double sequence?
-
-hipr_tbl = good_tbl_prv.PFC_theta(good_tbl_prv.PFC_theta.reward_prv>=0,:);
-lopr_tbl = good_tbl_prv.PFC_theta(good_tbl_prv.PFC_theta.reward_prv<0,:);
-lme_rew_hiprew = fitlme(hipr_tbl,'PFC_theta~ reward_cur + (1|sbj_n)');
-lme_rew_loprew = fitlme(lopr_tbl,'PFC_theta~ reward_cur + (1|sbj_n)');
-% strong effect of current reward when previous was low!
-
-% fn_plot_LMM_scatter(SBJs,up_tbl,'reward_prv','PFC_theta',lme_prew_up,lme_prew_up.Coefficients.pValue(2));
-% xlabel('Previous Reward after increase (z)');
-% ylabel('PFC theta (z)');
-% fn_plot_LMM_scatter(SBJs,dn_tbl,'reward_prv','PFC_theta',lme_prew_dn,lme_prew_dn.Coefficients.pValue(2));
-% xlabel('Previous Reward after decrease (z)');
-% ylabel('PFC theta (z)');
-
-fn_plot_LMM_gratton(good_tbl_prv.PFC_theta,'reward','PFC_theta');
-ylabel('PFC Theta (z)');
-if save_fig
-    fig_name = get(gcf,'Name');
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-% Can I see this effect in the GRS? theta should be low when GRS is VERY low
-lme0 = fitlme(good_tbl_grs.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
-lme_grs = fitlme(good_tbl_grs.PFC_theta,'PFC_theta~ grs + (1|sbj_n)');
-fn_plot_LMM_scatter(SBJs,good_tbl_grs.PFC_theta,'grs','PFC_theta',lme_grs,lme_grs.Coefficients.pValue(2));
-% nothing there...
-lor_tbl_grs = good_tbl_grs.PFC_theta(good_tbl_grs.PFC_theta.reward_cur<0,:);
-lme_grs_lor = fitlme(lor_tbl_grs,'PFC_theta~ grs + (1|sbj_n)');
-fn_plot_LMM_scatter(SBJs,lor_tbl_grs,'grs','PFC_theta',lme_grs_lor,lme_grs_lor.Coefficients.pValue(2));
-% nothing there...
-mean(lor_tbl.PFC_theta(lor_tbl.reward_prv<0))
-mean(lor_tbl.PFC_theta(lor_tbl.reward_prv<0 & lor_tbl.grs<0))
-% Ok, PFC theta is even lower when the GRS is also below average
-
-%%  PFC theta and previous subjective value:
-lme0 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
-lme1 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_prv + (1|sbj_n)');%,'StartMethod','random');
-pfc_theta_sv_prv = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-% plotResiduals(lme1);
-% plotResiduals(lme1,'fitted');
-% lme1.plotPartialDependence();
-
-% Plot PFC theta ~ SV_prv as scatter plot 
-fn_plot_LMM_scatter(SBJs,good_tbl_prv.PFC_theta,'SV_prv','PFC_theta',lme1,pfc_theta_sv_prv.pValue(2));
-xlabel('Previous Subjective Value (z)');
-ylabel('PFC theta (z)');
-if save_fig
-    fig_name = get(gcf,'Name');
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-% Plot PFC theta ~ previous SV as line plot
-fn_plot_LMM_quantile_lines(SBJs,good_tbl_prv.PFC_theta,'SV_prv','PFC_theta',...
-    lme1,pfc_theta_sv_prv.pValue(2),n_quantiles);
-xlabel('Previous Subjective Value (z)');
-ylabel('PFC theta (z)');
-if save_fig
-    fig_name = get(gcf,'Name');
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-% Plot PFC theta ~ SV_prv as Gratton-style line plot
-fn_plot_LMM_gratton(good_tbl_prv.PFC_theta,'SV','PFC_theta');
-ylabel('PFC Theta (z)');
-if save_fig
-    fig_name = get(gcf,'Name');
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-% Plot PFC theta as function of increase vs. decrease in SV
-%           current low   high
-%   prv low                 X
-%   prv high         X
-% fig_name = 'GRP_TFR_LMM_results_PFC_theta_SV_splits';
-% figure('Name',fig_name,'units','norm','outerposition',[0 0 0.7 0.5]);
-% prv_low_idx = good_tbl_prv.PFC_theta.SV_prv<median(good_tbl_prv.PFC_theta.SV_prv);
-% cur_low_idx = good_tbl_prv.PFC_theta.SV_cur<median(good_tbl_prv.PFC_theta.SV_cur);
-% 
-% subplot(1,3,1); hold on;
-% vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx);
-% vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx);
-% violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
-% line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
-% set(gca,'XTickLabel',{'Low Previous SV','High Previous SV'});
-% ylabel('PFC theta (z)');
-% title('Median Split of Previous SV');
-% set(gca,'FontSize',16);
-% 
-% subplot(1,3,2); hold on;
-% vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & cur_low_idx);
-% vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx);
-% violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
-% line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
-% set(gca,'XTickLabel',{'Low Current SV','High Current SV'});
-% ylabel('PFC theta (z)');
-% title('Median Split of Low Previous SV');
-% set(gca,'FontSize',16);
-% 
-% subplot(1,3,3); hold on;
-% vdata.lo = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & cur_low_idx);
-% vdata.hi = good_tbl_prv.PFC_theta.PFC_theta(~prv_low_idx & ~cur_low_idx);
-% violins = violinplot(vdata,{'lo','hi'});%,'ViolinAlpha',0.3);
-% line([1 2],[mean(vdata.lo) mean(vdata.hi)],'Color','k','LineWidth',3);
-% set(gca,'XTickLabel',{'Low Current SV','High Current SV'});
-% ylabel('PFC theta (z)');
-% title('Median Split of High Previous SV');
-% set(gca,'FontSize',16);
-% 
-% if save_fig
-%     fig_fname = [fig_dir fig_name '.' fig_ftype];
-%     fprintf('Saving %s\n',fig_fname);
-%     saveas(gcf,fig_fname);
-% end
-
-%% PFC theta modulated by reward increase or decrease?
-up_idx = good_tbl_prv.PFC_theta.reward_prv<good_tbl_prv.PFC_theta.reward_cur;
-figure; hold on;
-histogram(good_tbl_prv.PFC_theta.reward_chg(up_idx),50);
-histogram(good_tbl_prv.PFC_theta.reward_chg(~up_idx),50);
-legend('increase','decrease');
-
-%% PFC theta and current reward following low reward
-% prv_low_idx = good_tbl_prv.PFC_theta.reward_prv<median(good_tbl_prv.PFC_theta.reward_prv);
-% cur_low_idx = good_tbl_prv.PFC_theta.reward_cur<median(good_tbl_prv.PFC_theta.reward_cur);
-% lme0 = fitlme(good_tbl_prv.PFC_theta(prv_low_idx,:),'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
-% lme1 = fitlme(good_tbl_prv.PFC_theta(prv_low_idx,:),'PFC_theta~ reward_cur + (1|sbj_n)');%,'StartMethod','random');
-% pfc_theta_rew_comb = compare(lme0,lme1,'CheckNesting',true)%,'NSim',1000)
-% figure; hold on;
-% bins = -3:0.2:3;
-% histogram(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & cur_low_idx),bins,'FaceColor','b');
-% histogram(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx),bins,'FaceColor','r');
-% line([mean(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & cur_low_idx)) mean(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & cur_low_idx))],...
-%     ylim,'Color','b','Linewidth',3);
-% line([mean(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx)) mean(good_tbl_prv.PFC_theta.PFC_theta(prv_low_idx & ~cur_low_idx))],...
-%     ylim,'Color','r','Linewidth',3);
-% 
 %% PFC Theta Salience models
 % PFC theta salience:
 lme0 = fitlme(good_tbl_all.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');

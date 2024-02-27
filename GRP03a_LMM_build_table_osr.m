@@ -10,7 +10,7 @@ clear all
 % Baseline/ITI:
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'Sn8t0_bhvz_nrlz_out4';
 % Stimulus decision phase:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40_osr'; stat_id = 'S5t15_bhvz_nrl0_out3';%'S5t15_bhvz_nrl0_out2_bt1k';%
+an_id = 'TFRmth_S1t2_madS8t0_f2t40_osr'; stat_id = 'S5t15_bhvz_nrl0_out3_rt21';%'S5t15_bhvz_nrl0_out2_bt1k';%
 % Pre-decision:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
 % Post-decision/feedback:
@@ -22,8 +22,12 @@ prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 addpath([prj_dir 'scripts/']);
 addpath([prj_dir 'scripts/utils/']);
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
+eval(['run ' prj_dir 'scripts/an_vars/' an_id '_vars.m']);
 eval(['run ' prj_dir 'scripts/stat_vars/' stat_id '_vars.m']);
 if st.use_simon_tfr~=0; error('why use Simon TFR?'); end
+if ~isfield(an,'orig_srate') && an.orig_srate==1
+    error('only run an_ids with original sampling rate!');
+end
 
 % Load power band info
 [theta_cf, betalo_cf, betahi_cf] = fn_get_sbj_peak_frequencies(SBJs,an_id);
@@ -45,7 +49,7 @@ for s = 1:length(SBJs)
         proc_fname = [sbj_dir SBJs{s} '_' an_id '.mat'];
         fprintf('Loading %s\n',proc_fname);
         load(proc_fname,'tfr');
-        load([sbj_dir SBJs{s} '_stim_preproc.mat']);
+        load([sbj_dir SBJs{s} '_stim_preproc_osr.mat']);
         bhvs{s} = sbj_data.bhv;
     end
     
@@ -192,7 +196,12 @@ table_all  = table(trl_n_cur, sbj_n, PFC_roi, BG_roi, PFC_theta, PFC_betalo, PFC
                  rt_prv, logrt_prv, reward_prv, effort_prv, effortS_prv, decision_prv, SV_prv, absSV_prv, pAccept_prv, dec_ease_prv,...
                  reward_chg, grs);
 
-%% Write table for R
+%% Toss RT outliers
+if isfield(st,'min_rt_thresh')
+    table_all(table_all.rt_cur<=st.min_rt_thresh,:) = [];
+end
+
+%% Write table
 table_all_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_full_table_all.csv'];
 fprintf('\tSaving %s...\n',table_all_fname);
 writetable(table_all,table_all_fname);
