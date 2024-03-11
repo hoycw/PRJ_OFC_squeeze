@@ -8,12 +8,13 @@ clear all
 % Baseline/ITI:
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'Sn8t0_bhvz_nrlz_out4';
 % Stimulus decision phase:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40_osr'; stat_id = 'S5t15_bhvz_nrl0_out3_rt21';%'S5t15_bhvz_nrl0_out4';%
+an_id = 'TFRmth_S1t2_madS8t0_f2t40_osr'; stat_id = 'S5t15_bhvz_nrl0_out3';%_rt21';%'S5t15_bhvz_nrl0_out4';%
 % an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'S5t15_bhvz_nrlz_out4';
 % Pre-decision:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
 % Post-decision/feedback:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'D0t1_bhvz_nrlz_out4';% stat_id = 'D0t5_bhvz_nrlz_out4';%
+% an_id = 'TFRmth_D1t1_madS8t0_f2t40_osr'; stat_id = 'D0t1_bhvz_nrl0_out3';
 
 n_quantiles = 5;
 save_fig = 1;
@@ -119,6 +120,25 @@ pfc_theta_addprv = compare(lme_full_nop,lme_full,'CheckNesting',true)
 lme_rec_rp = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + (1|sbj_n)');
 pfc_theta_addRprv = compare(lme_full_nop,lme_rec_rp,'CheckNesting',true)
 
+% Plot theta ~ previous reward as line plot
+fn_plot_LMM_quantile_lines(SBJs,good_tbl_prv.PFC_theta,'reward_prv','PFC_theta',...
+    lme_full,pfc_theta_rewp.pValue(2),n_quantiles);
+xlabel('Previous Reward (z)');
+xlim([-1.8 1.8]);
+xticks(-1.5:0.5:1.5);
+ylabel('PFC theta (z)');
+if strcmp(st.norm_nrl_pred,'zscore')
+    ylim([-0.6 0.6]);
+    yticks(-0.5:0.5:0.5);
+end
+set(gca,'FontSize',20);
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
 %% Test previous reward interactions
 lme_full = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)');
 lme_full_pRcRint = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + reward_cur:reward_prv + (1|sbj_n)');
@@ -210,6 +230,10 @@ pfc_theta_svc = compare(lme_sv_prv,lme_sv_curprv,'CheckNesting',true)
 pfc_theta_svp = compare(lme_sv_cur,lme_sv_curprv,'CheckNesting',true)
 
 lme_ez_curprv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ dec_ease_cur + dec_ease_prv + (1|sbj_n)');
+lme_ez_cur = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ dec_ease_cur + (1|sbj_n)');
+lme_ez_prv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ dec_ease_prv + (1|sbj_n)');
+pfc_theta_ezc = compare(lme_ez_prv,lme_ez_curprv,'CheckNesting',true)
+pfc_theta_ezp = compare(lme_ez_cur,lme_ez_curprv,'CheckNesting',true)
 
 %% PFC theta and previous reward:
 lme0 = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ 1 + (1|sbj_n)');%,'StartMethod','random');
@@ -229,25 +253,6 @@ pfc_theta_rew_prv_vs_SV_prv = compare(lme2,lme1,'NSim',1000)
 fn_plot_LMM_scatter(SBJs,good_tbl_prv.PFC_theta,'reward_prv','PFC_theta',lme1,pfc_theta_rew_prv.pValue(2));
 xlabel('Previous Reward (z)');
 ylabel('PFC theta (z)');
-if save_fig
-    fig_name = get(gcf,'Name');
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-% Plot theta ~ previous reward as line plot
-fn_plot_LMM_quantile_lines(SBJs,good_tbl_prv.PFC_theta,'reward_prv','PFC_theta',...
-    lme1,pfc_theta_rew_prv.pValue(2),n_quantiles);
-xlabel('Previous Reward (z)');
-xlim([-1.8 1.8]);
-xticks(-1.5:0.5:1.5);
-ylabel('PFC theta (z)');
-if strcmp(st.norm_nrl_pred,'zscore')
-    ylim([-0.6 0.6]);
-    yticks(-0.5:0.5:0.5);
-end
-set(gca,'FontSize',20);
 if save_fig
     fig_name = get(gcf,'Name');
     fig_fname = [fig_dir fig_name '.' fig_ftype];

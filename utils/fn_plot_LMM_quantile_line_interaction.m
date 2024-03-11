@@ -2,7 +2,7 @@ function fn_plot_LMM_quantile_line_interaction(tbl,xvar_plt,xvar_div,yvar,n_quan
 % Line plots of yvar as a function of xvar_plt, discretized by xvar_div
 % (one line per value of xvar_div)
 
-%% Set up and check vaeriables
+%% Set up and check variables
 scat_sz  = 50;
 x_fudge = 0.2;
 

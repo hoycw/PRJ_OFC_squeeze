@@ -28,7 +28,7 @@ bhvs       = cell(size(SBJs));
 mdls       = cell(size(SBJs));
 for s = 1:length(SBJs)
     % Load behavior
-    load([prj_dir 'data/' SBJs{s} '/' SBJs{s} '_stim_preproc.mat'],'sbj_data');
+    load([prj_dir 'data/' SBJs{s} '/' SBJs{s} '_stim_preproc_osr.mat'],'sbj_data');
     bhvs{s} = sbj_data.bhv;
     mdls{s} = sbj_data.mdl;
 end
@@ -142,6 +142,9 @@ for s = 1:length(SBJs)
         if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
         fig_fname = [fig_dir fig_name '.' fig_ftype];
         fprintf('Saving %s\n',fig_fname);
+        if any(strcmp(fig_ftype,{'svg','eps'}))
+            set(gcf, 'Renderer', 'painters');
+        end
         saveas(gcf,fig_fname);
     end
 end
@@ -174,6 +177,9 @@ end
 if save_fig
     fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname);
+    if any(strcmp(fig_ftype,{'svg','eps'}))
+        set(gcf, 'Renderer', 'painters');
+    end
     saveas(gcf,fig_fname);
 end
 

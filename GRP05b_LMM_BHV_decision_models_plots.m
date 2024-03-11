@@ -7,7 +7,7 @@ clear all
 
 %%
 % Stimulus decision phase:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S5t15_bhvz_nrl0_out3';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40_osr'; stat_id = 'S5t15_bhvz_nrl0_out3';
 
 n_quantiles = 5;
 save_fig = 1;
@@ -285,7 +285,7 @@ set(gca,'FontSize',18);
 if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
 fn_plot_LMM_gratton_diff_lines_sbj(good_tbl_prv.decision_cur,'reward_prv','reward_cur','decision_cur');
-ylabel('Offers Accepted (%) Hi-Lo Prv Reward');
+ylabel('Offers Accepted (%) Hi-Lo Cur Reward');
 set(gca,'FontSize',18);
 if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
@@ -296,7 +296,7 @@ set(gca,'FontSize',18);
 if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
 fn_plot_LMM_gratton_diff_lines_sbj(good_tbl_prv.decision_cur,'reward_prv','effortS_cur','decision_cur');
-ylabel('Offers Accepted (%) Hi-Lo Prv Reward');
+ylabel('Offers Accepted (%) Hi-Lo Cur EffortS');
 set(gca,'FontSize',18);
 if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
     fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
@@ -307,6 +307,52 @@ dec_full = fitglme(good_tbl_prv.decision_cur,model_formula_full,'Distribution','
 lme_cREint = fitglme(good_tbl_prv.decision_cur,formula_cREint,'Distribution','binomial','FitMethod',fit_method);
 dec_cREint_p = compare(dec_full,lme_cREint,'CheckNesting',true)
 % Nope, don't add R:E interaction
+
+%% pAccept previous reward interactions
+fit_method = 'ML';
+pacc_formula_RE_full = 'pAccept_cur ~ reward_cur + effortS_cur + reward_prv + effortS_prv + (1|sbj_n)';% + (1|trl_n_cur)';
+pacc_full = fitlme(good_tbl_prv.decision_cur,pacc_formula_RE_full,'FitMethod',fit_method);
+pacc_lme_full_pRcRint = fitlme(good_tbl_prv.decision_cur,'pAccept_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + reward_cur:reward_prv + (1|sbj_n)',...
+    'FitMethod',fit_method);
+pacc_lme_full_pRcEint = fitlme(good_tbl_prv.decision_cur,'pAccept_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_cur:reward_prv + (1|sbj_n)',...
+    'FitMethod',fit_method);
+pacc_lme_full_pRpEint = fitlme(good_tbl_prv.decision_cur,'pAccept_cur~ reward_cur + effortS_cur + reward_prv + effortS_prv + effortS_prv:reward_prv + (1|sbj_n)',...
+    'FitMethod',fit_method);
+pacc_pRcRint_p = compare(pacc_full,pacc_lme_full_pRcRint,'CheckNesting',true)
+pacc_pRcEint_p = compare(pacc_full,pacc_lme_full_pRcEint,'CheckNesting',true)
+pacc_pRpEint_p = compare(pacc_full,pacc_lme_full_pRpEint,'CheckNesting',true)
+
+% Plot partial dependence
+fn_plot_LMM_interaction_partial_dependence(pacc_lme_full_pRcRint,'reward_cur','reward_prv');
+set(gca,'FontSize',20);
+fn_plot_LMM_interaction_partial_dependence(pacc_lme_full_pRcEint,'effortS_cur','reward_prv');
+set(gca,'FontSize',20);
+
+% Plot median splits as line plots 
+fn_plot_LMM_quantile_line_interaction(good_tbl_prv.decision_cur,'reward_prv','reward_cur','pAccept_cur',2,5);
+set(gca,'FontSize',16);
+% if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+%     fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+fn_plot_LMM_quantile_line_interaction(good_tbl_prv.decision_cur,'reward_prv','effortS_cur','pAccept_cur',2,5);
+set(gca,'FontSize',16);
+% if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+%     fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
+fn_plot_LMM_quantile_line_interaction(good_tbl_prv.decision_cur,'reward_prv','effortS_prv','pAccept_cur',2,5);
+set(gca,'FontSize',20);
+
+% Plot median split bar plots
+fn_plot_LMM_gratton_bar_sbj(good_tbl_prv.decision_cur,'reward_prv','reward_cur','pAccept_cur');
+ylabel('Probability of Accept');
+set(gca,'FontSize',18);
+fn_plot_LMM_gratton_diff_lines_sbj(good_tbl_prv.decision_cur,'reward_prv','reward_cur','pAccept_cur');
+ylabel('Probability of Accept Hi-Lo Cur Reward');
+set(gca,'FontSize',18);
+fn_plot_LMM_gratton_bar_sbj(good_tbl_prv.decision_cur,'reward_prv','effortS_cur','pAccept_cur');
+ylabel('Probability of Accept');
+set(gca,'FontSize',18);
+fn_plot_LMM_gratton_diff_lines_sbj(good_tbl_prv.decision_cur,'reward_prv','effortS_cur','pAccept_cur');
+ylabel('Probability of Accept Hi-Lo Cur EffS');
+set(gca,'FontSize',18);
 
 %% Compare SV vs. reward + effort
 fit_method = 'Laplace';

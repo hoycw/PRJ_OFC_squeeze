@@ -41,7 +41,13 @@ for t = 1:size(tfr_s.(field_name),1)
     [~, end_ix] = min(abs(tfr_s.time-(rt(t)+trial_lim_sec(2))));
     if numel(beg_ix:end_ix)~=numel(tfr_r.time)
         warning('sampling rate causes slight misalignments in time!');
-        end_ix = end_ix-1;
+        if numel(beg_ix:end_ix)+1==numel(tfr_r.time)
+            end_ix = end_ix+1;
+        elseif numel(beg_ix:end_ix)-1==numel(tfr_r.time)
+            end_ix = end_ix-1;
+        else
+            error('time misalignments are greater than 1 sample, check this!');
+        end
     end
     tfr_r.(field_name)(t,:,:,:) = tfr_s.(field_name)(t,:,:,beg_ix:end_ix);
 end

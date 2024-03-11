@@ -24,6 +24,9 @@ if contains(an_id,'_S')
     elseif any(strcmp(an_id,{'TFRmth_S1t2_zS8t0_f2t40','TFRmth_S1t2_madS8t0_f2t40'}))
         theta_peak_freqs = [-1 -1 -1 -1; -1 -1 -1 -1];
         betalo_peak_freqs  = [11 13 17 13; 12 16 12 12]; % D-locked: [-1 -1 -1 -1; 11 19 12 12];
+    elseif any(strcmp(an_id,{'TFRmth_S1t2_madS8t0_f2t40_osr'}))
+        theta_peak_freqs = [-1 -1 -1 -1; -1 -1 -1 -1];
+        betalo_peak_freqs  = [11 13 16 13; 12 16 12 12];
     elseif strcmp(an_id,'TFRw_S25t2_dbS25t05_fl2t40_c7')
         theta_peak_freqs = [2.5 3.5 3.5 6; 5 4 3.5 3];
         betalo_peak_freqs  = [-1 -1 -1 -1; -1 -1 -1 -1];

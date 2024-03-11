@@ -126,6 +126,10 @@ end
 
 % addpath('E:\Box Sync\Research\Resources & References\Software\Matlab\General_Code');
 
+%% Compute indifference points
+ind_on  = log(nthroot(exp(1),par_on(1)));
+ind_off = log(nthroot(exp(1),par_off(1)));
+
 %% Average behavior by condition for plotting
 % Mean Reward and Effort
 efforts = unique(data(:,effort_ix));
@@ -289,6 +293,21 @@ if save_fig
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
 end
+
+sv_vals  = -4.5:0.01:13;
+pacc_on  = (exp(par_on(1)*sv_vals)) ./ (exp(par_on(1)) + exp(par_on(1)*sv_vals));
+pacc_off = (exp(par_off(1)*sv_vals)) ./ (exp(par_off(1)) + exp(par_off(1)*sv_vals));
+
+fig_name = ['PFC05_stim_dec_fn_ONOFF_line_fine'];
+figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
+off_line = line(sv_vals,pacc_off,'Color',off_color,'LineWidth',3);
+on_line = line(sv_vals,pacc_on,'Color',on_color,'LineWidth',3);
+line([-5 15],[0.5 0.5],'Color','k','LineStyle','--');
+xlim([-5 15]);
+xlabel('Subjective Value'); ylabel('Probabilty Accept');
+title('Subjective Value Decision Function');
+legend([off_line,on_line],{'OFF stimulation','ON stimulation'},'Location','best');
+set(gca,'FontSize',font_sz);
 
 %% 3D bar plot of subjective value landscape
 fig_name = ['PFC05_stim_allTrials_sv_bar3'];

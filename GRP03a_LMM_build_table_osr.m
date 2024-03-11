@@ -7,14 +7,8 @@ close all
 clear all
 
 %% Analysis parameters:
-% Baseline/ITI:
-% an_id = 'TFRmth_S1t2_madA8t1_f2t40'; stat_id = 'Sn8t0_bhvz_nrlz_out4';
-% Stimulus decision phase:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40_osr'; stat_id = 'S5t15_bhvz_nrl0_out3_rt21';%'S5t15_bhvz_nrl0_out2_bt1k';%
-% Pre-decision:
-% an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
-% Post-decision/feedback:
-% an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'D0t1_bhvz_nrlz_out4';% stat_id = 'D0t5_bhvz_nrlz_out4';
+% an_id = 'TFRmth_S1t2_madS8t0_f2t40_osr'; stat_id = 'S5t15_bhvz_nrl0_out3';%_rt21';
+an_id = 'TFRmth_D1t1_madS8t0_f2t40_osr'; stat_id = 'D0t1_bhvz_nrl0_out3';
 
 %% Analysis Set Up
 % Load SBJ info, stat info:
@@ -169,7 +163,7 @@ for s = 1:length(SBJs)
     decision_cur = [decision_cur; fn_normalize_predictor(bhvs{s}.decision,'none')];
     SV_cur       = [SV_cur; fn_normalize_predictor(bhvs{s}.SV,st.norm_bhv_pred)];
     absSV_cur    = [absSV_cur; fn_normalize_predictor(bhvs{s}.absSV,st.norm_bhv_pred)];
-    pAccept_cur  = [pAccept_cur; fn_normalize_predictor(bhvs{s}.p_accept,st.norm_bhv_pred)];
+    pAccept_cur  = [pAccept_cur; fn_normalize_predictor(bhvs{s}.p_accept,'none')];
     dec_ease_cur = [dec_ease_cur; fn_normalize_predictor(bhvs{s}.dec_ease,st.norm_bhv_pred)]; % abs(p_accept - 0.5)
     
     % Add previous trial variables
@@ -182,7 +176,7 @@ for s = 1:length(SBJs)
     decision_prv = [decision_prv; fn_normalize_predictor(bhvs{s}.decision_prv,'none')];
     SV_prv       = [SV_prv; fn_normalize_predictor(bhvs{s}.SV_prv,st.norm_bhv_pred)];
     absSV_prv    = [absSV_prv; fn_normalize_predictor(bhvs{s}.absSV_prv,st.norm_bhv_pred)];
-    pAccept_prv  = [pAccept_prv; fn_normalize_predictor(bhvs{s}.p_accept_prv,st.norm_bhv_pred)];
+    pAccept_prv  = [pAccept_prv; fn_normalize_predictor(bhvs{s}.p_accept_prv,'none')];
     dec_ease_prv = [dec_ease_prv; fn_normalize_predictor(bhvs{s}.dec_ease_prv,st.norm_bhv_pred)];
     
     % Reward context predictors

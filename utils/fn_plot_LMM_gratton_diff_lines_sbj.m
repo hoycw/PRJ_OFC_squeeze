@@ -92,7 +92,7 @@ for s = 1:4
     scatter(sbj_xvals(s)+cond_xpos(2),sbj_diff(s,2),scat_sz,sbj_colors(s,:));
     line(sbj_xvals(s)+cond_xpos,sbj_diff(s,:),'Color',sbj_colors(s,:),'LineWidth',2);
 end
-ylabel([yvar ' hi-lo ' xvar_prv]);
+ylabel([yvar ' hi-lo ' xvar_cur]);
 ylim([min(sbj_diff(:))-range(sbj_diff(:))*0.1 max(sbj_diff(:))+range(sbj_diff(:))*0.1]);
 set(gca,'XTick',cond_xpos);
 set(gca,'XTickLabel',{['Low ' prv_lab],['High ' prv_lab]});

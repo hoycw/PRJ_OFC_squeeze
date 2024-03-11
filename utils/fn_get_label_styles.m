@@ -11,6 +11,8 @@ switch var
         labels = {'Current Effort'};
     case 'effortS_prv'
         labels = {'Previous Effort'};
+    case 'pAccept_cur'
+        labels = {'Current p(Accept)'};
     otherwise
         labels = {strrep(var,'_',' ')};
 end
@@ -33,8 +35,14 @@ elseif strcmp(var,'sbj_n')
                    217, 95, 2;           % burnt orange
                    117, 112, 179;        % purple
                    231, 41, 138]./256;   % magenta
+elseif contains(var,'pAccept')
+    full_colors = [0 0 0;
+                   0 0 0;
+                   0 0 0;
+                   0.5 0.5 0.5;
+                   0.5 0.5 0.5];
 else
-    full_colors = zeros([n_levels, 3]); % black (power variables)
+    full_colors = zeros([5, 3]); % black (power variables)
 end
 
 if n_levels==1

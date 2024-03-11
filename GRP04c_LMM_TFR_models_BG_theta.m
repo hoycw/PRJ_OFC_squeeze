@@ -14,6 +14,7 @@ an_id = 'TFRmth_S1t2_madS8t0_f2t40_osr'; stat_id = 'S5t15_bhvz_nrl0_out3_rt21';%
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'Dn5t0_bhvz_nrlz_out4';
 % Post-decision/feedback:
 % an_id = 'TFRmth_D1t1_madS8t0_f2t40'; stat_id = 'D0t1_bhvz_nrlz_out4';% stat_id = 'D0t5_bhvz_nrlz_out4';%
+% an_id = 'TFRmth_D1t1_madS8t0_f2t40_osr'; stat_id = 'D0t1_bhvz_nrl0_out3';
 
 n_quantiles = 5;
 save_fig = 1;
@@ -149,6 +150,10 @@ bg_theta_svc = compare(lme_sv_prv,lme_sv_curprv,'CheckNesting',true)
 bg_theta_svp = compare(lme_sv_cur,lme_sv_curprv,'CheckNesting',true)
 
 lme_ez_curprv = fitlme(good_tbl_prv.BG_theta,'BG_theta~ dec_ease_cur + dec_ease_prv + (1|sbj_n)');
+lme_ez_cur = fitlme(good_tbl_prv.BG_theta,'BG_theta~ dec_ease_cur + (1|sbj_n)');
+lme_ez_prv = fitlme(good_tbl_prv.BG_theta,'BG_theta~ dec_ease_prv + (1|sbj_n)');
+bg_theta_ezc = compare(lme_ez_prv,lme_ez_curprv,'CheckNesting',true)
+bg_theta_ezp = compare(lme_ez_cur,lme_ez_curprv,'CheckNesting',true)
 
 lme_all_BG = fitlme(good_tbl_prv.BG_theta,'BG_theta~ reward_cur + effortS_cur + reward_prv + effortS_prv + BG_roi + (1|sbj_n)');
 lme_sv_curprv_BG = fitlme(good_tbl_prv.BG_theta,'BG_theta~ SV_cur + SV_prv + BG_roi + (1|sbj_n)');

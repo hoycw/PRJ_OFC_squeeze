@@ -8,7 +8,7 @@ addpath('/Users/colinhoy/Code/Apps/fieldtrip/');
 ft_defaults
 
 %% Analysis parameters:
-an_id = 'TFRmth_S1t2_madS8t0_f2t40'; stat_id = 'S0t2ts_wl2s025_bhvz_nrl0_out3main';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40_osr'; stat_id = 'S0t2ts_wl2s025_bhvz_nrl0_out3main';
 pow_vars = {'PFC_theta','PFC_betalo','BG_theta','BG_betalo'};
 predictors  = {'reward_cur','effortS_cur','reward_prv','effortS_prv'};
 % for p = 1:length(predictors)

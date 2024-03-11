@@ -14,7 +14,7 @@ eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
 summary_metric = 'mn'; % 'md' for median, 'mn' for mean
 
-an_id = 'TFRmth_S1t2_madS8t0_f2t40';
+an_id = 'TFRmth_S1t2_madS8t0_f2t40_osr';
 
 if contains(an_id,'_S')
     psd_win_lim = [0.5 1.5];
