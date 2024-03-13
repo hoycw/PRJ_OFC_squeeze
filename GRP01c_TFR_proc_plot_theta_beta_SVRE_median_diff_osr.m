@@ -15,8 +15,9 @@ prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
 
 an_id = 'TFRmth_S1t2_madS8t0_f2t40_osr';
-comb_method = 'md';     % 'mn' for mean or 'md' for median
-norm_wi_sbj = 1;        % 0 for TFR data, 1 for normalize within SBJ
+stat_id = 'S5t15_bhvz_nrl0_out3';
+comb_method = 'mn';     % 'mn' for mean or 'md' for median
+norm_wi_sbj = 0;        % 0 for TFR data, 1 for normalize within SBJ
 
 % Plotting parameters
 plot_boxes = 1;
@@ -53,7 +54,12 @@ elseif contains(an_id,'_D')
 else
     error('couldnt pick plt_id based on an_id');
 end
-fig_dir   = [prj_dir 'results/TFR/' an_id '/median_diff/'];
+if ~isempty(stat_id)
+    fig_dir   = [prj_dir 'results/TFR/' an_id 'LMM/' stat_id '/median_diff/'];
+    eval(['run ' prj_dir 'scripts/stat_vars/' stat_id '_vars.m']);
+else
+    fig_dir   = [prj_dir 'results/TFR/' an_id '/median_diff/'];
+end
 if ~exist(fig_dir,'dir'), mkdir(fig_dir); end
 if ~contains(an_id,'osr'), error('only run this for original sampling rate data!'); end
 comb_str = ['_' comb_method];
@@ -73,6 +79,26 @@ reds = cbrewer('seq','RdPu',5);
 theta_colors = reds(3,:);
 blues = cbrewer('seq','GnBu',5);
 beta_colors = blues(3,:);
+
+%% Load group model table and toss ROI and band specific outliers
+if ~isempty(stat_id)
+    table_all_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_full_table_all.csv'];
+    fprintf('\tLoading %s...\n',table_all_fname);
+    table_all = readtable(table_all_fname);
+
+    % Toss outliers
+    pow_vars = {'PFC_theta','PFC_betalo','BG_theta','BG_betalo'};
+    out_idx_all = struct;
+    for f = 1:length(pow_vars)
+        out_idx_all.(pow_vars{f}) = abs(table_all.(pow_vars{f}))>mean(table_all.(pow_vars{f}))...
+            +(st.outlier_thresh*std(table_all.(pow_vars{f})));
+        if any(out_idx_all.(pow_vars{f}))
+            fprintf(2,'\t%d outliers for %s in table_all\n',sum(out_idx_all.(pow_vars{f})),pow_vars{f});
+        else
+            fprintf('No bad trials for %s with threshold %d\n',pow_vars{f},st.outlier_thresh);
+        end
+    end
+end
 
 %% Load TFR data and average within quantiles
 for s = 1:length(SBJs)
@@ -138,15 +164,20 @@ for s = 1:length(SBJs)
 
         for split_ix = 1:2
             for svre_ix = 1:3
-                idx = median_idx(svre_ix,:)==split_ix;
+                th_idx = median_idx(svre_ix,:)==split_ix;
+                b_idx = th_idx;
+                if ~isempty(stat_id)
+                    th_idx(out_idx_all.([roi_labs{ch_ix} '_theta'])(table_all.sbj_n==s)) = 0;
+                    b_idx(out_idx_all.([roi_labs{ch_ix} '_betalo'])(table_all.sbj_n==s)) = 0;
+                end
                 if strcmp(comb_method,'mn')
                     % Take average and SEM of theta and beta
-                    theta_avg(s,ch_ix,svre_ix,split_ix,:) = squeeze(mean(theta_pow.powspctrm(idx,ch_ix,1,:),1));
-                    beta_avg(s,ch_ix,svre_ix,split_ix,:) = squeeze(mean(beta_pow.powspctrm(idx,ch_ix,1,:),1));
+                    theta_avg(s,ch_ix,svre_ix,split_ix,:) = squeeze(mean(theta_pow.powspctrm(th_idx,ch_ix,1,:),1));
+                    beta_avg(s,ch_ix,svre_ix,split_ix,:) = squeeze(mean(beta_pow.powspctrm(th_idx,ch_ix,1,:),1));
                 elseif strcmp(comb_method,'md')
                     % Take median and MAD of theta and beta
-                    theta_avg(s,ch_ix,svre_ix,split_ix,:) = squeeze(median(theta_pow.powspctrm(idx,ch_ix,1,:),1));
-                    beta_avg(s,ch_ix,svre_ix,split_ix,:) = squeeze(median(beta_pow.powspctrm(idx,ch_ix,1,:),1));
+                    theta_avg(s,ch_ix,svre_ix,split_ix,:) = squeeze(median(theta_pow.powspctrm(b_idx,ch_ix,1,:),1));
+                    beta_avg(s,ch_ix,svre_ix,split_ix,:) = squeeze(median(beta_pow.powspctrm(b_idx,ch_ix,1,:),1));
                 else
                     error('unknown combination method');
                 end

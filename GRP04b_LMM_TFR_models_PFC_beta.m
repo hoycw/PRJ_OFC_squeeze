@@ -125,6 +125,25 @@ lme_sv_prv = fitlme(good_tbl_prv.PFC_betalo,'PFC_betalo~ SV_prv + (1|sbj_n)');
 pfc_betalo_svc = compare(lme_sv_prv,lme_sv_curprv,'CheckNesting',true)
 pfc_betalo_svp = compare(lme_sv_cur,lme_sv_curprv,'CheckNesting',true)
 
+% Plot PFC beta ~ SV as line plot
+fn_plot_LMM_quantile_lines(SBJs,good_tbl_prv.PFC_betalo,'SV_cur','PFC_betalo',...
+    lme_sv_curprv,pfc_betalo_svc.pValue(2),n_quantiles,'continuous',1);
+xlabel('Subjective Value (z)');
+xlim([-1.8 1.8]);
+xticks(-1.5:0.5:1.5);
+ylabel('PFC beta (z)');
+if strcmp(st.norm_nrl_pred,'zscore')
+    ylim([-0.6 0.6]);
+    yticks(-0.5:0.5:0.5);
+end
+set(gca,'FontSize',20);
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
 %% PFC Beta and Reward vs. Effort models:
 % PFC beta low and reward:
 lme0 = fitlme(good_tbl_all.PFC_betalo,'PFC_betalo~ 1 + (1|sbj_n)');

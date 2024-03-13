@@ -229,6 +229,25 @@ lme_sv_prv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ SV_prv + (1|sbj_n)');
 pfc_theta_svc = compare(lme_sv_prv,lme_sv_curprv,'CheckNesting',true)
 pfc_theta_svp = compare(lme_sv_cur,lme_sv_curprv,'CheckNesting',true)
 
+% Plot PFC theta ~ SV as line plot
+fn_plot_LMM_quantile_lines(SBJs,good_tbl_prv.PFC_theta,'SV_cur','PFC_theta',...
+    lme_sv_curprv,pfc_theta_svc.pValue(2),n_quantiles,'continuous',1);
+xlabel('Subjective Value (z)');
+xlim([-1.8 1.8]);
+xticks(-1.5:0.5:1.5);
+ylabel('PFC theta (z)');
+if strcmp(st.norm_nrl_pred,'zscore')
+    ylim([-0.6 0.6]);
+    yticks(-0.5:0.5:0.5);
+end
+set(gca,'FontSize',20);
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
 lme_ez_curprv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ dec_ease_cur + dec_ease_prv + (1|sbj_n)');
 lme_ez_cur = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ dec_ease_cur + (1|sbj_n)');
 lme_ez_prv = fitlme(good_tbl_prv.PFC_theta,'PFC_theta~ dec_ease_prv + (1|sbj_n)');

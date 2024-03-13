@@ -149,6 +149,25 @@ lme_sv_curprv_BG = fitlme(good_tbl_prv.BG_betalo,'BG_betalo~ SV_cur + SV_prv + B
 bg_betalo_full_vs_BG = compare(lme_all,lme_all_BG,'CheckNesting',true)
 bg_betalo_sv_vs_BG = compare(lme_sv_curprv,lme_sv_curprv_BG,'CheckNesting',true)
 
+% Plot BG beta ~ SV as line plot
+fn_plot_LMM_quantile_lines(SBJs,good_tbl_prv.BG_betalo,'SV_cur','BG_betalo',...
+    lme_sv_curprv,bg_betalo_svc.pValue(2),n_quantiles,'continuous',1);
+xlabel('Subjective Value (z)');
+xlim([-1.8 1.8]);
+xticks(-1.5:0.5:1.5);
+ylabel('BG beta (z)');
+if strcmp(st.norm_nrl_pred,'zscore')
+    ylim([-0.6 0.6]);
+    yticks(-0.5:0.5:0.5);
+end
+set(gca,'FontSize',20);
+if save_fig
+    fig_name = get(gcf,'Name');
+    fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname);
+    saveas(gcf,fig_fname);
+end
+
 %% Plot BG beta low by ROI
 bg_roi_idx_all = good_tbl_all.BG_betalo.BG_roi;
 figure;

@@ -63,7 +63,11 @@ end
 %% Create plot
 fig_name = ['GRP_TFR_LMM_results_' yvar '_' xvar '_quant_line'];
 figure('Name',fig_name); hold on;
-xvals = min(tbl.(xvar))-x_fudge:0.01:max(tbl.(xvar))+x_fudge;
+if continuous_data
+    xvals = min(min([x_mn{:}]))-x_fudge:0.01:max(max([x_mn{:}]))+x_fudge;
+else
+    xvals = min(tbl.(xvar))-x_fudge:0.01:max(tbl.(xvar))+x_fudge;
+end
 for s = 1:length(SBJs)
     errorbar(x_mn{s},y_mn{s},y_se{s},...
         'Color',sbj_colors(s,:),'LineWidth',1.5);
