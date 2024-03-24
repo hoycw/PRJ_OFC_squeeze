@@ -1,3 +1,6 @@
+%% Indifference point modeling
+% For PNAS revision 1, this version adds a new parameter to the model to
+% capture shifts in the indifference point
 addpath('/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/');
 addpath('/Users/colinhoy/Code/PRJ_OFC_squeeze/scripts/utils/');
 clear all
@@ -34,10 +37,15 @@ stake_ix  = strcmp(col_names,'Stake');
 dec_ix    = strcmp(col_names,'Decision');
 stim_ix   = strcmp(col_names,'Stim');
 blk_ix    = strcmp(col_names,'Block');
+
+% Add model with indifference point
+% from Klein-Flugge 2015 PLoSCB:
+%   p(Accept) = 1/(1 + exp(-B*(SV - a)) );
+%   where a is a free parameter for the indifference point (sigmoid crosses 0.5)
 % Fit all behavior. Minimise the difference between the probability and the decision
-decisionfun=@(p) norm( (exp(p(1)*(data(:,stake_ix)-(p(2)*(data(:,effort_ix)).^2))) ./ ...
-    (exp(p(1)) + exp(p(1)*(data(:,stake_ix)-(p(2)*(data(:,effort_ix)).^2))))) - data(:,dec_ix));
-[par_all, fit_all]=fminsearch(decisionfun, [1,1]);
+decisionfun=@(p) norm( (exp(p(1)*(data(:,stake_ix)-(p(2)*(data(:,effort_ix)).^2) - p(3))) ./ ...
+    (exp(p(1)) + exp(p(1)*(data(:,stake_ix)-(p(2)*(data(:,effort_ix)).^2) - p(3))))) - data(:,dec_ix));
+[par_all, fit_all]=fminsearch(decisionfun, [1,1,1]);
 
 SV_fn_all    = @(k) data(:,stake_ix)-(k*(data(:,effort_ix)).^2);
 EFF_fn_all   = @(k) (k*(data(:,effort_ix)).^2);
@@ -48,82 +56,27 @@ pacc = (exp(par_all(1)*(data(:,stake_ix)-(par_all(2)*(data(:,effort_ix)).^2))) .
 
 % Fit OFF behavior
 off_idx = data(:,stim_ix)==0;
-decisionfun=@(p) norm( (exp(p(1)*(data(off_idx,stake_ix)-(p(2)*(data(off_idx,effort_ix)).^2))) ./ ...
-    (exp(p(1)) + exp(p(1)*(data(off_idx,stake_ix)-(p(2)*(data(off_idx,effort_ix)).^2))))) - data(off_idx,dec_ix));
-[par_off, fit_off]=fminsearch(decisionfun, [1,1]);
+decisionfun=@(p) norm( (exp(p(1)*(data(off_idx,stake_ix)-(p(2)*(data(off_idx,effort_ix)).^2) - p(3))) ./ ...
+    (exp(p(1)) + exp(p(1)*(data(off_idx,stake_ix)-(p(2)*(data(off_idx,effort_ix)).^2) - p(3))))) - data(off_idx,dec_ix));
+[par_off, fit_off]=fminsearch(decisionfun, [1,1,1]);
 
-pacc_off = (exp(par_off(1)*(data(off_idx,stake_ix)-(par_off(2)*(data(off_idx,effort_ix)).^2))) ./...
-    (exp(par_off(1)) + exp(par_off(1)*(data(off_idx,stake_ix)-(par_off(2)*(data(off_idx,effort_ix)).^2)))));
-SV_fn_off    = @(k) data(off_idx,stake_ix)-(k*(data(off_idx,effort_ix)).^2);
-SV_off   = SV_fn_off(par_off(2));
+pacc_off = (exp(par_off(1)*(data(off_idx,stake_ix)-(par_off(2)*(data(off_idx,effort_ix)).^2) - par_off(3))) ./...
+    (exp(par_off(1)) + exp(par_off(1)*(data(off_idx,stake_ix)-(par_off(2)*(data(off_idx,effort_ix)).^2) - par_off(3)))));
+SV_fn_off    = @(k) data(off_idx,stake_ix)-(k(1)*(data(off_idx,effort_ix)).^2 - k(2));
+SV_off   = SV_fn_off(par_off(2:3));
 [~,SV_off_sort_idx] = sort(SV_off);
 
 % Fit ON behavior
 on_idx = data(:,stim_ix)==1;
-decisionfun=@(p) norm( (exp(p(1)*(data(on_idx,stake_ix)-(p(2)*(data(on_idx,effort_ix)).^2))) ./ ...
-    (exp(p(1)) + exp(p(1)*(data(on_idx,stake_ix)-(p(2)*(data(on_idx,effort_ix)).^2))))) - data(on_idx,dec_ix));
-[par_on, fit_on]=fminsearch(decisionfun, [1,1]);
-
-pacc_on = (exp(par_on(1)*(data(on_idx,stake_ix)-(par_on(2)*(data(on_idx,effort_ix)).^2))) ./...
-    (exp(par_on(1)) + exp(par_on(1)*(data(on_idx,stake_ix)-(par_on(2)*(data(on_idx,effort_ix)).^2)))));
-SV_fn_on    = @(k) data(on_idx,stake_ix)-(k*(data(on_idx,effort_ix)).^2);
-SV_on   = SV_fn_on(par_on(2));
-[~,SV_on_sort_idx] = sort(SV_on);
-
-%% Add model with indifference point
-% from Klein-Flugge 2015 PLoSCB:
-%   p(Accept) = 1/(1 + exp(-B*(SV - a)) );
-%   where a is a free parameter for the indifference point (sigmoid crosses 0.5)
-dec_fun_ind=@(p) norm( (exp(p(1)*(data(:,stake_ix)-(p(2)*(data(:,effort_ix)).^2) - p(3))) ./ ...
-    (exp(p(1)) + exp(p(1)*(data(:,stake_ix)-(p(2)*(data(:,effort_ix)).^2) - p(3))))) - data(:,dec_ix));
-[par_ind, fit_ind]=fminsearch(dec_fun_ind, [1,1,1]);
-
-% Run separately for OFF vs ON stim
-dec_fun_ind_off=@(p) norm( (exp(p(1)*(data(off_idx,stake_ix)-(p(2)*(data(off_idx,effort_ix)).^2) - p(3))) ./ ...
-    (exp(p(1)) + exp(p(1)*(data(off_idx,stake_ix)-(p(2)*(data(off_idx,effort_ix)).^2) - p(3))))) - data(off_idx,dec_ix));
-[par_ind_off, fit_ind_off]=fminsearch(dec_fun_ind_off, [1,1,1]);
-
-dec_fun_ind_on=@(p) norm( (exp(p(1)*(data(on_idx,stake_ix)-(p(2)*(data(on_idx,effort_ix)).^2) - p(3))) ./ ...
+decisionfun=@(p) norm( (exp(p(1)*(data(on_idx,stake_ix)-(p(2)*(data(on_idx,effort_ix)).^2) - p(3))) ./ ...
     (exp(p(1)) + exp(p(1)*(data(on_idx,stake_ix)-(p(2)*(data(on_idx,effort_ix)).^2) - p(3))))) - data(on_idx,dec_ix));
-[par_ind_on, fit_ind_on]=fminsearch(dec_fun_ind_on, [1,1,1]);
+[par_on, fit_on]=fminsearch(decisionfun, [1,1,1]);
 
-% Compute p(Accept)
-pacc_ind_off = (exp(par_ind_off(1)*(data(off_idx,stake_ix)-(par_ind_off(2)*(data(off_idx,effort_ix)).^2) - par_ind_off(3))) ./ ...
-    (exp(par_ind_off(1)) + exp(par_ind_off(1)*(data(off_idx,stake_ix)-(par_ind_off(2)*(data(off_idx,effort_ix)).^2) - par_ind_off(3)))));
-SV_ind_off   = SV_fn_off(par_ind_off(2));
-[~,SV_ind_off_sort_idx] = sort(SV_ind_off);
-pacc_ind_on = (exp(par_ind_on(1)*(data(on_idx,stake_ix)-(par_ind_on(2)*(data(on_idx,effort_ix)).^2) - par_ind_on(3))) ./ ...
-    (exp(par_ind_on(1)) + exp(par_ind_on(1)*(data(on_idx,stake_ix)-(par_ind_on(2)*(data(on_idx,effort_ix)).^2) - par_ind_on(3)))));
-SV_ind_on   = SV_fn_on(par_ind_on(2));
-[~,SV_ind_on_sort_idx] = sort(SV_ind_on);
-sv_vals  = -4.5:0.01:13;
-pacc_vals_on_ind  = (exp(par_ind_on(1)*sv_vals)) ./ (exp(par_ind_on(1)) + exp(par_ind_on(1)*sv_vals));
-pacc_vals_off_ind = (exp(par_ind_off(1)*sv_vals)) ./ (exp(par_ind_off(1)) + exp(par_ind_off(1)*sv_vals));
-
-% Plot the outcomes
-fig_name = 'PFC05_stim_dec_fn_ind_ONOFF_line';
-figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
-off_line = plot(SV_ind_off(SV_ind_off_sort_idx),pacc_ind_off(SV_ind_off_sort_idx),'Color',off_color,'LineWidth',2);
-on_line  = plot(SV_ind_on(SV_ind_on_sort_idx),pacc_ind_on(SV_ind_on_sort_idx),'Color',on_color,'LineWidth',2);
-% off_line = plot(sv_vals,pacc_vals_off_ind,'Color',off_color,'LineWidth',2);
-% on_line  = plot(sv_vals,pacc_vals_on_ind,'Color',on_color,'LineWidth',2);
-legend([off_line, on_line],stim_cond);
-line([-5 15],[0.5 0.5],'Color','k','LineStyle','--');
-xlim([-5 15]);
-xlabel('Subjective Value'); ylabel('Model Probabilty Accept');
-title('Subjective Value Decision Function');
-legend([off_line,on_line],strcat(stim_cond,' Stimulation'),'Location','best');
-set(gca,'FontSize',font_sz);
-if save_fig
-    fig_dir   = [prj_dir 'results/bhv/PFC05_stim/decision_fn_line_indif_pt/'];
-    if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-% pacc_on_ind = (exp(par_ind_on(1)*par_ind_on(1)) ./ (exp(par_ind_on(1)) + exp(par_ind_on(1)*par_ind_on(3))));
-% pacc_off_ind = (exp(par_ind_off(1)*par_ind_off(3)) ./ (exp(par_ind_off(1)) + exp(par_ind_off(1)*par_ind_off(3))));
+pacc_on = (exp(par_on(1)*(data(on_idx,stake_ix)-(par_on(2)*(data(on_idx,effort_ix)).^2) - par_on(3))) ./...
+    (exp(par_on(1)) + exp(par_on(1)*(data(on_idx,stake_ix)-(par_on(2)*(data(on_idx,effort_ix)).^2) - par_on(3)))));
+SV_fn_on    = @(k) data(on_idx,stake_ix)-(k(1)*(data(on_idx,effort_ix)).^2 - k(2));
+SV_on   = SV_fn_on(par_on(2:3));
+[~,SV_on_sort_idx] = sort(SV_on);
 
 %% Compile table
 pacc_all = [pacc_off; pacc_on];
@@ -335,7 +288,7 @@ pacc_onoff_se = [nanstd(pacc_off)./sqrt(length(pacc_off)) ...
           nanstd(pacc_on)./sqrt(length(pacc_on))];
 
 %% Bar plot of main effect of stim on work rate (% accept)
-fig_name = 'PFC05_stim_allTrials_dec_ONOFF_errbar';
+fig_name = 'PFC05_stim_allTrials_dec_ONOFF_ind_errbar';
 figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
 bars = bar([1 2],diag(dec_onoff_Xblk_mn),'stacked');
 bars(1).FaceColor = off_color;
@@ -357,7 +310,7 @@ if save_fig
     saveas(gcf,fig_fname);
 end
 
-fig_name = 'PFC05_stim_allTrials_pacc_ONOFF_errbar';
+fig_name = 'PFC05_stim_allTrials_pacc_ONOFF_ind_errbar';
 figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
 bars = bar([1 2],diag(pacc_onoff_mn),'stacked');
 bars(1).FaceColor = off_color;
@@ -381,7 +334,7 @@ if save_fig
 end
 
 %% Line plots of Decision and Prob accept by REWARD level
-fig_name = 'PFC05_stim_allTrials_dec_stake_ONOFF_line';
+fig_name = 'PFC05_stim_allTrials_dec_stake_ONOFF_ind_line';
 figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
 errorbar(stakes,mean(dec_mn_off,find(strcmp(re_vars,'Effort'))),...
     dec_stake_off_se,'Color',off_color,'linewidth',3);
@@ -408,7 +361,7 @@ if save_fig
     saveas(gcf,fig_fname);
 end
 
-fig_name = 'PFC05_stim_allTrials_pacc_stake_ONOFF_line';
+fig_name = 'PFC05_stim_allTrials_pacc_stake_ONOFF_ind_line';
 figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
 errorbar(stakes,mean(pacc_mn_off,find(strcmp(re_vars,'Effort'))),...
     pacc_stake_off_se,'Color',off_color,'linewidth',3);
@@ -428,7 +381,7 @@ if save_fig
 end
 
 %% Line plots of Decision and Prob accept by EFFORT level
-fig_name = 'PFC05_stim_allTrials_dec_effort_ONOFF_line';
+fig_name = 'PFC05_stim_allTrials_dec_effort_ONOFF_ind_line';
 figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
 errorbar(efforts,mean(dec_mn_off,find(strcmp(re_vars,'Stake'))),...
     dec_eff_off_se,'Color',off_color,'linewidth',3);
@@ -449,7 +402,7 @@ if save_fig
     saveas(gcf,fig_fname);
 end
 
-fig_name = ['PFC05_stim_allTrials_pacc_effort_ONOFF_line'];
+fig_name = ['PFC05_stim_allTrials_pacc_effort_ONOFF_ind_line'];
 figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
 errorbar(efforts,mean(pacc_mn_off,find(strcmp(re_vars,'Stake'))),...
     pacc_eff_off_se,'Color',off_color,'linewidth',3);
@@ -469,7 +422,7 @@ if save_fig
 end
 
 %% Line plot for SV vs. decision function
-fig_name = 'PFC05_stim_dec_fn_ONOFF_line';
+fig_name = 'PFC05_stim_dec_fn_ind_ONOFF_line';
 figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
 off_line = line(SV_off(SV_off_sort_idx),pacc_off(SV_off_sort_idx),'Color',off_color,'LineWidth',3);
 % scatter(SV_off(SV_off_sort_idx),pacc_off(SV_off_sort_idx),scat_sz,off_color);
@@ -478,7 +431,7 @@ on_line = line(SV_on(SV_on_sort_idx),pacc_on(SV_on_sort_idx),'Color',on_color,'L
 %     line(mdl_x,mdl_y,'Color','k');
 line([-5 15],[0.5 0.5],'Color','k','LineStyle','--');
 xlim([-5 15]);
-xlabel('Subjective Value'); ylabel('Probabilty Accept');
+xlabel('Subjective Value'); ylabel('Model Probabilty Accept');
 title('Subjective Value Decision Function');
 legend([off_line,on_line],{'OFF stimulation','ON stimulation'},'Location','best');
 set(gca,'FontSize',font_sz);
@@ -489,21 +442,6 @@ if save_fig
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
 end
-
-sv_vals  = -4.5:0.01:13;
-pacc_vals_on  = (exp(par_on(1)*sv_vals)) ./ (exp(par_on(1)) + exp(par_on(1)*sv_vals));
-pacc_vals_off = (exp(par_off(1)*sv_vals)) ./ (exp(par_off(1)) + exp(par_off(1)*sv_vals));
-
-% fig_name = 'PFC05_stim_dec_fn_ONOFF_line_fine';
-% figure('Name',fig_name,'units','norm','outerposition',[0 0 0.3 0.5]); hold on;
-% off_line = line(sv_vals,pacc_vals_off,'Color',off_color,'LineWidth',3);
-% on_line = line(sv_vals,pacc_vals_on,'Color',on_color,'LineWidth',3);
-% line([-5 15],[0.5 0.5],'Color','k','LineStyle','--');
-% xlim([-5 15]);
-% xlabel('Subjective Value'); ylabel('Model p(Accept)');
-% title('Subjective Value Decision Function');
-% legend([off_line,on_line],{'OFF stimulation','ON stimulation'},'Location','best');
-% set(gca,'FontSize',font_sz);
 
 %% 3D bar plot of subjective value landscape
 fig_name = 'PFC05_stim_allTrials_sv_bar3';
