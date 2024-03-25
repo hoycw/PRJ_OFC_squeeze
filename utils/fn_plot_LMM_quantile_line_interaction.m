@@ -7,7 +7,7 @@ scat_sz  = 50;
 x_fudge = 0.2;
 
 sbj_ns = unique(tbl.sbj_n);
-if ~all(sbj_ns'==[1 2 3 4]); error('SBJs in tbl mismatch'); end
+% if ~all(sbj_ns'==[1 2 3 4]); error('SBJs in tbl mismatch'); end
 [xplt_lab, ~, ~] = fn_get_label_styles(xvar_plt,1);
 [xdiv_lab, xdiv_colors, xdiv_styles] = fn_get_label_styles(xvar_div,n_quant_div);
 [yvar_lab, ~, ~] = fn_get_label_styles(yvar,1);
@@ -15,7 +15,8 @@ if ~all(sbj_ns'==[1 2 3 4]); error('SBJs in tbl mismatch'); end
 %% Discretize predictors into quantiles
 xdiv_idx = zeros(size(tbl.sbj_n));
 xplt_idx = zeros(size(tbl.sbj_n));
-for s = 1:length(sbj_ns)
+for s_ix = 1:length(sbj_ns)
+    s = sbj_ns(s_ix);
     % Get bin edges
 %     if continuous_data
         div_qs = quantile(tbl.(xvar_div)(tbl.sbj_n==s),n_quant_div);
@@ -42,8 +43,16 @@ for s = 1:length(sbj_ns)
     % Assign to quantiles
     if n_quant_div==2 && any(contains(xvar_div,{'reward','effort'}))
         % Override median split for reward/effort to be high/low split
-        xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)<-0.5) = 1;
-        xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)>0.5)  = 2;
+        if all(unique(tbl.(xvar_div))'==[1 4 7 10 13])
+            xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)<5) = 1;
+            xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)>8)  = 2;
+        elseif all(unique(tbl.(xvar_div))'==[0.16 0.32 0.48 0.64 0.8])
+            xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)<0.4) = 1;
+            xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)>0.5)  = 2;
+        else
+            xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)<-0.5) = 1;
+            xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)>0.5)  = 2;
+        end
     else
         for i = 1:n_quant_div
             if i==1                 % first quantile
@@ -84,7 +93,8 @@ end
 %% Plot partial dependence curves
 fig_name = ['GRP_TFR_LMM_results_' yvar '_' xvar_plt num2str(n_quant_plt) ...
     '_by_' xvar_div num2str(n_quant_div) '_quant_line_interaction'];
-figure('Name',fig_name); hold on;
+% figure('Name',fig_name);
+hold on;
 xdiv_lines = gobjects([n_quant_div 1]);
 for xd = 1:n_quant_div
     xdiv_lines(xd) = errorbar(x_mn(:,xd),y_mn(:,xd),y_se(:,xd),...

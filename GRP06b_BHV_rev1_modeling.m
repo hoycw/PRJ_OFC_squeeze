@@ -8,6 +8,9 @@ close all
 clear all
 
 %%
+% Stimulus decision phase:
+an_id = 'TFRmth_S1t2_madS8t0_f2t40_osr'; stat_id = 'S5t15_bhv0_nrl0_out3';
+
 % Load SBJs, sbj_pfc_roi, sbj_bg_roi, and sbj_colors:
 prj_dir = '/Users/colinhoy/Code/PRJ_OFC_squeeze/';
 eval(['run ' prj_dir 'scripts/SBJ_vars.m']);
@@ -32,6 +35,11 @@ for s = 1:length(SBJs)
     bhvs{s} = sbj_data.bhv;
     mdls{s} = sbj_data.mdl;
 end
+
+%% Load group model tables
+table_all_fname = [prj_dir 'data/GRP/GRP_' an_id '_' stat_id '_full_table_all.csv'];
+fprintf('\tLoading %s...\n',table_all_fname);
+tbl = readtable(table_all_fname);
 
 %% Behavioral model fitting
 % Original model:
@@ -61,16 +69,18 @@ orig_par = nan(length(SBJs),2);
 orig_fit = nan(size(SBJs));
 orig_flg = nan(size(SBJs));
 for s = 1:length(SBJs)
-    dec_fn=@(p) norm( (exp(p(1)*(bhvs{s}.stake-(p(2)*(bhvs{s}.effort).^2))) ./ ...
-        (exp(p(1)) + exp(p(1)*(bhvs{s}.stake-(p(2)*(bhvs{s}.effort).^2))))) - bhvs{s}.decision);
+    s_idx = tbl.sbj_n==s;
+    dec_fn=@(p) norm( (exp(p(1)*(tbl.reward_cur(s_idx)-(p(2)*(tbl.effort_cur(s_idx)).^2))) ./ ...
+        (exp(p(1)) + exp(p(1)*(tbl.reward_cur(s_idx)-(p(2)*(tbl.effort_cur(s_idx)).^2))))) - tbl.decision_cur(s_idx));
     [orig_par(s,:), orig_fit(s), orig_flg(s)]=fminsearch(dec_fn, [1,1], options);
-    orig_SV_fn    = @(k) bhvs{s}.stake-(k*(bhvs{s}.effort).^2);
-    orig_EFF_fn   = @(k) (k*(bhvs{s}.effort).^2);
+    orig_SV_fn    = @(k) tbl.reward_cur(s_idx)-(k*(tbl.effort_cur(s_idx)).^2);
+    orig_EFF_fn   = @(k) (k*(tbl.effort_cur(s_idx)).^2);
     SV{s}.orig   = orig_SV_fn(orig_par(s,2));
     EFFs{s}.orig = orig_EFF_fn(orig_par(s,2));
-    pacc{s}.orig = (exp(orig_par(s,1)*(bhvs{s}.stake-(orig_par(s,2)*(bhvs{s}.effort).^2))) ./...
-        (exp(orig_par(s,1)) + exp(orig_par(s,1)*(bhvs{s}.stake-(orig_par(s,2)*(bhvs{s}.effort).^2)))));
+    pacc{s}.orig = (exp(orig_par(s,1)*(tbl.reward_cur(s_idx)-(orig_par(s,2)*(tbl.effort_cur(s_idx)).^2))) ./...
+        (exp(orig_par(s,1)) + exp(orig_par(s,1)*(tbl.reward_cur(s_idx)-(orig_par(s,2)*(tbl.effort_cur(s_idx)).^2)))));
     % pause;
+    tbl.pacc_orig(s_idx) = pacc{s}.orig;
 end
 % PFC05 doesn't converge to reasonable values, so maybe this isn't a good
 % move...
@@ -82,7 +92,7 @@ sbj_idx = [1 2 3 4];
 for s = sbj_idx
     [~,SV_sort_idx] = sort(SV{s}.orig);
     
-    sv_line(s) = line(SV{s}.orig(SV_sort_idx),pacc{s}.orig(SV_sort_idx),...
+    sv_lines(s) = line(SV{s}.orig(SV_sort_idx),pacc{s}.orig(SV_sort_idx),...
         'Color',sbj_colors(s,:),'LineWidth',3);
 %     scatter(bhvs{s}.SV,bhvs{s}.p_accept,scat_sz,sbj_colors(s,:));
 %     line(mdl_x,mdl_y,'Color','k');
@@ -99,15 +109,16 @@ irew_par = nan(length(SBJs),3);
 irew_fit = nan(size(SBJs));
 irew_flg = nan(size(SBJs));
 for s = 1:length(SBJs)
-    irew_dec_fn=@(p) norm( (exp(p(1)*((p(2)*bhvs{s}.stake)-(p(3)*(bhvs{s}.effort).^2))) ./ ...
-        (exp(p(1)) + exp(p(1)*((p(2)*bhvs{s}.stake)-(p(3)*(bhvs{s}.effort).^2))))) - bhvs{s}.decision);
+    s_idx = tbl.sbj_n==s;
+    irew_dec_fn=@(p) norm( (exp(p(1)*((p(2)*tbl.reward_cur(s_idx))-(p(3)*(tbl.effort_cur(s_idx)).^2))) ./ ...
+        (exp(p(1)) + exp(p(1)*((p(2)*tbl.reward_cur(s_idx))-(p(3)*(tbl.effort_cur(s_idx)).^2))))) - tbl.decision_cur(s_idx));
     [irew_par(s,:), irew_fit(s), irew_flg(s)]=fminsearch(irew_dec_fn, [1,1,1], options);
-    irew_SV_fn    = @(k) (k(1)*bhvs{s}.stake)-(k(2)*(bhvs{s}.effort).^2);
-    irew_EFF_fn   = @(k) (k*(bhvs{s}.effort).^2);
+    irew_SV_fn    = @(k) (k(1)*tbl.reward_cur(s_idx))-(k(2)*(tbl.effort_cur(s_idx)).^2);
+    irew_EFF_fn   = @(k) (k*(tbl.effort_cur(s_idx)).^2);
     SV{s}.irew   = irew_SV_fn(irew_par(s,2:3));
     EFFs{s}.irew = irew_EFF_fn(irew_par(s,3));
-    pacc{s}.irew = (exp(irew_par(s,1)*((irew_par(s,3)*bhvs{s}.stake)-(irew_par(s,2)*(bhvs{s}.effort).^2))) ./...
-        (exp(irew_par(s,1)) + exp(irew_par(s,1)*(bhvs{s}.stake-(irew_par(s,2)*(bhvs{s}.effort).^2)))));
+    pacc{s}.irew = (exp(irew_par(s,1)*((irew_par(s,3)*tbl.reward_cur(s_idx))-(irew_par(s,2)*(tbl.effort_cur(s_idx)).^2))) ./...
+        (exp(irew_par(s,1)) + exp(irew_par(s,1)*(tbl.reward_cur(s_idx)-(irew_par(s,2)*(tbl.effort_cur(s_idx)).^2)))));
     % pause;
 end
 % PFC05 doesn't converge to reasonable values, so maybe this isn't a good
@@ -144,31 +155,36 @@ options = optimset('PlotFcns',@optimplotfval);%,'MaxFunEvals',5000,'MaxIter',500
 sprew_par = nan(length(SBJs),2);
 sprew_fit = nan(size(SBJs));
 sprew_flg = nan(size(SBJs));
+pacc_sprew = nan(size(tbl.pAccept_cur));
 for s = 1:length(SBJs)
-    prv_idx = ~isnan(bhvs{s}.stake_prv);
-    sprew_dec_fn=@(p) norm( (exp(p(1)*((bhvs{s}.stake(prv_idx)-bhvs{s}.stake_prv(prv_idx))-...
-        (p(2)*(bhvs{s}.effort(prv_idx)).^2))) ./ ...
-        (exp(p(1)) + exp(p(1)*((bhvs{s}.stake(prv_idx)-bhvs{s}.stake_prv(prv_idx))-...
-        (p(2)*(bhvs{s}.effort(prv_idx)).^2))))) - bhvs{s}.decision(prv_idx));
+    s_idx = tbl.sbj_n==s & ~isnan(tbl.reward_prv);
+    sprew_dec_fn=@(p) norm( (exp(p(1)*((tbl.reward_cur(s_idx)-tbl.reward_prv(s_idx))-...
+        (p(2)*(tbl.effort_cur(s_idx)).^2))) ./ ...
+        (exp(p(1)) + exp(p(1)*((tbl.reward_cur(s_idx)-tbl.reward_prv(s_idx))-...
+        (p(2)*(tbl.effort_cur(s_idx)).^2))))) - tbl.decision_cur(s_idx));
     [sprew_par(s,:), sprew_fit(s), sprew_flg(s)]=fminsearch(sprew_dec_fn, [1,1], options);
-    sprew_SV_fn    = @(k) bhvs{s}.stake-(k*(bhvs{s}.effort).^2);
-    sprew_EFF_fn   = @(k) (k*(bhvs{s}.effort).^2);
+    sprew_SV_fn    = @(k) tbl.reward_cur(s_idx)-(k*(tbl.effort_cur(s_idx)).^2);
+    sprew_EFF_fn   = @(k) (k*(tbl.effort_cur(s_idx)).^2);
     SV{s}.sprew   = sprew_SV_fn(sprew_par(s,2));
     EFFs{s}.sprew = sprew_EFF_fn(sprew_par(s,2));
-    pacc{s}.sprew = (exp(sprew_par(s,1)*(bhvs{s}.stake-(sprew_par(s,2)*(bhvs{s}.effort).^2))) ./...
-        (exp(sprew_par(s,1)) + exp(sprew_par(s,1)*(bhvs{s}.stake-(sprew_par(s,2)*(bhvs{s}.effort).^2)))));
+    pacc{s}.sprew = (exp(sprew_par(s,1)*(tbl.reward_cur(s_idx)-(sprew_par(s,2)*(tbl.effort_cur(s_idx)).^2))) ./...
+        (exp(sprew_par(s,1)) + exp(sprew_par(s,1)*(tbl.reward_cur(s_idx)-(sprew_par(s,2)*(tbl.effort_cur(s_idx)).^2)))));
     % pause;
+    pacc_sprew(s_idx) = pacc{s}.sprew;
 end
+tbl.pacc_sprew = pacc_sprew;
 
+%%
 fig_name = 'GRP_bhv_model_subPrvRew_SV_decision_fn';
-figure('Name',fig_name,'units','norm','OuterPosition',[0 0 0.3 0.4]);
-hold on;
+figure('Name',fig_name,'units','norm','OuterPosition',[0 0 0.5 0.4]);
+subplot(1,3,1); hold on;
 sbj_idx = [1 2 3 4];
 subplot(1,3,1); hold on;
 for s = sbj_idx
     [~,SV_sort_idx] = sort(SV{s}.sprew);
-    sv_lines(s) = line(SV{s}.sprew(SV_sort_idx),pacc{s}.sprew(SV_sort_idx),...
+    sv_lines(s) = plot(SV{s}.sprew(SV_sort_idx),pacc{s}.sprew(SV_sort_idx),...
         'Color',sbj_colors(s,:),'LineWidth',3);
+    scatter(SV{s}.sprew,pacc{s}.sprew,75,sbj_colors(s,:));
 end
 line(xlim,[0.5 0.5],'Color','k','LineStyle','--');
 xlabel('Subjective Value'); ylabel('Probabilty Accept');
@@ -177,16 +193,22 @@ legend(sv_lines,SBJs(sbj_idx));
 set(gca,'FontSize',18);
 
 subplot(1,3,2); hold on;
-for s = sbj_idx
-    [~,SV_sort_idx] = sort(SV{s}.sprew);
-    sv_lines(s) = line(SV{s}.sprew(SV_sort_idx),pacc{s}.sprew(SV_sort_idx),...
-        'Color',sbj_colors(s,:),'LineWidth',3);
+fn_plot_LMM_quantile_line_interaction(tbl(~isnan(tbl.reward_prv),:),'reward_prv','reward_cur','pAccept_cur',2,5);
+subplot(1,3,3); hold on;
+fn_plot_LMM_quantile_line_interaction(tbl(~isnan(tbl.reward_prv),:),'reward_prv','reward_cur','pacc_sprew',2,5);
+
+figure;
+for s = 1:length(SBJs)
+    subplot(2,2,s); hold on;
+    fn_plot_LMM_quantile_line_interaction(tbl(~isnan(tbl.reward_prv) & tbl.sbj_n==s,:),'reward_prv','reward_cur','pAccept_cur',2,5);
+    title(SBJs{s});
 end
-line(xlim,[0.5 0.5],'Color','k','LineStyle','--');
-xlabel('Subjective Value'); ylabel('Probabilty Accept');
-title('Subtract Prev Reward SV Reward Function');
-legend(sv_lines,SBJs(sbj_idx));
-set(gca,'FontSize',18);
+figure;
+for s = 1:length(SBJs)
+    subplot(2,2,s); hold on;
+    fn_plot_LMM_quantile_line_interaction(tbl(~isnan(tbl.reward_prv) & tbl.sbj_n==s,:),'reward_prv','reward_cur','pacc_sprew',2,5);
+    title(SBJs{s});
+end
 
 % if save_fig
 %     fig_dir   = [prj_dir 'results/bhv/'];
@@ -195,389 +217,3 @@ set(gca,'FontSize',18);
 %     fprintf('Saving %s\n',fig_fname);
 %     saveas(gcf,fig_fname);
 % end
-
-%% Create variables
-% Mean Reward and Effort
-efforts = unique(bhvs{1}.effort);
-stakes  = unique(bhvs{1}.stake);
-p_acc_mn = nan([length(stakes) length(efforts) length(SBJs)]);
-for s = 1:length(SBJs)
-    if length(unique(bhvs{s}.effort))~=5 || length(unique(bhvs{s}.stake))~=5
-        error([SBJs{s} ' is missing conditions for stake or effort!']);
-    end
-    bhvs{s}.SV_stake_mn  = nan([5 1]);
-    bhvs{s}.SV_stake_se  = nan([5 1]);
-    bhvs{s}.SV_effort_mn = nan([5 1]);
-    bhvs{s}.SV_effort_se = nan([5 1]);
-    for stk_i = 1:5
-        bhvs{s}.SV_effort_mn(stk_i) = mean(bhvs{s}.SV(bhvs{s}.effort==efforts(stk_i)));
-        bhvs{s}.SV_effort_se(stk_i) = std(bhvs{s}.SV(bhvs{s}.effort==efforts(stk_i)))./sqrt(sum(bhvs{s}.effort==efforts(stk_i)));
-        bhvs{s}.SV_stake_mn(stk_i) = mean(bhvs{s}.SV(bhvs{s}.stake==stakes(stk_i)));
-        bhvs{s}.SV_stake_se(stk_i) = std(bhvs{s}.SV(bhvs{s}.stake==stakes(stk_i)))./sqrt(sum(bhvs{s}.stake==stakes(stk_i)));
-        for eff_i = 1:5
-            p_acc_mn(stk_i,eff_i,s) = mean(bhvs{s}.p_accept(bhvs{s}.effort==efforts(eff_i) & bhvs{s}.stake==stakes(stk_i)));
-        end
-    end
-end
-
-p_acc_mn_grp = mean(p_acc_mn,3);
-
-%% Plot RT distributions
-fig_name = 'SBJ_RT_histograms';
-figure('Name',fig_name);
-bins = 1.5:0.25:5.5;
-grp_rts = [];
-for s = 1:length(SBJs)
-    grp_rts = [grp_rts; bhvs{s}.rt];
-    subplot(4,1,s); hold on;
-    histogram(bhvs{s}.rt,bins,'FaceColor',sbj_colors(s,:));
-    legend(SBJs{s},'Location','northeast');
-    set(gca,'FontSize',18);
-end
-xlabel('Reaction Times (s)');
-
-if save_fig
-    fig_dir   = [prj_dir 'results/bhv/'];
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-fig_name = 'GRP_RT_histograms';
-figure('Name',fig_name); hold on;
-histogram(grp_rts,bins);%,'FaceColor',[0.3 0.3 0.3]);
-xlabel('Reaction Times (s)');
-ylabel('Trial Count');
-title('Group RT distribution');
-set(gca,'FontSize',24);
-
-if save_fig
-    fig_dir   = [prj_dir 'results/bhv/'];
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-%% 3-D plot of acceptance as function of reward and effort
-% Subject level
-for s = 1:length(SBJs)
-    fig_name = [SBJs{s} '_p_acc_bar3'];
-    figure('Name',fig_name);
-    bars = bar3(squeeze(p_acc_mn(:,:,s)));
-    ylabel('Reward');
-    yticklabels(stakes);
-    xlabel('Effort (% Max Force)');
-    xticklabels(efforts*100);
-    zlabel('% Accept');
-    title([SBJs{s} ' Decision Landscape']);
-    set(gca,'FontSize',16);
-    view([135 30]);
-    
-    % Shade bar according to z-axis
-    for b = 1:length(bars)
-        zdata = bars(b).ZData;
-        bars(b).CData = zdata;
-        bars(b).FaceColor = 'interp';
-    end
-%     idxrep = repmat(1:size(p_acc_mn,1),6,1);  %magic 6
-%     for col_ix = 1:size(p_acc_mn,2)
-%         Z = repmat(p_acc_mn(idxrep(:),col_ix),1,4);   %magic 4
-%         set(bars(col_ix), 'CData',Z);
-%     end
-    
-    if save_fig
-        fig_dir   = [prj_dir 'results/bhv/p_accept_bar3/'];
-        if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
-        fig_fname = [fig_dir fig_name '.' fig_ftype];
-        fprintf('Saving %s\n',fig_fname);
-        if any(strcmp(fig_ftype,{'svg','eps'}))
-            set(gcf, 'Renderer', 'painters');
-        end
-        saveas(gcf,fig_fname);
-    end
-end
-
-% Group level
-fig_name = ['GRP_p_acc_bar3'];
-figure('Name',fig_name);
-bars = bar3(p_acc_mn_grp);
-ylabel('Reward');
-yticklabels(stakes);
-xlabel('Effort (% Max)');
-xticklabels(efforts*100);
-zlabel('% Accept');
-title('Group Decision Landscape');
-set(gca,'FontSize',16);
-view([135 30]);
-
-% Shade bar according to z-axis
-for b = 1:length(bars)
-    zdata = bars(b).ZData;
-    bars(b).CData = zdata;
-    bars(b).FaceColor = 'interp';
-end
-% idxrep = repmat(1:size(p_acc_mn_grp,1),6,1);  %magic 6
-% for col_ix = 1:size(p_acc_mn_grp,2)
-%   Z = repmat(p_acc_mn_grp(idxrep(:),col_ix),1,4);   %magic 4
-%   set(bars(col_ix), 'CData',Z);
-% end
-
-if save_fig
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    if any(strcmp(fig_ftype,{'svg','eps'}))
-        set(gcf, 'Renderer', 'painters');
-    end
-    saveas(gcf,fig_fname);
-end
-
-%% Plot correlation between behavioral predictors
-scat_sz = 40;
-
-pred = {'rt','effort','stake','decision','SV','EFFs','p_accept','absSV','dec_diff'};
-pred_prv = strcat(pred,'_prv');
-pred_all = [pred pred_prv];
-prv_idx = contains(pred_all,'_prv');
-pred_mat = cell(size(SBJs));
-for s = 1:length(SBJs)
-    % Build matrix
-    pred_mat{s} = nan([length(bhvs{s}.rt) length(pred_all)]);
-    for p = 1:length(pred_all)
-        pred_mat{s}(:,p) = bhvs{s}.(pred_all{p});
-    end
-    
-    % Compute correlations
-    [pred_all_corr, pred_all_pval] = corrcoef(pred_mat{s},'Rows','complete');
-    pred_all_sig = pred_all_pval<=0.05;
-    
-    % Plot current correlations
-    fig_name = [SBJs{s} '_bhv_pred_corr_mat'];
-    figure('Name',fig_name); hold on;
-    imagesc(pred_all_corr(prv_idx==0,prv_idx==0));
-    set(gca,'XTick',1:length(pred));
-    set(gca,'XTickLabels',pred);
-    set(gca,'XTickLabelRotation',45);
-    set(gca,'XLim',[0.5 length(pred)+0.5]);
-    set(gca,'YTick',1:length(pred));
-    set(gca,'YTickLabels',pred);
-    set(gca,'YTickLabelRotation',45);
-    set(gca,'YLim',[0.5 length(pred)+0.5]);
-    set(gca,'TickLabelInterpreter','none');
-    set(gca,'FontSize',16);
-    colorbar;
-    caxis([-1 1]);
-    title('Behavioral Predictor Correlations');
-    for p1 = 1:length(pred)
-        for p2 = 1:length(pred)
-            if pred_all_sig(p1,p2); scatter(p1,p2,scat_sz,'k','*'); end
-        end
-    end
-    if save_fig
-        fig_dir   = [prj_dir 'results/bhv/pred_corr/'];
-        if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
-        fig_fname = [fig_dir fig_name '.' fig_ftype];
-        fprintf('Saving %s\n',fig_fname);
-        saveas(gcf,fig_fname);
-    end
-    
-    % Plot current vs. previous correlations
-    fig_name = [SBJs{s} '_bhv_pred_curVsPrv_corr_mat'];
-    figure('Name',fig_name); hold on;
-    imagesc(pred_all_corr(prv_idx==0,prv_idx==1));
-    set(gca,'XTick',1:length(pred));
-    set(gca,'XTickLabels',pred);
-    set(gca,'XTickLabelRotation',45);
-    set(gca,'XLim',[0.5 length(pred)+0.5]);
-    set(gca,'YTick',1:length(pred));
-    set(gca,'YTickLabels',pred_prv);
-    set(gca,'YTickLabelRotation',45);
-    set(gca,'YLim',[0.5 length(pred)+0.5]);
-    set(gca,'TickLabelInterpreter','none');
-    set(gca,'FontSize',16);
-    colorbar;
-    title('Behavioral Predictor Correlations: Current vs. Previous');
-%     caxis([-1 1]);
-    for p1 = 1:length(pred)
-        for p2 = 1+length(pred):length(pred_all)
-            if pred_all_sig(p1,p2); scatter(p1,p2-length(pred_all),scat_sz,'k','*'); end
-        end
-    end
-    
-    if save_fig
-        fig_fname = [fig_dir fig_name '.' fig_ftype];
-        fprintf('Saving %s\n',fig_fname);
-        saveas(gcf,fig_fname);
-    end
-end
-
-%% Plot effort vs. EFF
-fig_name = 'GRP_effort_vs_EFFs';
-figure('Name',fig_name);%,'units','norm','OuterPosition',[0 0 0.5 0.6]);
-hold on;
-for s = 1:length(SBJs)
-    [~,eff_sort_idx] = sort(bhvs{s}.effort);
-    line(bhvs{s}.effort(eff_sort_idx),bhvs{s}.EFFs(eff_sort_idx),...
-        'Color',sbj_colors(s,:),'LineWidth',2);
-    xlabel('Effort');
-    ylabel('Subjective Effort');
-    title('Subjective Effort Function');
-    set(gca,'FontSize',16);
-end
-legend(SBJs,'Location','best');
-
-if save_fig
-    fig_dir   = [prj_dir 'results/bhv/'];
-    if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-%% Characterize behavior: Reward, subejctive ffort, SV decision fn, abs(SV)
-scat_sz = 40;
-mdl_x = -15:0.001:15;
-fig_name = ['GRP_bhv_model_scatter'];
-figure('Name',fig_name,'units','norm','OuterPosition',[0 0 0.5 0.6]);
-for s = 1:length(SBJs)
-%     mdl_y = mdls{s}.par(1) + (mdl_x * mdls{s}.par(2));
-%     mdl_y = 1 ./ (1+exp(-mdl_y));
-%     mdl_y_vals = (exp(mdls{s}.par(1)*mdl_x) ./ ...
-%         (exp(mdls{s}.par(1)) + exp(mdls{s}.par(1)*mdl_x)));
-%     betas = glmfit(bhvs{s}.SV,bhvs{s}.p_accept,'binomial','link','logit');
-%     sigparam = sigm_fit(bhvs{s}.SV,bhvs{s}.p_accept);
-    [~,SV_sort_idx] = sort(bhvs{s}.SV);
-    
-    subplot(2,2,1); hold on;
-%     scatter(bhvs{s}.stake,bhvs{s}.SV,scat_sz,sbj_colors(s,:));
-    errorbar(stakes,bhvs{s}.SV_stake_mn,bhvs{s}.SV_stake_se,...
-        'Color',sbj_colors(s,:),'LineWidth',2);
-    xlabel('Reward'); ylabel('SV');
-    title('Reward vs. Subjective Value');
-    set(gca,'FontSize',16);
-    legend(SBJs,'Location','northwest');
-    
-    subplot(2,2,2); hold on;
-%     scatter(bhvs{s}.effort,bhvs{s}.SV,scat_sz,sbj_colors(s,:));
-    errorbar(efforts,bhvs{s}.SV_effort_mn,bhvs{s}.SV_effort_se,...
-        'Color',sbj_colors(s,:),'LineWidth',2);
-    xlabel('Effort - Proportion max'); ylabel('SV');
-    title('Objective Effort vs. Subjective Value');
-    set(gca,'FontSize',16);
-    
-    subplot(2,2,3); hold on;
-    line(bhvs{s}.SV(SV_sort_idx),bhvs{s}.p_accept(SV_sort_idx),...
-        'Color',sbj_colors(s,:),'LineWidth',2);
-    scatter(bhvs{s}.SV,bhvs{s}.p_accept,scat_sz,sbj_colors(s,:));
-%     line(mdl_x,mdl_y,'Color','k');
-    line([0 0],[0 1],'Color','k','LineStyle','--');
-    xlabel('SV'); ylabel('Probabilty of acceptance');
-    title('Subjective Value Decision Function');
-    set(gca,'FontSize',16);
-
-    subplot(2,2,4); hold on;
-    line(abs(bhvs{s}.SV(SV_sort_idx)-median(bhvs{s}.SV)),bhvs{s}.p_accept(SV_sort_idx),...
-        'Color',sbj_colors(s,:),'LineWidth',2);
-    scatter(abs(bhvs{s}.SV-median(bhvs{s}.SV)),bhvs{s}.p_accept,scat_sz,sbj_colors(s,:));
-%     line(mdl_x,mdl_y,'Color','k');
-    xlabel('abs(SV)'); ylabel('Probabilty of acceptance');
-    title('Absolute Subjective Value');
-    set(gca,'FontSize',16);
-end
-
-if save_fig
-    fig_dir   = [prj_dir 'results/bhv/'];
-    if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-%% Clean plot of subjective value decision function
-fig_name = ['GRP_bhv_model_SV_decision_fn'];
-figure('Name',fig_name,'units','norm','OuterPosition',[0 0 0.3 0.4]);
-hold on;
-for s = 1:length(SBJs)
-    [~,SV_sort_idx] = sort(bhvs{s}.SV);
-    
-    line(bhvs{s}.SV(SV_sort_idx),bhvs{s}.p_accept(SV_sort_idx),...
-        'Color',sbj_colors(s,:),'LineWidth',3);
-%     scatter(bhvs{s}.SV,bhvs{s}.p_accept,scat_sz,sbj_colors(s,:));
-%     line(mdl_x,mdl_y,'Color','k');
-    line(xlim,[0.5 0.5],'Color','k','LineStyle','--');
-    xlabel('Subjective Value'); ylabel('Probabilty Accept');
-    title('Subjective Value Decision Function');
-    set(gca,'FontSize',18);
-end
-
-if save_fig
-    fig_dir   = [prj_dir 'results/bhv/'];
-    if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
-    fig_fname = [fig_dir fig_name '.' fig_ftype];
-    fprintf('Saving %s\n',fig_fname);
-    saveas(gcf,fig_fname);
-end
-
-%% Split decision by input variables
-for s=1:4
-    fig_name = [SBJs{s} '_bhv_model_hist_split_dec'];
-    figure('Name',fig_name);
-    subplot(2,2,1); hold on;
-    histogram(bhvs{s}.SV(bhvs{s}.decision==0),'FaceColor','r','FaceAlpha',0.3);
-    histogram(bhvs{s}.SV(bhvs{s}.decision==1),'FaceColor','b','FaceAlpha',0.3);
-    xlabel('Current SV');
-    title(SBJs{s});
-    legend('Reject','Accept');
-    set(gca,'FontSize',16);
-    
-    subplot(2,2,2); hold on;
-    histogram(bhvs{s}.SV_prv(bhvs{s}.decision==0),'FaceColor','r','FaceAlpha',0.3);
-    histogram(bhvs{s}.SV_prv(bhvs{s}.decision==1),'FaceColor','b','FaceAlpha',0.3);
-    xlabel('Previous Trial SV');
-    legend('Reject','Accept');
-    set(gca,'FontSize',16);
-    
-    subplot(2,2,3); hold on;
-    histogram(bhvs{s}.stake(bhvs{s}.decision==0),'FaceColor','r','FaceAlpha',0.3);
-    histogram(bhvs{s}.stake(bhvs{s}.decision==1),'FaceColor','b','FaceAlpha',0.3);
-    xlabel('Stake/reward');
-    legend('Reject','Accept');
-    set(gca,'FontSize',16);
-    
-    subplot(2,2,4); hold on;
-    histogram(bhvs{s}.EFFs(bhvs{s}.decision==0),'FaceColor','r','FaceAlpha',0.3);
-    histogram(bhvs{s}.EFFs(bhvs{s}.decision==1),'FaceColor','b','FaceAlpha',0.3);
-    xlabel('EFFs');
-    legend('Reject','Accept');
-    set(gca,'FontSize',16);
-    
-    if save_fig
-        fig_dir   = [prj_dir 'results/bhv/'];
-        if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
-        fig_fname = [fig_dir fig_name '.' fig_ftype];
-        fprintf('Saving %s\n',fig_fname);
-        saveas(gcf,fig_fname);
-    end
-end
-
-%% Plot a regression line %
-% SVtmp = bhvs{s}.SV;
-% 
-% figure; scatter(SVtmp,ProbAccept,'.')
-% 
-% sigparam=sigm_fit(SVtmp,ProbAccept,1)
-% 
-% [p,S,mu]  = polyfit(SVtmp,ProbAccept,12)
-% PotValues=[-10:0.1:10];
-% Pout=polyval(p,PotValues);
-% 
-% figure; plot(PotValues,Pout)
-% 
-% % Test behavioral modelling.
-% figure;
-% subplot(2,1,1);
-% scatter(bhvs{s}.stake, bhvs{s}.SV);
-% title('Reward')
-% subplot(2,1,2);
-% scatter(bhvs{s}.effort, bhvs{s}.SV);
-% title('Effort');
-% 
