@@ -97,8 +97,10 @@ pacc_ind_on = (exp(par_ind_on(1)*(data(on_idx,stake_ix)-(par_ind_on(2)*(data(on_
 SV_ind_on   = SV_fn_on(par_ind_on(2));
 [~,SV_ind_on_sort_idx] = sort(SV_ind_on);
 sv_vals  = -4.5:0.01:13;
-pacc_vals_on_ind  = (exp(par_ind_on(1)*sv_vals)) ./ (exp(par_ind_on(1)) + exp(par_ind_on(1)*sv_vals));
-pacc_vals_off_ind = (exp(par_ind_off(1)*sv_vals)) ./ (exp(par_ind_off(1)) + exp(par_ind_off(1)*sv_vals));
+pacc_vals_on_ind  = (exp(par_ind_on(1)*(sv_vals - par_ind_on(3)))) ./ ...
+    (exp(par_ind_on(1)) + exp(par_ind_on(1)*(sv_vals - par_ind_on(3))));
+pacc_vals_off_ind = (exp(par_ind_off(1)*(sv_vals - par_ind_off(3)))) ./ ...
+    (exp(par_ind_off(1)) + exp(par_ind_off(1)*(sv_vals - par_ind_off(3))));
 
 % Plot the outcomes
 fig_name = 'PFC05_stim_dec_fn_ind_ONOFF_line';

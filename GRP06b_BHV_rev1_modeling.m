@@ -61,7 +61,7 @@ tbl = readtable(table_all_fname);
 %   1) Add personal reward term:
 %       SV = k1*R - k2*E^2
 %   2) Add previous reward interaction:
-%       SV = k1*(R - R_prv) - k2*E^2
+%       SV = (R - R_prv) - k2*E^2
 
 %% Original model
 options = optimset('PlotFcns',@optimplotfval);%,'MaxFunEvals',5000,'MaxIter',5000);
@@ -103,53 +103,6 @@ title('Original SV Decision Function');
 legend(sv_lines,SBJs(sbj_idx));
 set(gca,'FontSize',18);
 
-%% Adding individualized reward term
-options = optimset('PlotFcns',@optimplotfval);%,'MaxFunEvals',5000,'MaxIter',5000);
-irew_par = nan(length(SBJs),3);
-irew_fit = nan(size(SBJs));
-irew_flg = nan(size(SBJs));
-for s = 1:length(SBJs)
-    s_idx = tbl.sbj_n==s;
-    irew_dec_fn=@(p) norm( (exp(p(1)*((p(2)*tbl.reward_cur(s_idx))-(p(3)*(tbl.effort_cur(s_idx)).^2))) ./ ...
-        (exp(p(1)) + exp(p(1)*((p(2)*tbl.reward_cur(s_idx))-(p(3)*(tbl.effort_cur(s_idx)).^2))))) - tbl.decision_cur(s_idx));
-    [irew_par(s,:), irew_fit(s), irew_flg(s)]=fminsearch(irew_dec_fn, [1,1,1], options);
-    irew_SV_fn    = @(k) (k(1)*tbl.reward_cur(s_idx))-(k(2)*(tbl.effort_cur(s_idx)).^2);
-    irew_EFF_fn   = @(k) (k*(tbl.effort_cur(s_idx)).^2);
-    SV{s}.irew   = irew_SV_fn(irew_par(s,2:3));
-    EFFs{s}.irew = irew_EFF_fn(irew_par(s,3));
-    pacc{s}.irew = (exp(irew_par(s,1)*((irew_par(s,3)*tbl.reward_cur(s_idx))-(irew_par(s,2)*(tbl.effort_cur(s_idx)).^2))) ./...
-        (exp(irew_par(s,1)) + exp(irew_par(s,1)*(tbl.reward_cur(s_idx)-(irew_par(s,2)*(tbl.effort_cur(s_idx)).^2)))));
-    % pause;
-end
-% PFC05 doesn't converge to reasonable values, so maybe this isn't a good
-% move...
-
-fig_name = 'GRP_bhv_model_indRew_SV_decision_fn';
-figure('Name',fig_name,'units','norm','OuterPosition',[0 0 0.3 0.4]);
-hold on;
-sbj_idx = [1 2 3 4];
-for s = sbj_idx
-    [~,SV_sort_idx] = sort(SV{s}.irew);
-    
-    sv_line(s) = line(SV{s}.irew(SV_sort_idx),pacc{s}.irew(SV_sort_idx),...
-        'Color',sbj_colors(s,:),'LineWidth',3);
-%     scatter(bhvs{s}.SV,bhvs{s}.p_accept,scat_sz,sbj_colors(s,:));
-%     line(mdl_x,mdl_y,'Color','k');
-end
-line(xlim,[0.5 0.5],'Color','k','LineStyle','--');
-xlabel('Subjective Value'); ylabel('Probabilty Accept');
-title('Individualized Reward SV Decision Function');
-legend(sv_lines,SBJs(sbj_idx));
-set(gca,'FontSize',18);
-
-% if save_fig
-%     fig_dir   = [prj_dir 'results/bhv/'];
-%     if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
-%     fig_fname = [fig_dir fig_name '.' fig_ftype];
-%     fprintf('Saving %s\n',fig_fname);
-%     saveas(gcf,fig_fname);
-% end
-
 %% Add previous reward interactions
 options = optimset('PlotFcns',@optimplotfval);%,'MaxFunEvals',5000,'MaxIter',5000);
 sprew_par = nan(length(SBJs),2);
@@ -163,12 +116,12 @@ for s = 1:length(SBJs)
         (exp(p(1)) + exp(p(1)*((tbl.reward_cur(s_idx)-tbl.reward_prv(s_idx))-...
         (p(2)*(tbl.effort_cur(s_idx)).^2))))) - tbl.decision_cur(s_idx));
     [sprew_par(s,:), sprew_fit(s), sprew_flg(s)]=fminsearch(sprew_dec_fn, [1,1], options);
-    sprew_SV_fn    = @(k) tbl.reward_cur(s_idx)-(k*(tbl.effort_cur(s_idx)).^2);
+    sprew_SV_fn    = @(k) (tbl.reward_cur(s_idx)-tbl.reward_prv(s_idx))-(k*(tbl.effort_cur(s_idx)).^2);
     sprew_EFF_fn   = @(k) (k*(tbl.effort_cur(s_idx)).^2);
     SV{s}.sprew   = sprew_SV_fn(sprew_par(s,2));
     EFFs{s}.sprew = sprew_EFF_fn(sprew_par(s,2));
-    pacc{s}.sprew = (exp(sprew_par(s,1)*(tbl.reward_cur(s_idx)-(sprew_par(s,2)*(tbl.effort_cur(s_idx)).^2))) ./...
-        (exp(sprew_par(s,1)) + exp(sprew_par(s,1)*(tbl.reward_cur(s_idx)-(sprew_par(s,2)*(tbl.effort_cur(s_idx)).^2)))));
+    pacc{s}.sprew = (exp(sprew_par(s,1)*((tbl.reward_cur(s_idx)-tbl.reward_prv(s_idx))-(sprew_par(s,2)*(tbl.effort_cur(s_idx)).^2))) ./...
+        (exp(sprew_par(s,1)) + exp(sprew_par(s,1)*((tbl.reward_cur(s_idx)-tbl.reward_prv(s_idx))-(sprew_par(s,2)*(tbl.effort_cur(s_idx)).^2)))));
     % pause;
     pacc_sprew(s_idx) = pacc{s}.sprew;
 end
@@ -209,6 +162,100 @@ for s = 1:length(SBJs)
     fn_plot_LMM_quantile_line_interaction(tbl(~isnan(tbl.reward_prv) & tbl.sbj_n==s,:),'reward_prv','reward_cur','pacc_sprew',2,5);
     title(SBJs{s});
 end
+
+% if save_fig
+%     fig_dir   = [prj_dir 'results/bhv/'];
+%     if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
+%     fig_fname = [fig_dir fig_name '.' fig_ftype];
+%     fprintf('Saving %s\n',fig_fname);
+%     saveas(gcf,fig_fname);
+% end
+
+%% Adding individualized reward term
+options = optimset('PlotFcns',@optimplotfval,'MaxFunEvals',5000,'MaxIter',5000);
+irew_par = nan(length(SBJs),3);
+irew_fit = nan(size(SBJs));
+irew_flg = nan(size(SBJs));
+for s = 1:length(SBJs)
+    s_idx = tbl.sbj_n==s;
+    irew_dec_fn=@(p) norm( (exp(p(1)*((p(2)*tbl.reward_cur(s_idx))-(p(3)*(tbl.effort_cur(s_idx)).^2))) ./ ...
+        (exp(p(1)) + exp(p(1)*((p(2)*tbl.reward_cur(s_idx))-(p(3)*(tbl.effort_cur(s_idx)).^2))))) - tbl.decision_cur(s_idx));
+    [irew_par(s,:), irew_fit(s), irew_flg(s)]=fminsearch(irew_dec_fn, [1,1,1], options);
+    irew_SV_fn    = @(k) (k(1)*tbl.reward_cur(s_idx))-(k(2)*(tbl.effort_cur(s_idx)).^2);
+    irew_EFF_fn   = @(k) (k*(tbl.effort_cur(s_idx)).^2);
+    SV{s}.irew   = irew_SV_fn(irew_par(s,2:3));
+    EFFs{s}.irew = irew_EFF_fn(irew_par(s,3));
+    pacc{s}.irew = (exp(irew_par(s,1)*((irew_par(s,3)*tbl.reward_cur(s_idx))-(irew_par(s,2)*(tbl.effort_cur(s_idx)).^2))) ./...
+        (exp(irew_par(s,1)) + exp(irew_par(s,1)*((irew_par(s,3)*tbl.reward_cur(s_idx))-(irew_par(s,2)*(tbl.effort_cur(s_idx)).^2)))));
+    % pause;
+end
+% PFC05 doesn't converge to reasonable values, so maybe this isn't a good
+% move...
+
+fig_name = 'GRP_bhv_model_indRew_SV_decision_fn';
+figure('Name',fig_name,'units','norm','OuterPosition',[0 0 0.3 0.4]);
+hold on;
+sbj_idx = [1 2 3 4];
+for s = sbj_idx
+    [~,SV_sort_idx] = sort(SV{s}.irew);
+    
+    sv_line(s) = line(SV{s}.irew(SV_sort_idx),pacc{s}.irew(SV_sort_idx),...
+        'Color',sbj_colors(s,:),'LineWidth',3);
+%     scatter(bhvs{s}.SV,bhvs{s}.p_accept,scat_sz,sbj_colors(s,:));
+%     line(mdl_x,mdl_y,'Color','k');
+end
+line(xlim,[0.5 0.5],'Color','k','LineStyle','--');
+xlabel('Subjective Value'); ylabel('Probabilty Accept');
+title('Individualized Reward SV Decision Function');
+legend(sv_lines,SBJs(sbj_idx));
+set(gca,'FontSize',18);
+
+% if save_fig
+%     fig_dir   = [prj_dir 'results/bhv/'];
+%     if ~exist(fig_dir,'dir'); mkdir(fig_dir); end
+%     fig_fname = [fig_dir fig_name '.' fig_ftype];
+%     fprintf('Saving %s\n',fig_fname);
+%     saveas(gcf,fig_fname);
+% end
+
+%% Adding individualized reward term and subtract previous reward
+options = optimset('PlotFcns',@optimplotfval,'MaxFunEvals',5000,'MaxIter',5000);
+irew_par = nan(length(SBJs),3);
+irew_fit = nan(size(SBJs));
+irew_flg = nan(size(SBJs));
+for s = 1:length(SBJs)
+    s_idx = tbl.sbj_n==s;
+    irew_dec_fn=@(p) norm( (exp(p(1)*((p(2)*(tbl.reward_cur(s_idx)-tbl.reward_prv(s_idx)))-(p(3)*(tbl.effort_cur(s_idx)).^2))) ./ ...
+        (exp(p(1)) + exp(p(1)*((p(2)*(tbl.reward_cur(s_idx)-tbl.reward_prv(s_idx)))-(p(3)*(tbl.effort_cur(s_idx)).^2))))) - tbl.decision_cur(s_idx));
+    [irew_par(s,:), irew_fit(s), irew_flg(s)]=fminsearch(irew_dec_fn, [1,1,1], options);
+    irew_SV_fn    = @(k) (k(1)*(tbl.reward_cur(s_idx)-tbl.reward_prv(s_idx)))-(k(2)*(tbl.effort_cur(s_idx)).^2);
+    irew_EFF_fn   = @(k) (k*(tbl.effort_cur(s_idx)).^2);
+    SV{s}.irew   = irew_SV_fn(irew_par(s,2:3));
+    EFFs{s}.irew = irew_EFF_fn(irew_par(s,3));
+    pacc{s}.irew = (exp(irew_par(s,1)*((irew_par(s,3)*(tbl.reward_cur(s_idx)-tbl.reward_prv(s_idx)))-(irew_par(s,2)*(tbl.effort_cur(s_idx)).^2))) ./...
+        (exp(irew_par(s,1)) + exp(irew_par(s,1)*((irew_par(s,3)*(tbl.reward_cur(s_idx)-tbl.reward_prv(s_idx)))-(irew_par(s,2)*(tbl.effort_cur(s_idx)).^2)))));
+    % pause;
+end
+% PFC05 doesn't converge to reasonable values, so maybe this isn't a good
+% move...
+
+fig_name = 'GRP_bhv_model_indRew_SV_decision_fn';
+figure('Name',fig_name,'units','norm','OuterPosition',[0 0 0.3 0.4]);
+hold on;
+sbj_idx = [1 2 3 4];
+for s = sbj_idx
+    [~,SV_sort_idx] = sort(SV{s}.irew);
+    
+    sv_line(s) = line(SV{s}.irew(SV_sort_idx),pacc{s}.irew(SV_sort_idx),...
+        'Color',sbj_colors(s,:),'LineWidth',3);
+%     scatter(bhvs{s}.SV,bhvs{s}.p_accept,scat_sz,sbj_colors(s,:));
+%     line(mdl_x,mdl_y,'Color','k');
+end
+line(xlim,[0.5 0.5],'Color','k','LineStyle','--');
+xlabel('Subjective Value'); ylabel('Probabilty Accept');
+title('Individualized Reward SV Decision Function');
+legend(sv_lines,SBJs(sbj_idx));
+set(gca,'FontSize',18);
 
 % if save_fig
 %     fig_dir   = [prj_dir 'results/bhv/'];

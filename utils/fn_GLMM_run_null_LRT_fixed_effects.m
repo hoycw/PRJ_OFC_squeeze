@@ -11,7 +11,11 @@ for p = 1:length(preds)
     else
         % Try to remove that term just before the first random effects term
         re_pos = strfind(formula,'+ (');
-        null_formula = insertBefore(formula,re_pos(1),['- ' preds{p} ' ']);
+        if ~isempty(re_pos)
+            null_formula = insertBefore(formula,re_pos(1),['- ' preds{p} ' ']);
+        else % no random effects, just add to end
+            null_formula = [formula ' - ' preds{p}];
+        end
     end
     null_mdls{p} = fitglme(tbl,null_formula,'Distribution','binomial','FitMethod',fit_method);
     comparisons{p} = compare(null_mdls{p},full_mdl,'CheckNesting',true);

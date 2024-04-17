@@ -43,10 +43,10 @@ for s_ix = 1:length(sbj_ns)
     % Assign to quantiles
     if n_quant_div==2 && any(contains(xvar_div,{'reward','effort'}))
         % Override median split for reward/effort to be high/low split
-        if all(unique(tbl.(xvar_div))'==[1 4 7 10 13])
+        if length(unique(tbl.(xvar_div)))==5 && all(unique(tbl.(xvar_div))'==[1 4 7 10 13])
             xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)<5) = 1;
             xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)>8)  = 2;
-        elseif all(unique(tbl.(xvar_div))'==[0.16 0.32 0.48 0.64 0.8])
+        elseif length(unique(tbl.(xvar_div)))==5 && all(unique(tbl.(xvar_div))'==[0.16 0.32 0.48 0.64 0.8])
             xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)<0.4) = 1;
             xdiv_idx(tbl.sbj_n==s & tbl.(xvar_div)>0.5)  = 2;
         else
