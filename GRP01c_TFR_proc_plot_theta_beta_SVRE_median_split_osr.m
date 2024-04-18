@@ -55,7 +55,7 @@ else
     error('couldnt pick plt_id based on an_id');
 end
 if ~isempty(stat_id)
-    fig_dir   = [prj_dir 'results/TFR/' an_id 'LMM/' stat_id '/median_split/'];
+    fig_dir   = [prj_dir 'results/TFR/' an_id '/median_split/' stat_id '/'];
     eval(['run ' prj_dir 'scripts/stat_vars/' stat_id '_vars.m']);
 else
     fig_dir   = [prj_dir 'results/TFR/' an_id '/median_split/'];
@@ -76,6 +76,9 @@ svre_names  = {'Subj. Value','Effort','Prev. Reward'};
 hilo_labs   = {'High','Low'};
 hilo_styles = {'-','--'};
 
+pow_vars = {'PFC_theta','PFC_betalo','BG_theta','BG_betalo'};
+pow_names = {'PFC Theta','PFC Beta','BG Theta','BG Beta'};
+
 roi_labs = {'BG','PFC'};
 reds = cbrewer('seq','RdPu',5);
 theta_colors = reds([2 5],:);
@@ -89,7 +92,6 @@ if ~isempty(stat_id)
     table_all = readtable(table_all_fname);
 
     % Toss outliers
-    pow_vars = {'PFC_theta','PFC_betalo','BG_theta','BG_betalo'};
     out_idx_all = struct;
     for f = 1:length(pow_vars)
         out_idx_all.(pow_vars{f}) = abs(table_all.(pow_vars{f}))>mean(table_all.(pow_vars{f}))...
@@ -99,6 +101,7 @@ if ~isempty(stat_id)
         else
             fprintf('No bad trials for %s with threshold %d\n',pow_vars{f},st.outlier_thresh);
         end
+        tbl.(pow_vars{f}) = table_all(~out_idx_all.(pow_vars{f}),:);
     end
 end
 
@@ -120,6 +123,8 @@ for s = 1:length(SBJs)
         beta_avg  = nan([length(SBJs) 2 3 2 numel(tmp.tfr.time)]);
         theta_sem = nan([length(SBJs) 2 3 2 numel(tmp.tfr.time)]);
         beta_sem  = nan([length(SBJs) 2 3 2 numel(tmp.tfr.time)]);
+        theta_box = nan([length(SBJs) 2 3 2]);
+        beta_box  = nan([length(SBJs) 2 3 2]);
         time_vec = tmp.tfr.time;
     end
     
@@ -166,15 +171,18 @@ for s = 1:length(SBJs)
                     b_idx(out_idx_all.([roi_labs{ch_ix} '_betalo'])(table_all.sbj_n==s)) = 0;
                 end
                 if strcmp(comb_method,'mn')
-                    % Take average and SEM of theta and beta
+                    % Take time-resolved average and SEM of theta and beta
                     theta_avg(s,ch_ix,svre_ix,split_ix,:) = squeeze(mean(theta_pow.powspctrm(th_idx,ch_ix,1,:),1));
                     theta_sem(s,ch_ix,svre_ix,split_ix,:) = ...
                         squeeze(std(theta_pow.powspctrm(th_idx,ch_ix,1,:),[],1))./sqrt(sum(th_idx));
                     beta_avg(s,ch_ix,svre_ix,split_ix,:) = squeeze(mean(beta_pow.powspctrm(b_idx,ch_ix,1,:),1));
                     beta_sem(s,ch_ix,svre_ix,split_ix,:) = ...
                         squeeze(std(beta_pow.powspctrm(b_idx,ch_ix,1,:),[],1))./sqrt(sum(b_idx));
+
+                    % Compute for time-averaged data
+                    
                 elseif strcmp(comb_method,'md')
-                    % Take median and MAD of theta and beta
+                    % Take time-resolved median and MAD of theta and beta
                     theta_avg(s,ch_ix,svre_ix,split_ix,:) = squeeze(median(theta_pow.powspctrm(th_idx,ch_ix,1,:),1));
                     theta_sem(s,ch_ix,svre_ix,split_ix,:) = squeeze(mad(theta_pow.powspctrm(th_idx,ch_ix,1,:),1,1));
                     beta_avg(s,ch_ix,svre_ix,split_ix,:) = squeeze(median(beta_pow.powspctrm(b_idx,ch_ix,1,:),1));
@@ -387,3 +395,36 @@ if save_fig
     fprintf('Saving %s\n',fig_fname);
     saveas(gcf,fig_fname);
 end
+
+%% Plot bar plots of median split averaged in the decision window
+fig_name = ['GRP_TFR_SVRE_median_split_' an_id '_bar_sbj'];
+figure('Name',fig_name,'units','normalized',...
+    'outerposition',[0 0 0.45 0.75],'Visible',fig_vis);
+sp_ix = [1 2 4 5];
+for f = 1:length(pow_vars)
+    subplot(2,3,sp_ix(f)); hold on;
+    fn_plot_LMM_bar_sbj(tbl.(pow_vars{f}),'SV_cur',pow_vars{f});
+    xticklabels({'Low','High'});
+    ylabel([pow_names{f} ' (z)']);
+    title({'Effect of Current','Subjective Value'});
+    set(gca,'FontSize',18);
+end
+
+% BG beta ~ effortS
+subplot(2,3,3); hold on;
+fn_plot_LMM_bar_sbj(tbl.(pow_vars{f}),'effortS_cur','BG_betalo');
+xticklabels({'Low','High'});
+ylabel('BG Beta (z)');
+title({'Effect of','Current Effort'});
+set(gca,'FontSize',18);
+
+% PFC theta ~ previous reward
+subplot(2,3,6); hold on;
+fn_plot_LMM_bar_sbj(tbl.(pow_vars{f}),'reward_prv','PFC_theta');
+xticklabels({'Low','High'});
+ylabel('PFC Theta (z)');
+title({'Effect of','Previous Reward'});
+set(gca,'FontSize',18);
+
+if save_fig; fig_name = get(gcf,'Name'); fig_fname = [fig_dir fig_name '.' fig_ftype];
+    fprintf('Saving %s\n',fig_fname); saveas(gcf,fig_fname); end
