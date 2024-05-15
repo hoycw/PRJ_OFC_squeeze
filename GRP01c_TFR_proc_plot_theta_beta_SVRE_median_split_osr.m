@@ -400,7 +400,7 @@ end
 fig_name = ['GRP_TFR_SVRE_median_split_' an_id '_bar_sbj'];
 figure('Name',fig_name,'units','normalized',...
     'outerposition',[0 0 0.45 0.75],'Visible',fig_vis);
-sp_ix = [1 2 4 5];
+sp_ix = [4 5 1 2]; % BG beta, PFC beta, BG theta, PFC theta
 for f = 1:length(pow_vars)
     subplot(2,3,sp_ix(f)); hold on;
     fn_plot_LMM_bar_sbj(tbl.(pow_vars{f}),'SV_cur',pow_vars{f});
