@@ -3,7 +3,7 @@ This code repository is for all preprocessing, analysis, and plotting scripts re
 
 ## Data and Experimental Paradigm:
 Experimental paradigm as in Saleh et al., (2021; Brain;  doi:10.1093/brain/awab013). 
-All raw and preprocessed datasets are provided under Creative Commons Attrubition 4.0 license on OSF at TBD.
+All raw and preprocessed datasets are provided under Creative Commons Attrubition 4.0 license on OSF at DOI 10.17605/OSF.IO/JQ6Z4.
 This repo is not citable (yet).
 
 ## Manuscript: 
